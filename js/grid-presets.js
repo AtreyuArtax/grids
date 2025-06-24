@@ -113,16 +113,16 @@ export const gridPresets = {
         majorGridColor: "#323232",
         xMinRadians: null, xMaxRadians: null, radianStepMultiplier: null, xGridUnitsPerRadianStep: null
     },
-    "blank": {
-        squareSizeInput: 20,
-        xMin: null, xMax: null, xIncrement: null,
-        xLabelEvery: 1, xAxisLabel: "", xLabelOnZero: true, xAxisLabelOnRight: false, xAxisLabelType: 'radians',
-        yMin: -3, yMax: 3, yIncrement: 0.5, yLabelEvery: 2, yAxisLabel: "", yLabelOnZero: true, yAxisLabelOnTop: false,
-        suppressZeroLabel: false, showAxisArrows: true,
-        showLineArrows: true, showAxes: false,
-        minorGridColor: "#a9a9a9",
-        majorGridColor: "#555555",
-        xMinRadians: 0, xMaxRadians: 2, radianStepMultiplier: 0.5,
-        xGridUnitsPerRadianStep: 3
-    }
+    "polar": {
+    squareSizeInput: 20,
+    xMin: -10, xMax: 10, xIncrement: 1, xLabelEvery: 1, xAxisLabel: "x", xLabelOnZero: true, xAxisLabelOnRight: false, xAxisLabelType: 'numbers',
+    yMin: -10, yMax: 10, yIncrement: 1, yLabelEvery: 1, yAxisLabel: "y", yLabelOnZero: true, yAxisLabelOnTop: false,
+    suppressZeroLabel: false, showAxisArrows: false,
+    showLineArrows: false, showAxes: false,
+    minorGridColor: "#a9a9a9",
+    majorGridColor: "#555555",
+    xMinRadians: null, xMaxRadians: null, radianStepMultiplier: null, xGridUnitsPerRadianStep: null,
+    paperStyle: 'polar'
+}
+
 };

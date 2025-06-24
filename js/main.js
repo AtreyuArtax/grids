@@ -17,6 +17,23 @@ document.getElementById('exportPNG').addEventListener('click', exportSVGtoPNG);
 document.getElementById('exportPDF').addEventListener('click', () => exportSVGtoPDF());
 
 /**
+ * Toggles the visibility of paper-style specific settings (e.g., Cartesian vs. Polar).
+ */
+function togglePaperStyleSettings() {
+    const paperStyle = document.getElementById('paperStyle').value;
+    const polarControls = document.getElementById('polarControls');
+    const cartesianAxisSettings = document.getElementById('cartesianAxisSettings');
+
+    if (paperStyle === 'polar') {
+        if (polarControls) polarControls.style.display = 'block';
+        if (cartesianAxisSettings) cartesianAxisSettings.style.display = 'none';
+    } else {
+        if (polarControls) polarControls.style.display = 'none';
+        if (cartesianAxisSettings) cartesianAxisSettings.style.display = 'block';
+    }
+}
+
+/**
  * Applies a selected grid preset to the UI controls and redraws the grid.
  * @param {string} presetName - The name of the preset to apply.
  */
@@ -70,7 +87,7 @@ function applyPreset(presetName) {
         document.getElementById('showLineArrows').checked = preset.showLineArrows;
         equationSettings.lastShowLineArrowsValue = preset.showLineArrows;
 
-// --- Add this for Show Axes ---
+        // --- Add this for Show Axes ---
         if (document.getElementById('showAxes')) {
             document.getElementById('showAxes').checked = preset.showAxes;
         }
@@ -79,6 +96,20 @@ function applyPreset(presetName) {
         if (preset.paperStyle && document.getElementById('paperStyle')) {
             document.getElementById('paperStyle').value = preset.paperStyle;
         }
+
+        // --- NEW: Polar settings (if present in the preset) ---
+        if (preset.polarNumCircles !== undefined) {
+            document.getElementById('polarNumCircles').value = preset.polarNumCircles;
+        }
+        if (preset.polarNumRadials !== undefined) {
+            document.getElementById('polarNumRadials').value = preset.polarNumRadials;
+        }
+        if (preset.polarDegrees !== undefined) {
+            document.getElementById('polarDegrees').value = preset.polarDegrees;
+        }
+        
+        // Call togglePaperStyleSettings after setting paperStyle and polar values
+        togglePaperStyleSettings();
 
         calculateDynamicMargins();
         drawGrid();
@@ -172,9 +203,22 @@ document.addEventListener('DOMContentLoaded', () => {
     if (paperStyleSelect) {
         paperStyleSelect.addEventListener('change', () => {
             gridPresetSelect.value = 'custom'; // Set preset to custom when user changes paper style
+            togglePaperStyleSettings(); // Toggle visibility
             drawGrid(); // Redraw with new paper style
         });
     }
+
+    // --- NEW: Polar input listeners ---
+    ['polarNumCircles', 'polarNumRadials', 'polarDegrees'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { // Ensure element exists before adding listener
+            el.addEventListener('input', () => {
+                document.getElementById('gridPreset').value = 'custom';
+                drawGrid();
+            });
+        }
+    });
+
 
     // Collapse fieldsets (collapsible menus)
     const collapsibleFieldsets = document.querySelectorAll('.controls-card fieldset');
@@ -208,6 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initial setup calls
     toggleXAxisSettings();
     toggleCustomLabelInput();
+    togglePaperStyleSettings(); // Call this on initial load to set correct visibility
     calculateDynamicMargins(); // Initial calculation of all margins
     applyPreset(gridPresetSelect.value);
     renderEquationsList();

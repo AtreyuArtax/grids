@@ -57,6 +57,7 @@
                         <select id="paperStyle">
                             <option value="grid" selected>Grid</option>
                             <option value="dot">Dot</option>
+                            <option value="polar">Polar</option>
                         </select>
                     </label>
 
@@ -106,100 +107,118 @@
                 </div>
             </fieldset>
 
-            <fieldset class="controls-group" id="yAxisSettings">
-                <legend>y-Axis Settings <span class="toggle-icon">▼</span></legend>
-                <div class="fieldset-content">
-                    <label>y Min:
-                        <input type="number" id="yMin" value="0">
-                    </label>
-                    <label>y Max:
-                        <input type="number" id="yMax" value="10">
-                    </label>
-                    <label>Increment:
-                        <input type="number" id="yIncrement" value="1" min="0.001" step="0.1"
-                        title="Sets the numerical value represented by each minor grid square. For example, '1' means each small square counts as 1 unit.">
-                    </label>
-                    <label>Label Nth Step:
-                        <input type="number" id="yLabelEvery" value="1" min="1" step="1">
-                    </label>
-                    <label>Axis Label:
-                        <input type="text" id="yAxisLabel" value="y">
-                    </label>
-                    <label class="checkbox-label">Numbers on Axis:
-                        <input type="checkbox" id="yLabelOnZero" checked>
-                    </label>
-                    <label class="checkbox-label">Axis Label on Top:
-                        <input type="checkbox" id="yAxisLabelOnTop">
-                    </label>
-                </div>
-            </fieldset>
+            <!-- Polar Controls: HIDDEN by default, shown only for Polar -->
+            <div id="polarControls" style="display: none; margin-bottom: 12px; margin-top: 8px;">
+                <label>
+                    Number of Circles:
+                    <input type="number" id="polarNumCircles" min="1" max="24" value="8" style="width: 3em;">
+                </label>
+                <label style="margin-left: 1em;">
+                    Number of Radial Divisions:
+                    <input type="number" id="polarNumRadials" min="1" max="36" value="12" style="width: 3em;">
+                </label>
+                <label style="margin-left: 1em;">
+                    Degrees per Circle (outer ring):
+                    <input type="number" id="polarDegrees" min="1" max="360" value="360" style="width: 4em;">
+                </label>
+            </div>
 
-            <fieldset class="controls-group" id="xAxisSettings">
-                <legend>x-Axis Settings <span class="toggle-icon">▼</span></legend>
-                <div class="fieldset-content">
-                    <label>x-Axis Label Type:
-                        <select id="xAxisLabelType">
-                            <option value="numbers">Numbers</option>
-                            <option value="radians">Radians (π)</option>
-                            <option value="degrees">Degrees (°)</option> <!-- NEW OPTION -->
-                        </select>
-                    </label>
-
-                    <div id="numericalXAxisSettings">
-                        <label>x Min:
-                            <input type="number" id="xMin" value="0">
+            <div id="cartesianAxisSettings">
+                <fieldset class="controls-group" id="yAxisSettings">
+                    <legend>y-Axis Settings <span class="toggle-icon">▼</span></legend>
+                    <div class="fieldset-content">
+                        <label>y Min:
+                            <input type="number" id="yMin" value="0">
                         </label>
-                        <label>x Max:
-                            <input type="number" id="xMax" value="10">
+                        <label>y Max:
+                            <input type="number" id="yMax" value="10">
                         </label>
                         <label>Increment:
-                            <input type="number" id="xIncrement" value="1" min="0.001" step="0.1"
+                            <input type="number" id="yIncrement" value="1" min="0.001" step="0.1"
                             title="Sets the numerical value represented by each minor grid square. For example, '1' means each small square counts as 1 unit.">
                         </label>
-                    </div>
-
-                    <div id="radianXAxisSettings" class="hidden">
-                        <label>x Min (π multiples):
-                            <input type="number" id="xMinRadians" value="0" step="0.5">
+                        <label>Label Nth Step:
+                            <input type="number" id="yLabelEvery" value="1" min="1" step="1">
                         </label>
-                        <label>x Max (π multiples):
-                            <input type="number" id="xMaxRadians" value="2" step="0.5">
+                        <label>Axis Label:
+                            <input type="text" id="yAxisLabel" value="y">
                         </label>
-                        <label>Radian Step Multiplier (e.g., 0.5 for π/2):
-                            <input type="number" id="radianStepMultiplier" value="0.5" min="0.01" step="0.01">
+                        <label class="checkbox-label">Numbers on Axis:
+                            <input type="checkbox" id="yLabelOnZero" checked>
                         </label>
-                        <label>Grid Units per Radian Step:
-                            <input type="number" id="xGridUnitsPerRadianStep" value="3" min="1" step="1">
+                        <label class="checkbox-label">Axis Label on Top:
+                            <input type="checkbox" id="yAxisLabelOnTop">
                         </label>
                     </div>
+                </fieldset>
 
-                    <label>Label Nth Step:
-                        <input type="number" id="xLabelEvery" value="1" min="1" step="1">
-                    </label>
-                    <label>Axis Label:
-                        <input type="text" id="xAxisLabel" value="x">
-                    </label>
-                    <label class="checkbox-label">Numbers on Axis:
-                        <input type="checkbox" id="xLabelOnZero" checked>
-                    </label>
-                    <label class="checkbox-label">Axis Label on Right:
-                        <input type="checkbox" id="xAxisLabelOnRight">
-                    </label>
-                </div>
-            </fieldset>
+                <fieldset class="controls-group" id="xAxisSettings">
+                    <legend>x-Axis Settings <span class="toggle-icon">▼</span></legend>
+                    <div class="fieldset-content">
+                        <label>x-Axis Label Type:
+                            <select id="xAxisLabelType">
+                                <option value="numbers">Numbers</option>
+                                <option value="radians">Radians (π)</option>
+                                <option value="degrees">Degrees (°)</option> <!-- NEW OPTION -->
+                            </select>
+                        </label>
+
+                        <div id="numericalXAxisSettings">
+                            <label>x Min:
+                                <input type="number" id="xMin" value="0">
+                            </label>
+                            <label>x Max:
+                                <input type="number" id="xMax" value="10">
+                            </label>
+                            <label>Increment:
+                                <input type="number" id="xIncrement" value="1" min="0.001" step="0.1"
+                                title="Sets the numerical value represented by each minor grid square. For example, '1' means each small square counts as 1 unit.">
+                            </label>
+                        </div>
+
+                        <div id="radianXAxisSettings" class="hidden">
+                            <label>x Min (π multiples):
+                                <input type="number" id="xMinRadians" value="0" step="0.5">
+                            </label>
+                            <label>x Max (π multiples):
+                                <input type="number" id="xMaxRadians" value="2" step="0.5">
+                            </label>
+                            <label>Radian Step Multiplier (e.g., 0.5 for π/2):
+                                <input type="number" id="radianStepMultiplier" value="0.5" min="0.01" step="0.01">
+                            </label>
+                            <label>Grid Units per Radian Step:
+                                <input type="number" id="xGridUnitsPerRadianStep" value="3" min="1" step="1">
+                            </label>
+                        </div>
+
+                        <label>Label Nth Step:
+                            <input type="number" id="xLabelEvery" value="1" min="1" step="1">
+                        </label>
+                        <label>Axis Label:
+                            <input type="text" id="xAxisLabel" value="x">
+                        </label>
+                        <label class="checkbox-label">Numbers on Axis:
+                            <input type="checkbox" id="xLabelOnZero" checked>
+                        </label>
+                        <label class="checkbox-label">Axis Label on Right:
+                            <input type="checkbox" id="xAxisLabelOnRight">
+                        </label>
+                    </div>
+                </fieldset>
+            </div>
 
             <fieldset class="controls-group" id="equationPlotting">
-    <legend>
-  <span class="info-icon" tabindex="0" aria-describedby="labelInfoTooltip">i</span>
-  <span class="info-tooltip" id="labelInfoTooltip" role="tooltip">
-      After you have plotted and positioned equation labels, changing the grid (min/max values, increments, or aspect ratio) may reset label positions. <br><br>
-      <b>Tip:</b> Set your grid first, then plot and adjust labels for best results.
-  </span>
-  Equation Plotting
-  <span class="toggle-icon">▼</span>
-</legend>
+                <legend>
+                    <span class="info-icon" tabindex="0" aria-describedby="labelInfoTooltip">i</span>
+                    <span class="info-tooltip" id="labelInfoTooltip" role="tooltip">
+                        After you have plotted and positioned equation labels, changing the grid (min/max values, increments, or aspect ratio) may reset label positions. <br><br>
+                        <b>Tip:</b> Set your grid first, then plot and adjust labels for best results.
+                    </span>
+                    Equation Plotting
+                    <span class="toggle-icon">▼</span>
+                </legend>
 
-    <div class="fieldset-content">
+                <div class="fieldset-content">
                     <div class="color-label-container">
                         <label>Line Color:
                             <div class="color-input-wrapper">

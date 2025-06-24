@@ -862,7 +862,7 @@ function placeEquationLabel(equationGroup, eq, labelText, gridOptions, placedLab
         }
 
         if (!labelRefPoint) {
-            const testX = xMax + xValuePerMinorSquare;
+            const testX = gridOptions.xMax + xValuePerMinorSquare; // Use gridOptions.xMax here
             let xForEvaluation = testX;
             if (currentXAxisLabelType === 'degrees') {
                 xForEvaluation = math.unit(xForEvaluation, 'deg').toNumber('rad');
@@ -978,27 +978,29 @@ export function drawGrid() {
     // Recalculate all dynamic margins before drawing
     calculateDynamicMargins();
 
+    const minorSquareSizeValue = parseFloat(document.getElementById('squareSizeInput').value) || 40;
+
     // Collect all grid and axis settings into a single options object
     const gridOptions = {
         marginLeft: dynamicMarginLeft,
         marginRight: dynamicMarginRight,
         marginTop: dynamicMarginTop,
         marginBottom: dynamicMarginBottom,
-        minorSquareSize: parseFloat(document.getElementById('squareSizeInput').value) || 40,
-        minorLineThickness: Math.max(0.5, (parseFloat(document.getElementById('squareSizeInput').value) || 40) * 0.025),
-        majorLineThickness: Math.max((Math.max(0.5, (parseFloat(document.getElementById('squareSizeInput').value) || 40) * 0.025)) * 1.8, (parseFloat(document.getElementById('squareSizeInput').value) || 40) * 0.06),
-        labelFontSize: Math.max(9, Math.min(Math.round((parseFloat(document.getElementById('squareSizeInput').value) || 40) * 0.38), 60)),
-        axisTitleFontSize: Math.max(12, Math.min(Math.round((parseFloat(document.getElementById('squareSizeInput').value) || 40) * 0.48), 80)),
-        equationLabelFontSize: Math.max(9, Math.min(Math.round((parseFloat(document.getElementById('squareSizeInput').value) || 40) * 0.32), 48)),
+        minorSquareSize: minorSquareSizeValue,
+        minorLineThickness: Math.max(0.5, minorSquareSizeValue * 0.025),
+        majorLineThickness: Math.max((Math.max(0.5, minorSquareSizeValue * 0.025)) * 1.8, minorSquareSizeValue * 0.06),
+        labelFontSize: Math.max(9, Math.min(Math.round(minorSquareSizeValue * 0.38), 60)),
+        axisTitleFontSize: Math.max(12, Math.min(Math.round(minorSquareSizeValue * 0.48), 80)),
+        equationLabelFontSize: Math.max(9, Math.min(Math.round(minorSquareSizeValue * 0.32), 48)),
         yMin: parseFloat(document.getElementById('yMin').value) || 0,
         yMax: parseFloat(document.getElementById('yMax').value) || 10,
         yIncrement: parseFloat(document.getElementById('yIncrement').value) || 1,
         yLabelEvery: parseInt(document.getElementById('yLabelEvery').value, 10),
         yLabelOnZero: document.getElementById('yLabelOnZero').checked,
         yAxisLabelOnTop: document.getElementById('yAxisLabelOnTop').checked,
-        arrowHeadSize: Math.max(5, Math.round((parseFloat(document.getElementById('squareSizeInput').value) || 40) * 0.35)),
-        zeroLineExtension: Math.max(10, Math.round((parseFloat(document.getElementById('squareSizeInput').value) || 40) * 0.75)),
-        axisTitleSpacing: Math.max(10, Math.round((parseFloat(document.getElementById('squareSizeInput').value) || 40) * 0.65)),
+        arrowHeadSize: Math.max(5, Math.round(minorSquareSizeValue * 0.35)),
+        zeroLineExtension: Math.max(10, Math.round(minorSquareSizeValue * 0.75)),
+        axisTitleSpacing: Math.max(10, Math.round(minorSquareSizeValue * 0.65)),
         showMainAxes: document.getElementById('showAxes') ? document.getElementById('showAxes').checked : true,
         showAxisArrows: document.getElementById('showAxisArrows') ? document.getElementById('showAxisArrows').checked : true,
         xAxisLabelType: document.getElementById('xAxisLabelType').value,
@@ -1104,6 +1106,46 @@ export function drawGrid() {
             dotColor: gridOptions.minorGridColor,
             dotRadius: Math.max(1.2, gridOptions.minorSquareSize * 0.11)
         });
+    } else if (gridOptions.paperStyle === 'polar') {
+        // Polar grid drawing
+        const centerX = gridOptions.offsetX + gridOptions.actualGridWidth / 2;
+        const centerY = gridOptions.offsetY + gridOptions.actualGridHeight / 2;
+        const maxRadius = Math.min(gridOptions.actualGridWidth, gridOptions.actualGridHeight) / 2;
+
+        // Get polar input values
+        let polarNumCircles = parseInt(document.getElementById('polarNumCircles').value, 10) || 8;
+        let polarNumRadials = parseInt(document.getElementById('polarNumRadials').value, 10) || 12;
+        let polarDegrees = parseInt(document.getElementById('polarDegrees').value, 10) || 360;
+
+        // Draw concentric circles
+        for (let i = 1; i <= polarNumCircles; i++) {
+            let r = (maxRadius * i) / polarNumCircles;
+            gridGroup.appendChild(createSVGElement('circle', {
+                cx: centerX,
+                cy: centerY,
+                r: r,
+                stroke: gridOptions.minorGridColor,
+                'stroke-width': 1,
+                fill: 'none'
+            }));
+        }
+
+        // Draw radial lines
+        for (let i = 0; i < polarNumRadials; i++) {
+            let angle = (polarDegrees * Math.PI / 180 * i) / polarNumRadials; // Convert degrees to radians
+            let x2 = centerX + maxRadius * Math.cos(angle);
+            let y2 = centerY + maxRadius * Math.sin(angle);
+            gridGroup.appendChild(createSVGElement('line', {
+                x1: centerX,
+                y1: centerY,
+                x2: x2,
+                y2: y2,
+                stroke: gridOptions.minorGridColor,
+                'stroke-width': 1
+            }));
+        }
+        // Skip further grid drawing and return if using polar
+        return;
     }
 
     // --- Draw Y-axis grid lines and labels ---
