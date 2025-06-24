@@ -2,8 +2,14 @@
 import { EPSILON, parseSuperscript, formatRadianLabel, formatEquationTextForDisplay, ZERO_LINE_EXTENSION, AXIS_TITLE_SPACING, ARROW_HEAD_SIZE, LINE_STYLES, SHADE_ALPHA } from './utils.js';
 import { calculateDynamicMargins, dynamicMarginLeft, dynamicMarginRight,
          dynamicMarginTop, dynamicMarginBottom, doesOverlap } from './labels.js';
-import { equationsToDraw } from './equations.js';
+import { equationsToDraw } from './equations.js'; // Assuming equationsToDraw is a mutable array where labelPosition can be updated.
 
+// --- Global variables for drag functionality ---
+let currentDraggedLabel = null;
+let startX = 0; // Initial mouse X coordinate
+let startY = 0; // Initial mouse Y coordinate
+let initialLabelX = 0; // Initial label X coordinate
+let initialLabelY = 0; // Initial label Y coordinate
 
 /**
  * Creates an SVG element with the specified tag name and attributes.
@@ -318,8 +324,111 @@ export function exportSVGtoPDF(svgId = 'gridSVG') {
 }
 
 
+/**
+ * Sets up mouse event listeners for dragging equation labels.
+ * This function should be called once when the DOM is ready.
+ */
+export function setupDragging() {
+    const svg = document.getElementById('gridSVG');
+    if (!svg) {
+        console.warn("SVG element not found for setting up dragging.");
+        return;
+    }
 
+    // Remove existing listeners to prevent multiple bindings on redraws
+    svg.removeEventListener('mousedown', onMouseDown);
+    document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mouseup', onMouseUp);
 
+    // Add new listeners
+    svg.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+}
+
+/**
+ * Handles the mousedown event to initiate dragging of equation labels.
+ * @param {MouseEvent} event The mouse event.
+ */
+function onMouseDown(event) {
+    // Only allow dragging with the left mouse button
+    if (event.button !== 0) return;
+
+    // Check if the clicked element is an equation label.
+    // Use closest() to find the parent SVG <text> element with the class.
+    const target = event.target.closest('.draggable-equation-label');
+
+    if (target) {
+        currentDraggedLabel = target;
+        // Prevent browser's default drag behavior for images/links
+        event.preventDefault();
+
+        // Get the current position of the label in SVG coordinates
+        // getAttribute('x') and getAttribute('y') are reliable for SVG text elements
+        initialLabelX = parseFloat(currentDraggedLabel.getAttribute('x'));
+        initialLabelY = parseFloat(currentDraggedLabel.getAttribute('y'));
+
+        // Get the mouse position relative to the SVG container
+        const svgRect = currentDraggedLabel.ownerSVGElement.getBoundingClientRect();
+        startX = event.clientX - svgRect.left;
+        startY = event.clientY - svgRect.top;
+
+        // Change cursor to indicate dragging
+        currentDraggedLabel.style.cursor = 'grabbing';
+    }
+}
+
+/**
+ * Handles the mousemove event during dragging.
+ * @param {MouseEvent} event The mouse event.
+ */
+function onMouseMove(event) {
+    if (currentDraggedLabel) {
+        // Prevent default text selection during drag
+        event.preventDefault();
+
+        const svgRect = currentDraggedLabel.ownerSVGElement.getBoundingClientRect();
+        const currentMouseX = event.clientX - svgRect.left;
+        const currentMouseY = event.clientY - svgRect.top;
+
+        // Calculate new position based on initial label position and mouse movement
+        const newX = initialLabelX + (currentMouseX - startX);
+        const newY = initialLabelY + (currentMouseY - startY);
+
+        currentDraggedLabel.setAttribute('x', newX);
+        currentDraggedLabel.setAttribute('y', newY);
+    }
+}
+
+/**
+ * Handles the mouseup event to end dragging and save the new position.
+ * @param {MouseEvent} event The mouse event.
+ */
+function onMouseUp(event) {
+    if (currentDraggedLabel) {
+        currentDraggedLabel.style.cursor = 'grab'; // Reset cursor
+
+        const eqid = currentDraggedLabel.dataset.eqid;
+        const finalX = parseFloat(currentDraggedLabel.getAttribute('x'));
+        const finalY = parseFloat(currentDraggedLabel.getAttribute('y'));
+
+        // Find the corresponding equation in the equationsToDraw array
+        // IMPORTANT: This assumes each equation in equationsToDraw has a unique 'id' property.
+        // If not, you'll need to modify how equations are identified (e.g., by array index).
+        const eqIndex = equationsToDraw.findIndex(eq => eq.id === eqid);
+
+        if (eqIndex !== -1) {
+            // Update the labelPosition for persistence across redraws
+            equationsToDraw[eqIndex].labelPosition = { x: finalX, y: finalY };
+            // Optional: If you want to persist across page loads, save equationsToDraw to localStorage here.
+            // e.g., localStorage.setItem('equations', JSON.stringify(equationsToDraw));
+        } else {
+            console.warn(`Equation with ID ${eqid} not found to update label position.`);
+        }
+
+        currentDraggedLabel = null; // Reset dragged label
+    }
+}
 
 
 /**
@@ -446,8 +555,8 @@ export function drawGrid() {
     }
 
 
-    // svg.setAttribute('width', requiredSVGWidth);
-    // svg.setAttribute('height', requiredSVGHeight);
+    // svg.setAttribute('width', requiredSVGWidth); // No longer needed if using viewBox for scaling
+    // svg.setAttribute('height', requiredSVGHeight); // No longer needed if using viewBox for scaling
     svg.setAttribute('viewBox', `0 0 ${requiredSVGWidth} ${requiredSVGHeight}`);
     svg.style.backgroundColor = '#fff'; // Explicit white background
 
@@ -533,67 +642,65 @@ export function drawGrid() {
         gridGroup.appendChild(line);
 
         // X-axis Labeling Logic (numbers or radians)
-let shouldLabel = false;
-if (xLabelEvery > 0) {
-    if (xAxisLabelType === 'radians') {
-        const xGridUnitsPerRadianStep = parseInt(document.getElementById('xGridUnitsPerRadianStep').value, 10) || 6;
-        const radianStepMultiplier = parseFloat(document.getElementById('radianStepMultiplier').value) || 0.5;
-        const theoreticalMajorStepVal = Math.round((value - xMin) / (radianStepMultiplier * Math.PI));
-        if (
-            xGridUnitsPerRadianStep > 0 &&
-            Math.round((value - xMin) / xValuePerMinorSquare) % xGridUnitsPerRadianStep === 0 &&
-            theoreticalMajorStepVal % xLabelEvery === 0
-        ) {
+        let shouldLabel = false;
+        if (xLabelEvery > 0) {
+            if (xAxisLabelType === 'radians') {
+                const xGridUnitsPerRadianStep = parseInt(document.getElementById('xGridUnitsPerRadianStep').value, 10) || 6;
+                const radianStepMultiplier = parseFloat(document.getElementById('radianStepMultiplier').value) || 0.5;
+                const theoreticalMajorStepVal = Math.round((value - xMin) / (radianStepMultiplier * Math.PI));
+                if (
+                    xGridUnitsPerRadianStep > 0 &&
+                    Math.round((value - xMin) / xValuePerMinorSquare) % xGridUnitsPerRadianStep === 0 &&
+                    theoreticalMajorStepVal % xLabelEvery === 0
+                ) {
+                    shouldLabel = true;
+                }
+            } else {
+                if (
+                    Math.round((value - xMin) / xValuePerMinorSquare) % xLabelEvery === 0
+                ) {
+                    shouldLabel = true;
+                }
+            }
+        }
+
+        if (xLabelOnZero && isMathematicalZeroLine) {
             shouldLabel = true;
         }
-    } else {
-        if (
-            Math.round((value - xMin) / xValuePerMinorSquare) % xLabelEvery === 0
-        ) {
-            shouldLabel = true;
+
+        if (shouldLabel) {
+            if (value === 0 && suppressZeroLabel) {
+                continue;
+            }
+            if (value === 0 && yLabelOnZero && zeroYGridPos !== -1 && zeroXGridPos !== -1) {
+                continue; // Prevent drawing '0' twice if Y-axis also handles it at the origin
+            }
+
+            let labelText;
+            if (xAxisLabelType === 'radians') {
+                labelText = formatRadianLabel(value);
+            } else if (xAxisLabelType === 'degrees') {
+                labelText = value.toFixed(xIncrement.toString().includes('.') ? xIncrement.toString().split('.')[1].length : 0) + '°';
+            } else {
+                labelText = value.toFixed(xIncrement.toString().includes('.') ? xIncrement.toString().split('.')[1].length : 0);
+            }
+
+            const labelYOffset = Math.round(labelFontSize * 0.6); // you can adjust this value
+
+            const textEl = createSVGElement('text', {
+                x: x,
+                y: (xLabelOnZero && zeroYGridPos !== -1)
+                    ? zeroYGridPos + labelYOffset
+                    : offsetY + actualGridHeight + labelYOffset,
+                'font-family': 'Inter, sans-serif',
+                'font-size': `${labelFontSize}px`,
+                fill: '#333',
+                'text-anchor': 'middle',
+                'alignment-baseline': 'hanging'
+            });
+            textEl.textContent = labelText;
+            gridGroup.appendChild(textEl);
         }
-    }
-}
-
-if (xLabelOnZero && isMathematicalZeroLine) {
-    shouldLabel = true;
-}
-
-if (shouldLabel) {
-    if (value === 0 && suppressZeroLabel) {
-        continue;
-    }
-    if (value === 0 && yLabelOnZero && zeroYGridPos !== -1 && zeroXGridPos !== -1) {
-        continue; // Prevent drawing '0' twice if Y-axis also handles it at the origin
-    }
-
-    let labelText;
-    if (xAxisLabelType === 'radians') {
-        labelText = formatRadianLabel(value);
-    } else if (xAxisLabelType === 'degrees') {
-        labelText = value.toFixed(xIncrement.toString().includes('.') ? xIncrement.toString().split('.')[1].length : 0) + '°';
-    } else {
-        labelText = value.toFixed(xIncrement.toString().includes('.') ? xIncrement.toString().split('.')[1].length : 0);
-    }
-
-    const labelYOffset = Math.round(labelFontSize * 0.6); // you can adjust this value
-
-const textEl = createSVGElement('text', {
-    x: x,
-    y: (xLabelOnZero && zeroYGridPos !== -1)
-        ? zeroYGridPos + labelYOffset
-        : offsetY + actualGridHeight + labelYOffset,
-    'font-family': 'Inter, sans-serif',
-    'font-size': `${labelFontSize}px`,
-    fill: '#333',
-    'text-anchor': 'middle',
-    'alignment-baseline': 'hanging'
-});
-textEl.textContent = labelText;
-gridGroup.appendChild(textEl);
-
-}
-
     }
 
     // --- Draw X-axis (the horizontal line representing y=0 or the bottom edge) ---
@@ -883,131 +990,135 @@ gridGroup.appendChild(textEl);
             equationGroup.appendChild(path);
         });
 
-        // === NEW: Draw line arrows and domain dots (SVG logic, canvas style) ===
-if (eq.showLineArrows && segments.length > 0) {
-    // Grid bounds and helpers
-    const GRID_RECT = {
-        left: offsetX,
-        right: offsetX + actualGridWidth,
-        top: offsetY,
-        bottom: offsetY + actualGridHeight
-    };
-    const EPSILON_FOR_BOUNDARY = 1e-6;
-    function isStrictlyInside(p) {
-        return (
-            p.x > GRID_RECT.left + EPSILON_FOR_BOUNDARY &&
-            p.x < GRID_RECT.right - EPSILON_FOR_BOUNDARY &&
-            p.y > GRID_RECT.top + EPSILON_FOR_BOUNDARY &&
-            p.y < GRID_RECT.bottom - EPSILON_FOR_BOUNDARY
-        );
-    }
-    function getLineRectIntersection(pInside, pOutside, rect) {
-        const dx = pOutside.x - pInside.x;
-        const dy = pOutside.y - pInside.y;
-        let tBest = 1;
-        function tryEdge(t) {
-            if (t >= 0 && t <= 1 + EPSILON) tBest = Math.min(tBest, t);
-        }
-        if (Math.abs(dx) > EPSILON) {
-            tryEdge((rect.left - pInside.x) / dx);
-            tryEdge((rect.right - pInside.x) / dx);
-        }
-        if (Math.abs(dy) > EPSILON) {
-            tryEdge((rect.top - pInside.y) / dy);
-            tryEdge((rect.bottom - pInside.y) / dy);
-        }
-        return { x: pInside.x + tBest * dx, y: pInside.y + tBest * dy };
-    }
-    function createEndpointDot(x, y, color, r = 3) {
-        return createSVGElement('circle', {
-            cx: x,
-            cy: y,
-            r: r,
-            fill: color
-        });
-    }
-    // Find first crossing pair (entry to grid)
-    function findFirstCrossingPair(segment) {
-        for (let i = 0; i < segment.length - 1; i++) {
-            const p1 = segment[i];
-            const p2 = segment[i + 1];
-            if (!isStrictlyInside(p1) && isStrictlyInside(p2)) {
-                return { pOut: p1, pIn: p2 };
+        // === Draw line arrows and domain dots (SVG logic, canvas style) ===
+        if (eq.showLineArrows && segments.length > 0) {
+            // Grid bounds and helpers
+            const GRID_RECT = {
+                left: offsetX,
+                right: offsetX + actualGridWidth,
+                top: offsetY,
+                bottom: offsetY + actualGridHeight
+            };
+            const EPSILON_FOR_BOUNDARY = 1e-6;
+            function isStrictlyInside(p) {
+                return (
+                    p.x > GRID_RECT.left + EPSILON_FOR_BOUNDARY &&
+                    p.x < GRID_RECT.right - EPSILON_FOR_BOUNDARY &&
+                    p.y > GRID_RECT.top + EPSILON_FOR_BOUNDARY &&
+                    p.y < GRID_RECT.bottom - EPSILON_FOR_BOUNDARY
+                );
             }
-        }
-        return null;
-    }
-    // Find last crossing pair (exit from grid)
-    function findLastCrossingPair(segment) {
-        for (let i = segment.length - 2; i >= 0; i--) {
-            const p1 = segment[i];
-            const p2 = segment[i + 1];
-            if (isStrictlyInside(p1) && !isStrictlyInside(p2)) {
-                return { pIn: p1, pOut: p2 };
+            function getLineRectIntersection(pInside, pOutside, rect) {
+                const dx = pOutside.x - pInside.x;
+                const dy = pOutside.y - pInside.y;
+                let tBest = 1;
+                function tryEdge(t) {
+                    if (t >= -EPSILON_FOR_BOUNDARY && t <= 1 + EPSILON_FOR_BOUNDARY) tBest = Math.min(tBest, t);
+                }
+                if (Math.abs(dx) > EPSILON_FOR_BOUNDARY) {
+                    tryEdge((rect.left - pInside.x) / dx);
+                    tryEdge((rect.right - pInside.x) / dx);
+                }
+                if (Math.abs(dy) > EPSILON_FOR_BOUNDARY) {
+                    tryEdge((rect.top - pInside.y) / dy);
+                    tryEdge((rect.bottom - pInside.y) / dy);
+                }
+                return { x: pInside.x + tBest * dx, y: pInside.y + tBest * dy };
             }
-        }
-        return null;
-    }
+            function createEndpointDot(x, y, color, r = 3) {
+                return createSVGElement('circle', {
+                    cx: x,
+                    cy: y,
+                    r: r,
+                    fill: color
+                });
+            }
+            // Find first crossing pair (entry to grid)
+            function findFirstCrossingPair(segment) {
+                for (let i = 0; i < segment.length - 1; i++) {
+                    const p1 = segment[i];
+                    const p2 = segment[i + 1];
+                    // If p1 is outside/on boundary and p2 is inside
+                    if (!isStrictlyInside(p1) && isStrictlyInside(p2)) {
+                        return { pOut: p1, pIn: p2 };
+                    }
+                }
+                return null;
+            }
+            // Find last crossing pair (exit from grid)
+            function findLastCrossingPair(segment) {
+                for (let i = segment.length - 2; i >= 0; i--) {
+                    const p1 = segment[i];
+                    const p2 = segment[i + 1];
+                    // If p1 is inside and p2 is outside/on boundary
+                    if (isStrictlyInside(p1) && !isStrictlyInside(p2)) {
+                        return { pIn: p1, pOut: p2 };
+                    }
+                }
+                return null;
+            }
 
-    // ARROW/DOT logic
-    const firstSegmentPoints = segments[0];
-    if (firstSegmentPoints.length >= 2) {
-        if (eq.domainStart !== null) {
-            // Dot at domain start
-            const firstDomainPoint = firstSegmentPoints.find(p => Math.abs(p.graphX - eq.domainStart) < EPSILON_FOR_BOUNDARY);
-            if (firstDomainPoint && isStrictlyInside(firstDomainPoint)) {
-                equationGroup.appendChild(createEndpointDot(firstDomainPoint.x, firstDomainPoint.y, eq.color));
-            } else {
-                const p1 = firstSegmentPoints[0];
-                const p2 = firstSegmentPoints[1];
-                if (!isStrictlyInside(p1) && isStrictlyInside(p2)) {
-                    const intersection = getLineRectIntersection(p2, p1, GRID_RECT);
-                    equationGroup.appendChild(createEndpointDot(intersection.x, intersection.y, eq.color));
+            // ARROW/DOT logic
+            const firstSegmentPoints = segments[0];
+            if (firstSegmentPoints.length >= 2) {
+                if (eq.domainStart !== null) {
+                    // Dot at domain start
+                    const firstDomainPoint = firstSegmentPoints.find(p => Math.abs(p.graphX - eq.domainStart) < EPSILON_FOR_BOUNDARY);
+                    if (firstDomainPoint && isStrictlyInside(firstDomainPoint)) {
+                        equationGroup.appendChild(createEndpointDot(firstDomainPoint.x, firstDomainPoint.y, eq.color));
+                    } else {
+                        // Find where the line enters the visible grid area and place dot there
+                        const crossingPair = findFirstCrossingPair(firstSegmentPoints);
+                        if (crossingPair) {
+                            const { pOut, pIn } = crossingPair;
+                            const intersection = getLineRectIntersection(pIn, pOut, GRID_RECT);
+                            equationGroup.appendChild(createEndpointDot(intersection.x, intersection.y, eq.color));
+                        }
+                    }
+                } else {
+                    // Arrow at left end
+                    const crossingPair = findFirstCrossingPair(firstSegmentPoints);
+                    if (crossingPair) {
+                        const { pOut, pIn } = crossingPair;
+                        const edge = getLineRectIntersection(pIn, pOut, GRID_RECT);
+                        const angle = Math.atan2(edge.y - pIn.y, edge.x - pIn.x);
+                        equationGroup.appendChild(createArrowheadPath(edge.x, edge.y, angle, eq.color));
+                    }
                 }
             }
-        } else {
-            // Arrow at left end
-            const crossingPair = findFirstCrossingPair(firstSegmentPoints);
-            if (crossingPair) {
-                const { pOut, pIn } = crossingPair;
-                const edge = getLineRectIntersection(pIn, pOut, GRID_RECT);
-                const angle = Math.atan2(edge.y - pIn.y, edge.x - pIn.x);
-                equationGroup.appendChild(createArrowheadPath(edge.x, edge.y, angle, eq.color));
-            }
-        }
-    }
 
-    const lastSegmentPoints = segments[segments.length - 1];
-    if (lastSegmentPoints.length >= 2) {
-        if (eq.domainEnd !== null) {
-            // Dot at domain end
-            const lastDomainPoint = lastSegmentPoints.find(p => Math.abs(p.graphX - eq.domainEnd) < EPSILON_FOR_BOUNDARY);
-            if (lastDomainPoint && isStrictlyInside(lastDomainPoint)) {
-                equationGroup.appendChild(createEndpointDot(lastDomainPoint.x, lastDomainPoint.y, eq.color));
-            } else {
-                const p1 = lastSegmentPoints[lastSegmentPoints.length - 2];
-                const p2 = lastSegmentPoints[lastSegmentPoints.length - 1];
-                if (isStrictlyInside(p1) && !isStrictlyInside(p2)) {
-                    const intersection = getLineRectIntersection(p1, p2, GRID_RECT);
-                    equationGroup.appendChild(createEndpointDot(intersection.x, intersection.y, eq.color));
+            const lastSegmentPoints = segments[segments.length - 1];
+            if (lastSegmentPoints.length >= 2) {
+                if (eq.domainEnd !== null) {
+                    // Dot at domain end
+                    const lastDomainPoint = lastSegmentPoints.find(p => Math.abs(p.graphX - eq.domainEnd) < EPSILON_FOR_BOUNDARY);
+                    if (lastDomainPoint && isStrictlyInside(lastDomainPoint)) {
+                        equationGroup.appendChild(createEndpointDot(lastDomainPoint.x, lastDomainPoint.y, eq.color));
+                    } else {
+                        // Find where the line exits the visible grid area and place dot there
+                        const crossingPair = findLastCrossingPair(lastSegmentPoints);
+                        if (crossingPair) {
+                            const { pIn, pOut } = crossingPair;
+                            const intersection = getLineRectIntersection(pIn, pOut, GRID_RECT);
+                            equationGroup.appendChild(createEndpointDot(intersection.x, intersection.y, eq.color));
+                        }
+                    }
+                } else {
+                    // Arrow at right end
+                    const crossingPair = findLastCrossingPair(lastSegmentPoints);
+                    if (crossingPair) {
+                        const { pIn, pOut } = crossingPair;
+                        const edge = getLineRectIntersection(pIn, pOut, GRID_RECT);
+                        const angle = Math.atan2(edge.y - pIn.y, edge.x - pIn.x);
+                        equationGroup.appendChild(createArrowheadPath(edge.x, edge.y, angle, eq.color));
+                    }
                 }
             }
-        } else {
-            // Arrow at right end
-            const crossingPair = findLastCrossingPair(lastSegmentPoints);
-            if (crossingPair) {
-                const { pIn, pOut } = crossingPair;
-                const edge = getLineRectIntersection(pIn, pOut, GRID_RECT);
-                const angle = Math.atan2(edge.y - pIn.y, edge.x - pIn.x);
-                equationGroup.appendChild(createArrowheadPath(edge.x, edge.y, angle, eq.color));
-            }
         }
-    }
-}
-// === END NEW logic ===
+        // === END NEW line arrows/domain dots logic ===
 
 
-        // --- Label Placement with Overlap Avoidance ---
+        // --- Label Placement with Overlap Avoidance and Custom Positioning ---
         let labelText = '';
         if (eq.labelType === 'custom' && eq.customLabel.trim() !== '') {
             labelText = formatEquationTextForDisplay(eq.customLabel);
@@ -1016,118 +1127,189 @@ if (eq.showLineArrows && segments.length > 0) {
         }
 
         if (!labelText) {
-            return;
+            return; // No label to draw
         }
 
         const labelTextEl = createSVGElement('text', {
             'font-family': 'Inter, sans-serif',
-            'font-size': `${axisTitleFontSize}px`,
-            fill: eq.color
+            'font-size': `${equationLabelFontSize}px`,
+            fill: eq.color,
+            'cursor': 'grab', // Make it clear the label is draggable
+            'pointer-events': 'all' // Ensure the entire bounding box captures events
         });
         labelTextEl.textContent = labelText;
-        // Temporarily append to measure its bounding box
-        svg.appendChild(labelTextEl);
-        const bbox = labelTextEl.getBBox(); // Get bounding box of the text element
-        svg.removeChild(labelTextEl); // Remove temporary element
-
-        const textWidth = bbox.width;
-        const textHeight = bbox.height;
-
-        let labelRefPoint = null;
-        for (let i = segments.length - 1; i >= 0; i--) {
-            const segment = segments[i];
-            for (let j = segment.length - 1; j >= 0; j--) {
-                const p = segment[j];
-                // Check if point is within visible grid bounds
-                if (p.x >= offsetX && p.x <= (offsetX + actualGridWidth) &&
-                    p.y >= offsetY && p.y <= (offsetY + actualGridHeight)) {
-                    labelRefPoint = p;
-                    break;
-                }
-            }
-            if (labelRefPoint) break;
+        labelTextEl.classList.add('draggable-equation-label'); // Add class for drag detection
+        // Ensure eq.id is available and unique for proper tracking
+        if (eq.id) {
+             labelTextEl.dataset.eqid = eq.id;
+        } else {
+            console.warn("Equation missing ID, cannot track label position persistently via ID.");
+            // Fallback for identification if ID is missing (e.g., use array index, but this is less robust)
+            // If equationsToDraw is not constant, using index is problematic after additions/deletions.
         }
 
-        if (labelRefPoint) {
-            const pt = labelRefPoint;
+        let proposedLabelX, proposedLabelY;
+        let chosenAnchor = 'start';
+        let chosenBaseline = 'middle';
 
-            const potentialPositions = [
-                { dx: 5, dy: 0, anchor: 'start', baseline: 'middle' },
-                { dx: -5, dy: 0, anchor: 'end', baseline: 'middle' },
-                { dx: 0, dy: -15, anchor: 'middle', baseline: 'alphabetic' },
-                { dx: 0, dy: 15, anchor: 'middle', baseline: 'hanging' },
-                { dx: 5, dy: -15, anchor: 'start', baseline: 'alphabetic' },
-                { dx: 5, dy: 15, anchor: 'start', baseline: 'hanging' }
-            ];
-
-            let labelPlaced = false;
-            for (const pos of potentialPositions) {
-                let proposedLabelX = pt.x + pos.dx;
-                let proposedLabelY = pt.y + pos.dy;
-
-                // Adjust for text-anchor to calculate bounding box accurately for overlap
-                let currentRectLeft = proposedLabelX;
-                if (pos.anchor === 'end') {
-                    currentRectLeft = proposedLabelX - textWidth;
-                } else if (pos.anchor === 'middle') {
-                    currentRectLeft = proposedLabelX - (textWidth / 2);
-                }
-                const currentRectRight = currentRectLeft + textWidth;
-
-                // Adjust for alignment-baseline to calculate bounding box accurately for overlap
-                let currentRectTop = proposedLabelY - textHeight / 2; // Default for middle
-                if (pos.baseline === 'alphabetic') { // Text baseline is usually at the bottom of capital letters
-                    currentRectTop = proposedLabelY - bbox.actualBoundingBoxAscent;
-                } else if (pos.baseline === 'hanging') { // Text baseline is at the top of the text
-                    currentRectTop = proposedLabelY;
-                }
-                const currentRectBottom = currentRectTop + textHeight;
-
-
-                const currentLabelRect = {
-                    left: currentRectLeft,
-                    right: currentRectRight,
-                    top: currentRectTop,
-                    bottom: currentRectBottom
-                };
-
-                const safeAreaBuffer = 50; // Allow labels to extend a bit beyond the grid for visibility
-                const safeAreaLeft = offsetX - safeAreaBuffer;
-                const safeAreaRight = offsetX + actualGridWidth + safeAreaBuffer;
-                const safeAreaTop = offsetY - safeAreaBuffer;
-                const safeAreaBottom = offsetY + actualGridHeight + safeAreaBuffer;
-
-                // Check if label is within a reasonable display area
-                if (currentLabelRect.right < safeAreaLeft || currentLabelRect.left > safeAreaRight ||
-                    currentLabelRect.bottom < safeAreaTop || currentLabelRect.top > safeAreaBottom) {
-                    continue;
-                }
-
-                let overlapsExisting = false;
-                for (const existingRect of placedLabelRects) {
-                    if (doesOverlap(currentLabelRect, existingRect)) {
-                        overlapsExisting = true;
+        // Prefer custom position if available
+        if (eq.labelPosition && typeof eq.labelPosition.x === "number" && typeof eq.labelPosition.y === "number") {
+            proposedLabelX = eq.labelPosition.x;
+            proposedLabelY = eq.labelPosition.y;
+            // When using a custom position, assume optimal anchor/baseline for now, or you could store these too
+            // For simplicity, we'll keep the default 'start'/'middle' or infer from a `getBBox` later if needed.
+            // If the user drags, the position is absolute, so the anchor/baseline becomes less critical for placement
+            // but still affects how the text's internal origin aligns to proposedLabelX/Y.
+            // For now, let's keep it simple with default as center aligned.
+            chosenAnchor = 'middle';
+            chosenBaseline = 'middle';
+        } else {
+            // AUTO-CALCULATED POSITIONING (your existing logic)
+            let labelRefPoint = null;
+            for (let i = segments.length - 1; i >= 0; i--) {
+                const segment = segments[i];
+                for (let j = segment.length - 1; j >= 0; j--) {
+                    const p = segment[j];
+                    // Check if point is within visible grid bounds
+                    if (p.x >= offsetX && p.x <= (offsetX + actualGridWidth) &&
+                        p.y >= offsetY && p.y <= (offsetY + actualGridHeight)) {
+                        labelRefPoint = p;
                         break;
                     }
                 }
+                if (labelRefPoint) break;
+            }
 
-                if (!overlapsExisting) {
-                    const finalLabelTextEl = createSVGElement('text', {
-                        x: proposedLabelX,
-                        y: proposedLabelY,
-                        'font-family': 'Inter, sans-serif',
-                        'font-size': `${equationLabelFontSize}px`,
-                        fill: eq.color,
-                        'text-anchor': pos.anchor,
-                        'alignment-baseline': pos.baseline
-                    });
-                    finalLabelTextEl.textContent = labelText;
-                    equationGroup.appendChild(finalLabelTextEl);
-                    placedLabelRects.push(currentLabelRect);
-                    labelPlaced = true;
-                    break;
+            if (!labelRefPoint) {
+                // If no visible point, try to find a point on the extended line just outside the right border
+                const testX = xMax + xValuePerMinorSquare; // A bit outside the right bound
+                let xForEvaluation = testX;
+                if (currentXAxisLabelType === 'degrees') {
+                    xForEvaluation = math.unit(xForEvaluation, 'deg').toNumber('rad');
                 }
+                let testGraphY;
+                try {
+                    testGraphY = eq.compiledExpression.evaluate({ x: xForEvaluation });
+                    if (isFinite(testGraphY)) {
+                        const testCanvasY = offsetY + actualGridHeight - ((testGraphY - yMin) / yIncrement) * minorSquareSize;
+                        labelRefPoint = {
+                            x: offsetX + actualGridWidth + (minorSquareSize / 2), // Slightly to the right of the grid
+                            y: testCanvasY
+                        };
+                    }
+                } catch (e) {
+                    // Ignore, no fallback point found
+                }
+            }
+
+
+            if (labelRefPoint) {
+                const pt = labelRefPoint;
+                const potentialPositions = [
+                    { dx: 5, dy: 0, anchor: 'start', baseline: 'middle' },
+                    { dx: -5, dy: 0, anchor: 'end', baseline: 'middle' },
+                    { dx: 0, dy: -15, anchor: 'middle', baseline: 'alphabetic' },
+                    { dx: 0, dy: 15, anchor: 'middle', baseline: 'hanging' },
+                    { dx: 5, dy: -15, anchor: 'start', baseline: 'alphabetic' },
+                    { dx: 5, dy: 15, anchor: 'start', baseline: 'hanging' }
+                ];
+
+                let autoPositionFound = false;
+                for (const pos of potentialPositions) {
+                    proposedLabelX = pt.x + pos.dx;
+                    proposedLabelY = pt.y + pos.dy;
+                    chosenAnchor = pos.anchor;
+                    chosenBaseline = pos.baseline;
+
+                    // Temporarily apply to measure for overlap
+                    labelTextEl.setAttribute('x', proposedLabelX);
+                    labelTextEl.setAttribute('y', proposedLabelY);
+                    labelTextEl.setAttribute('text-anchor', chosenAnchor);
+                    labelTextEl.setAttribute('alignment-baseline', chosenBaseline);
+                    equationGroup.appendChild(labelTextEl); // Temporarily append to measure
+
+                    const bbox = labelTextEl.getBBox(); // Get bounding box of the text element
+
+                    // Adjust for text-anchor to calculate bounding box accurately for overlap
+                    let currentRectLeft = bbox.x;
+                    let currentRectTop = bbox.y;
+                    const textWidth = bbox.width;
+                    const textHeight = bbox.height;
+
+                    const currentLabelRect = {
+                        left: currentRectLeft,
+                        right: currentRectLeft + textWidth,
+                        top: currentRectTop,
+                        bottom: currentRectTop + textHeight
+                    };
+
+                    const safeAreaBuffer = 50; // Allow labels to extend a bit beyond the grid for visibility
+                    const safeAreaLeft = offsetX - safeAreaBuffer;
+                    const safeAreaRight = offsetX + actualGridWidth + safeAreaBuffer;
+                    const safeAreaTop = offsetY - safeAreaBuffer;
+                    const safeAreaBottom = offsetY + actualGridHeight + safeAreaBuffer;
+
+                    // Check if label is within a reasonable display area
+                    if (currentLabelRect.right < safeAreaLeft || currentLabelRect.left > safeAreaRight ||
+                        currentLabelRect.bottom < safeAreaTop || currentLabelRect.top > safeAreaBottom) {
+                        // Label is too far outside safe area, try next position
+                        equationGroup.removeChild(labelTextEl); // Remove temporary element
+                        continue;
+                    }
+
+                    let overlapsExisting = false;
+                    for (const existingRect of placedLabelRects) {
+                        if (doesOverlap(currentLabelRect, existingRect)) {
+                            overlapsExisting = true;
+                            break;
+                        }
+                    }
+
+                    if (!overlapsExisting) {
+                        placedLabelRects.push(currentLabelRect);
+                        autoPositionFound = true;
+                        break; // Found a good auto position
+                    }
+                    equationGroup.removeChild(labelTextEl); // Remove temporary element if it overlaps
+                }
+
+                if (!autoPositionFound) {
+                    // Fallback if no ideal auto-position found without overlap, just place it at the last ref point
+                    // and let it overlap. This ensures the label is always drawn.
+                    proposedLabelX = pt.x + 5; // Default small offset
+                    proposedLabelY = pt.y;
+                    chosenAnchor = 'start';
+                    chosenBaseline = 'middle';
+
+                     // Still add it to the placedLabelRects to potentially block future labels
+                    labelTextEl.setAttribute('x', proposedLabelX);
+                    labelTextEl.setAttribute('y', proposedLabelY);
+                    labelTextEl.setAttribute('text-anchor', chosenAnchor);
+                    labelTextEl.setAttribute('alignment-baseline', chosenBaseline);
+                    equationGroup.appendChild(labelTextEl);
+                    placedLabelRects.push(labelTextEl.getBBox()); // Get actual bbox after placement
+                }
+            } else {
+                // If no reference point from segments found at all, don't draw label (or draw at a default corner)
+                return;
+            }
+        }
+
+        // Final application of attributes (if not already appended in auto-position logic)
+        if (!labelTextEl.parentNode) { // Check if it's already appended by the auto-position logic
+            labelTextEl.setAttribute('x', proposedLabelX);
+            labelTextEl.setAttribute('y', proposedLabelY);
+            labelTextEl.setAttribute('text-anchor', chosenAnchor);
+            labelTextEl.setAttribute('alignment-baseline', chosenBaseline);
+            equationGroup.appendChild(labelTextEl);
+            // If it wasn't added to placedLabelRects during auto-positioning check, add its final bbox now
+            if (!eq.labelPosition) { // Only add if it's an auto-placed label, custom labels don't participate in initial overlap avoidance for other labels
+                 placedLabelRects.push(labelTextEl.getBBox());
             }
         }
     });
+
+    // Re-attach drag event listeners after all SVG elements are redrawn
+    // This is crucial because drawGrid clears and recreates the SVG content.
+    setupDragging();
 }
