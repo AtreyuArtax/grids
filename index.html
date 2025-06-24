@@ -53,6 +53,13 @@
             <fieldset class="controls-group" id="generalSettings">
                 <legend>General Settings <span class="toggle-icon">▼</span></legend>
                 <div class="fieldset-content">
+                    <label for="paperStyle">Paper Style:
+                        <select id="paperStyle">
+                            <option value="grid" selected>Grid</option>
+                            <option value="dot">Dot</option>
+                        </select>
+                    </label>
+
                     <label>Square Size (px):
                         <input type="number" id="squareSizeInput" value="40" min="10" step="5"
                         title ="Sets the width and height (in pixels) of each minor grid square. Increasing this makes each square—and the whole grid—larger when exported to PNG or PDF. Useful for getting crisp printouts or high-res images for documents and slides.">
@@ -89,6 +96,10 @@
                     <label class="checkbox-label">Suppress '0' Label:
                         <input type="checkbox" id="suppressZeroLabel">
                     </label>
+                    <label class="checkbox-label">Show Axes:
+                    <input type="checkbox" id="showAxes" checked>
+                    </label>
+
                     <label class="checkbox-label">Show Axis Arrows:
                         <input type="checkbox" id="showAxisArrows" checked>
                     </label>
@@ -261,9 +272,9 @@
             <svg id="gridSVG"></svg>
             <div id="gridErrorMessage"></div>
            <div class="button-row">
-    <button id="downloadSVG">Download Grid as SVG</button>
-    <button id="exportPNG">Export to PNG</button>
-    <button id="exportPDF">Export to PDF</button>
+    <button id="downloadSVG">Export as SVG</button>
+    <button id="exportPNG">Export as PNG</button>
+    <button id="exportPDF">Export as PDF</button>
 </div>
 
 

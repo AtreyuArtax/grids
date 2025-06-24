@@ -1,14 +1,20 @@
+// main.js
 // This module handles overall application flow, UI interactions, and initializes other modules.
-// Removed import of downloadPNG, as it's no longer used with SVG output.
+
 import { gridPresets } from './grid-presets.js';
-import { handleEquationSubmit, resetEquationInputsAndButtons, renderEquationsList, toggleCustomLabelInput, equationSettings } from './equations.js'; // Import equationSettings object
+import {
+    handleEquationSubmit,
+    resetEquationInputsAndButtons,
+    renderEquationsList,
+    toggleCustomLabelInput,
+    equationSettings
+} from './equations.js'; // Import equationSettings object
 import { calculateDynamicMargins, toggleXAxisSettings } from './labels.js';
-import { drawGrid, downloadSVG } from './plotter.js'; // Import downloadSVG from plotter.js
+import { drawGrid, downloadSVG } from './plotter.js';
 import { exportSVGtoPNG, exportSVGtoPDF } from './plotter.js';
 
 document.getElementById('exportPNG').addEventListener('click', exportSVGtoPNG);
 document.getElementById('exportPDF').addEventListener('click', () => exportSVGtoPDF());
-
 
 /**
  * Applies a selected grid preset to the UI controls and redraws the grid.
@@ -62,17 +68,26 @@ function applyPreset(presetName) {
 
         // When applying a preset, set the default state for the *current* equation input form's line arrows
         document.getElementById('showLineArrows').checked = preset.showLineArrows;
-        equationSettings.lastShowLineArrowsValue = preset.showLineArrows; // Update property of the imported object
+        equationSettings.lastShowLineArrowsValue = preset.showLineArrows;
 
-        calculateDynamicMargins(); // Recalculate all margins after applying preset
-        drawGrid(); // Redraw with new preset values
+// --- Add this for Show Axes ---
+        if (document.getElementById('showAxes')) {
+            document.getElementById('showAxes').checked = preset.showAxes;
+        }
+
+        // --- NEW: Paper Style (if present in the preset) ---
+        if (preset.paperStyle && document.getElementById('paperStyle')) {
+            document.getElementById('paperStyle').value = preset.paperStyle;
+        }
+
+        calculateDynamicMargins();
+        drawGrid();
     }
 }
 
-
 // Event listeners for the DOMContentLoaded event to initialize the application.
 document.addEventListener('DOMContentLoaded', () => {
-    // Changed to downloadSVG button
+    // Control declarations
     const downloadButton = document.getElementById('downloadSVG');
     const gridPresetSelect = document.getElementById('gridPreset');
     const xAxisLabelTypeSelect = document.getElementById('xAxisLabelType');
@@ -84,16 +99,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const showAxisArrowsCheckbox = document.getElementById('showAxisArrows');
     const showLineArrowsCheckbox = document.getElementById('showLineArrows');
     const allColorSwatches = document.querySelectorAll('.color-swatch');
+    const paperStyleSelect = document.getElementById('paperStyle');
 
+    // Show arrows for this equation (checkbox)
     showLineArrowsCheckbox.addEventListener('change', () => {
-        equationSettings.lastShowLineArrowsValue = showLineArrowsCheckbox.checked; // Update property of the imported object
+        equationSettings.lastShowLineArrowsValue = showLineArrowsCheckbox.checked;
         calculateDynamicMargins();
         drawGrid();
     });
 
-    // Event listener for the download SVG button
+    // Download SVG
     downloadButton.addEventListener('click', downloadSVG);
 
+    // Quick color picker (swatches)
     allColorSwatches.forEach(swatch => {
         swatch.addEventListener('click', () => {
             const targetInputId = swatch.closest('.color-label-container').querySelector('input[type="color"]').id;
@@ -103,10 +121,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Universal event listeners for most inputs to trigger redraw
+    // Universal input listeners
     const inputs = document.querySelectorAll(
         '.controls-group input[type="number"], ' +
         '.controls-group input[type="text"], ' +
+        '.controls-group input[type="color"], ' +
         '.controls-group input[type="checkbox"]:not(#showLineArrows), ' +
         '#equationLineStyle, ' +
         '#inequalityType'
@@ -124,17 +143,19 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Specific event listener for the GLOBAL 'Show Axis Arrows' checkbox
+    // Show Axis Arrows checkbox
     showAxisArrowsCheckbox.addEventListener('change', () => {
         gridPresetSelect.value = 'custom';
         calculateDynamicMargins();
         drawGrid();
     });
 
+    // Grid preset dropdown
     gridPresetSelect.addEventListener('change', (event) => {
         applyPreset(event.target.value);
     });
 
+    // X-axis label type dropdown
     xAxisLabelTypeSelect.addEventListener('change', () => {
         toggleXAxisSettings();
         document.getElementById('gridPreset').value = 'custom';
@@ -142,11 +163,20 @@ document.addEventListener('DOMContentLoaded', () => {
         drawGrid();
     });
 
-    // Event listeners for Equation Plotting
+    // Equation plotting controls
     addOrUpdateEquationButton.addEventListener('click', handleEquationSubmit);
     cancelEditButton.addEventListener('click', resetEquationInputsAndButtons);
     equationLabelTypeSelect.addEventListener('change', toggleCustomLabelInput);
 
+    // --- NEW: Paper Style dropdown ---
+    if (paperStyleSelect) {
+        paperStyleSelect.addEventListener('change', () => {
+            gridPresetSelect.value = 'custom'; // Set preset to custom when user changes paper style
+            drawGrid(); // Redraw with new paper style
+        });
+    }
+
+    // Collapse fieldsets (collapsible menus)
     const collapsibleFieldsets = document.querySelectorAll('.controls-card fieldset');
     collapsibleFieldsets.forEach(fieldset => {
         const legend = fieldset.querySelector('legend');
@@ -156,26 +186,24 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
     });
+    // Show axes check box
+    const showAxesCheckbox = document.getElementById('showAxes');
+    if (showAxesCheckbox) {
+        showAxesCheckbox.addEventListener('change', () => {
+            document.getElementById('gridPreset').value = 'custom';
+            drawGrid();
+        });
+    }
 
-    // Collapse all fieldsets by default except for Grid Presets on load
+    // Collapse all fieldsets by default except Grid Presets
     const generalSettingsFieldset = document.getElementById('generalSettings');
-    if (generalSettingsFieldset) {
-        generalSettingsFieldset.classList.add('collapsed');
-    }
-
+    if (generalSettingsFieldset) generalSettingsFieldset.classList.add('collapsed');
     const yAxisSettingsFieldset = document.getElementById('yAxisSettings');
-    if (yAxisSettingsFieldset) {
-        yAxisSettingsFieldset.classList.add('collapsed');
-    }
-
+    if (yAxisSettingsFieldset) yAxisSettingsFieldset.classList.add('collapsed');
     const xAxisSettingsFieldset = document.getElementById('xAxisSettings');
-    if (xAxisSettingsFieldset) {
-        xAxisSettingsFieldset.classList.add('collapsed');
-    }
+    if (xAxisSettingsFieldset) xAxisSettingsFieldset.classList.add('collapsed');
     const equationPlottingFieldset = document.getElementById('equationPlotting');
-    if (equationPlottingFieldset) {
-        equationPlottingFieldset.classList.add('collapsed');
-    }
+    if (equationPlottingFieldset) equationPlottingFieldset.classList.add('collapsed');
 
     // Initial setup calls
     toggleXAxisSettings();

@@ -56,6 +56,44 @@ function createArrowheadPath(tipX, tipY, angle, color, size = ARROW_HEAD_SIZE) {
 }
 
 /**
+ * Draws a grid of dots on the SVG.
+ * @param {SVGElement} group - The SVG group element to append the dots to.
+ * @param {Object} options - Options for drawing the dots.
+ * @param {number} options.offsetX - X-offset for the grid.
+ * @param {number} options.offsetY - Y-offset for the grid.
+ * @param {number} options.numMinorGridRows - Number of rows of minor grid squares.
+ * @param {number} options.numMinorGridCols - Number of columns of minor grid squares.
+ * @param {number} options.minorSquareSize - Size (width/height) of each minor grid square in pixels.
+ * @param {string} options.dotColor - Color of the dots.
+ * @param {number} options.dotRadius - Radius of each dot.
+ */
+function drawDotGrid(group, options) {
+    const {
+        offsetX, offsetY,
+        numMinorGridRows, numMinorGridCols,
+        minorSquareSize,
+        dotColor,
+        dotRadius
+    } = options;
+
+    // Draw horizontal and vertical grid of dots
+    for (let r = 0; r <= numMinorGridRows; r++) {
+        const y = offsetY + r * minorSquareSize;
+        for (let c = 0; c <= numMinorGridCols; c++) {
+            const x = offsetX + c * minorSquareSize;
+            group.appendChild(createSVGElement('circle', {
+                cx: x,
+                cy: y,
+                r: dotRadius,
+                fill: dotColor,
+                stroke: 'none' // Dots typically don't have a stroke
+            }));
+        }
+    }
+}
+
+
+/**
  * Downloads the SVG content as an SVG image file.
  */
 export function downloadSVG() {
@@ -470,6 +508,11 @@ export function drawGrid() {
     const zeroLineExtension = Math.max(10, Math.round(minorSquareSize * 0.75)); // tweak the 0.65 factor for taste
     const axisTitleSpacing = Math.max(10, Math.round(minorSquareSize * 0.65)); // tweak as needed
 
+    // Get the state of the "Show Main Axes" checkbox
+    const showMainAxes = document.getElementById('showAxes') ? document.getElementById('showAxes').checked : true;
+    // Get the state of the "Show Axis Arrows" checkbox (separate control)
+    const showAxisArrows = document.getElementById('showAxisArrows') ? document.getElementById('showAxisArrows').checked : true;
+
     const xAxisLabelType = document.getElementById('xAxisLabelType').value;
     let xMin, xMax, xIncrement; // xIncrement is the major mathematical step (e.g., 1 unit or pi/2 radians)
     let xValuePerMinorSquare; // How much mathematical value one minorSquareSize represents on X-axis
@@ -478,7 +521,7 @@ export function drawGrid() {
         const xMinRadians = parseFloat(document.getElementById('xMinRadians').value) || 0;
         const xMaxRadians = parseFloat(document.getElementById('xMaxRadians').value) || (2 * Math.PI / Math.PI); // Default to 2, representing 2π
         const radianStepMultiplier = parseFloat(document.getElementById('radianStepMultiplier').value) || 0.5; // Default to π/2
-        const xGridUnitsPerRadianStep = parseInt(document.getElementById('xGridUnitsPerRadianStep').value) || 6;
+        const xGridUnitsPerRadianStep = parseInt(document.getElementById('xGridUnitsPerRadianStep').value, 10) || 6;
 
         xMin = xMinRadians * Math.PI;
         xMax = xMaxRadians * Math.PI;
@@ -500,8 +543,7 @@ export function drawGrid() {
     const xLabelEvery = parseInt(document.getElementById('xLabelEvery').value, 10);
     const xLabelOnZero = document.getElementById('xLabelOnZero').checked;
     const xAxisLabelOnRight = document.getElementById('xAxisLabelOnRight').checked;
-    const showAxisArrows = document.getElementById('showAxisArrows').checked;
-
+    
     const xAxisLabel = parseSuperscript(document.getElementById('xAxisLabel').value);
     const yAxisLabel = parseSuperscript(document.getElementById('yAxisLabel').value);
     const suppressZeroLabel = document.getElementById('suppressZeroLabel').checked;
@@ -568,6 +610,29 @@ export function drawGrid() {
     const offsetX = marginLeft;
     const offsetY = marginTop;
 
+    // Get paper style from HTML
+    const paperStyle = document.getElementById('paperStyle').value || 'grid';
+
+    // --- Branch for Paper Style: Dot vs. Grid ---
+    if (paperStyle === 'dot') {
+        // Dot style settings (tweak for taste)
+        const dotColor = minorGridColor;
+        const dotRadius = Math.max(1.2, minorSquareSize * 0.11); // e.g. 4 for 40px squares
+
+        drawDotGrid(gridGroup, {
+            offsetX, offsetY,
+            numMinorGridRows, numMinorGridCols,
+            minorSquareSize,
+            dotColor,
+            dotRadius
+        });
+
+        // If you want only dots for dot paper, return here to skip drawing lines and axis labels
+        // If you want lines AND dots, comment out this return.
+        // For standard dot paper, we usually only want dots.
+        // Axis lines and labels are drawn after this block.
+    }
+
     // Find the Y-position of the zero line relative to the grid top
     let zeroYGridPos = -1;
     if (yMin <= 0 && yMax >= 0) {
@@ -580,35 +645,56 @@ export function drawGrid() {
         zeroXGridPos = offsetX + (-xMin / xValuePerMinorSquare) * minorSquareSize;
     }
 
-    // Draw Y-axis grid lines and labels
+    // Calculate axis line end points - ALWAYS calculate full potential extension for arrow placement
+    // These values define the potential maximum length of the axis line.
+    const xAxisLineStartExtended = offsetX - (xMin < -EPSILON ? zeroLineExtension : 0);
+    const xAxisLineEndExtended = offsetX + actualGridWidth + (xMax > EPSILON ? zeroLineExtension : 0);
+    const yAxisLineStartExtended = offsetY - (yMax > EPSILON ? zeroLineExtension : 0);
+    const yAxisLineEndExtended = offsetY + actualGridHeight + (yMin < -EPSILON ? zeroLineExtension : 0);
+
+
+    // --- Draw Y-axis grid lines and labels ---
     for (let r = 0; r <= numMinorGridRows; r++) {
         const y = offsetY + r * minorSquareSize;
         const value = yMax - r * yIncrement;
 
-        // Determine if this is the mathematical zero line for coloring/thickness
-        const isMathematicalZeroLine = Math.abs(value) < yIncrement / 2;
+        const isMathematicalZeroLine = Math.abs(value) < EPSILON; // Check for actual zero
+        // `drawAsMajorAxis` determines if this grid line should be thicker/major, based on showMainAxes
+        const drawAsMajorAxis = showMainAxes && isMathematicalZeroLine;
 
-        const strokeWidth = isMathematicalZeroLine ? majorLineThickness : minorLineThickness;
-        const stroke = isMathematicalZeroLine ? majorGridColor : minorGridColor;
+        const strokeWidth = drawAsMajorAxis ? majorLineThickness : minorLineThickness;
+        const stroke = drawAsMajorAxis ? majorGridColor : minorGridColor;
 
-        // Grid lines themselves just go to the boundary of the main grid area
-        const line = createSVGElement('line', {
-            x1: offsetX,
-            y1: y,
-            x2: offsetX + actualGridWidth,
-            y2: y,
-            stroke: stroke,
-            'stroke-width': strokeWidth
-        });
-        gridGroup.appendChild(line);
+        // Draw grid lines (thickness/color depends on `drawAsMajorAxis`, only draw if grid paper)
+        if (paperStyle === 'grid') {
+            const line = createSVGElement('line', {
+                x1: offsetX,
+                y1: y,
+                x2: offsetX + actualGridWidth,
+                y2: y,
+                stroke: stroke,
+                'stroke-width': strokeWidth
+            });
+            gridGroup.appendChild(line);
+        }
 
-        // Y-axis Labeling Logic (numbers)
-        if (yLabelEvery > 0 && ((r % yLabelEvery === 0) || (yLabelOnZero && isMathematicalZeroLine)) && !(value === 0 && suppressZeroLabel)) {
+        // Y-axis Labeling Logic (numbers) - only show '0' if main axes are visible and conditions met
+        if (
+            yLabelEvery > 0 &&
+            (
+                (r % yLabelEvery === 0)
+                || (showMainAxes && yLabelOnZero && isMathematicalZeroLine) // Only show '0' if main axes are visible
+            )
+            && !(value === 0 && suppressZeroLabel) // Always respect suppressZeroLabel
+        ) {
+            // NO extra check or continue here! Y-axis gets to draw '0' at the origin if appropriate.
+            // The X-axis will handle the suppression if Y-axis draws it.
+
             const labelText = value.toFixed(yIncrement.toString().includes('.') ? yIncrement.toString().split('.')[1].length : 0);
             const textEl = createSVGElement('text', {
-                x: (yLabelOnZero && zeroXGridPos !== -1) ? zeroXGridPos - 5 : offsetX - 10,
+                x: (showMainAxes && yLabelOnZero && zeroXGridPos !== -1) ? zeroXGridPos - 5 : offsetX - 10, // offset towards X-axis 0 if main axes visible
                 y: y,
-                'font-family': 'Inter, sans-serif',
+                'font-family': 'Inter, sans-serif', // Corrected font-family syntax
                 'font-size': `${labelFontSize}px`,
                 fill: '#333',
                 'text-anchor': 'end',
@@ -619,29 +705,32 @@ export function drawGrid() {
         }
     }
 
-    // Draw X-axis grid lines and labels
+    // --- Draw X-axis grid lines and labels ---
     for (let c = 0; c <= numMinorGridCols; c++) {
         const x = offsetX + c * minorSquareSize;
         const value = xMin + c * xValuePerMinorSquare;
 
-        // Determine if this is the mathematical zero line for coloring/thickness
-        const isMathematicalZeroLine = Math.abs(value) < xValuePerMinorSquare / 2;
+        const isMathematicalZeroLine = Math.abs(value) < EPSILON; // Check for actual zero
+        // `drawAsMajorAxis` determines if this grid line should be thicker/major, based on showMainAxes
+        const drawAsMajorAxis = showMainAxes && isMathematicalZeroLine;
 
-        const strokeWidth = isMathematicalZeroLine ? majorLineThickness : minorLineThickness;
-        const stroke = isMathematicalZeroLine ? majorGridColor : minorGridColor;
+        const strokeWidth = drawAsMajorAxis ? majorLineThickness : minorLineThickness;
+        const stroke = drawAsMajorAxis ? majorGridColor : minorGridColor;
 
-        // Grid lines themselves just go to the boundary of the main grid area
-        const line = createSVGElement('line', {
-            x1: x,
-            y1: offsetY,
-            x2: x,
-            y2: offsetY + actualGridHeight,
-            stroke: stroke,
-            'stroke-width': strokeWidth
-        });
-        gridGroup.appendChild(line);
+        // Draw grid lines (thickness/color depends on `drawAsMajorAxis`, only draw if grid paper)
+        if (paperStyle === 'grid') {
+            const line = createSVGElement('line', {
+                x1: x,
+                y1: offsetY,
+                x2: x,
+                y2: offsetY + actualGridHeight,
+                stroke: stroke,
+                'stroke-width': strokeWidth
+            });
+            gridGroup.appendChild(line);
+        }
 
-        // X-axis Labeling Logic (numbers or radians)
+        // X-axis Labeling Logic (numbers or radians) - only show '0' if main axes are visible and conditions met
         let shouldLabel = false;
         if (xLabelEvery > 0) {
             if (xAxisLabelType === 'radians') {
@@ -664,16 +753,26 @@ export function drawGrid() {
             }
         }
 
-        if (xLabelOnZero && isMathematicalZeroLine) {
+        // If it's the zero line, and main axes are visible, and xLabelOnZero is checked, then label it.
+        if (isMathematicalZeroLine && showMainAxes && xLabelOnZero) {
             shouldLabel = true;
         }
 
         if (shouldLabel) {
+            // Always respect suppressZeroLabel
             if (value === 0 && suppressZeroLabel) {
                 continue;
             }
-            if (value === 0 && yLabelOnZero && zeroYGridPos !== -1 && zeroXGridPos !== -1) {
-                continue; // Prevent drawing '0' twice if Y-axis also handles it at the origin
+            // NEW: Prevent drawing '0' at origin if Y-axis is configured to show '0' and both axes pass through the origin.
+            // Y-axis takes priority for the (0,0) label.
+            if (
+                isMathematicalZeroLine && // It is the X=0 line
+                showMainAxes &&          // Main axes are enabled
+                yLabelOnZero &&          // Y-axis is configured to show its '0'
+                zeroYGridPos !== -1 &&   // Y-axis zero line is visible in the grid
+                zeroXGridPos !== -1      // X-axis zero line is visible in the grid
+            ) {
+                continue; // Skip drawing X-axis '0' label
             }
 
             let labelText;
@@ -689,10 +788,10 @@ export function drawGrid() {
 
             const textEl = createSVGElement('text', {
                 x: x,
-                y: (xLabelOnZero && zeroYGridPos !== -1)
+                y: (showMainAxes && xLabelOnZero && zeroYGridPos !== -1) // Offset towards Y-axis 0 if main axes visible
                     ? zeroYGridPos + labelYOffset
                     : offsetY + actualGridHeight + labelYOffset,
-                'font-family': 'Inter, sans-serif',
+                'font-family': 'Inter, sans-serif', // Corrected font-family syntax
                 'font-size': `${labelFontSize}px`,
                 fill: '#333',
                 'text-anchor': 'middle',
@@ -703,112 +802,109 @@ export function drawGrid() {
         }
     }
 
+
     // --- Draw X-axis (the horizontal line representing y=0 or the bottom edge) ---
-    // Calculate the Y position of the X-axis: either the zero line, or the bottom grid edge
-    const xAxisLineY = zeroYGridPos !== -1 ? zeroYGridPos : offsetY + actualGridHeight;
-    const xAxisLineStart = offsetX - (showAxisArrows && xMin < -EPSILON ? zeroLineExtension : 0);
-    const xAxisLineEnd = offsetX + actualGridWidth + (showAxisArrows && xMax > EPSILON ? zeroLineExtension : 0);
+    // Only draw main axis line and its label if showMainAxes is true
+    if (showMainAxes) {
+        const xAxisLineY = zeroYGridPos !== -1 ? zeroYGridPos : offsetY + actualGridHeight;
+        
+        gridGroup.appendChild(createSVGElement('line', {
+            x1: xAxisLineStartExtended, // Use extended line for full potential length
+            y1: xAxisLineY,
+            x2: xAxisLineEndExtended,   // Use extended line for full potential length
+            y2: xAxisLineY,
+            stroke: majorGridColor,
+            'stroke-width': majorLineThickness
+        }));
 
-    gridGroup.appendChild(createSVGElement('line', {
-        x1: xAxisLineStart,
-        y1: xAxisLineY,
-        x2: xAxisLineEnd,
-        y2: xAxisLineY,
-        stroke: majorGridColor,
-        'stroke-width': majorLineThickness
-    }));
+        // Draw X-axis label (main title 'x')
+        const xAxisTitle = createSVGElement('text', {
+            'font-family': 'Inter, sans-serif',
+            'font-size': `${axisTitleFontSize}px`,
+            fill: '#333'
+        });
+        xAxisTitle.textContent = xAxisLabel;
 
-    // Draw X-axis label (main title 'x')
-    const xAxisTitle = createSVGElement('text', {
-        'font-family': 'Inter, sans-serif',
-        'font-size': `${axisTitleFontSize}px`,
-        fill: '#333'
-    });
-    xAxisTitle.textContent = xAxisLabel;
-
-    if (xAxisLabelOnRight && xAxisLabel && xMax > EPSILON) { // Only show on right if axis extends right
-        // Position just right of the extended arrow tip, with a small buffer
-        const xPos = offsetX + actualGridWidth + zeroLineExtension + axisTitleSpacing;
-        xAxisTitle.setAttribute('x', xPos);
-        xAxisTitle.setAttribute('y', xAxisLineY); // Align with the X-axis line
-        xAxisTitle.setAttribute('text-anchor', 'start'); // Text starts from this point
-        xAxisTitle.setAttribute('alignment-baseline', 'middle');
-    } else if (xAxisLabel) { // Position below the grid, centered horizontally
-        xAxisTitle.setAttribute('x', offsetX + actualGridWidth / 2);
-        xAxisTitle.setAttribute('y', offsetY + actualGridHeight + (marginBottom / 2));
-        xAxisTitle.setAttribute('text-anchor', 'middle');
-        xAxisTitle.setAttribute('alignment-baseline', 'middle');
+        if (xAxisLabelOnRight && xAxisLabel && xMax > EPSILON) { // Only show on right if axis extends right
+            const xPos = offsetX + actualGridWidth + zeroLineExtension + axisTitleSpacing;
+            xAxisTitle.setAttribute('x', xPos);
+            xAxisTitle.setAttribute('y', xAxisLineY);
+            xAxisTitle.setAttribute('text-anchor', 'start');
+            xAxisTitle.setAttribute('alignment-baseline', 'middle');
+        } else if (xAxisLabel) { // Position below the grid, centered horizontally
+            xAxisTitle.setAttribute('x', offsetX + actualGridWidth / 2);
+            xAxisTitle.setAttribute('y', offsetY + actualGridHeight + (marginBottom / 2));
+            xAxisTitle.setAttribute('text-anchor', 'middle');
+            xAxisTitle.setAttribute('alignment-baseline', 'middle');
+        }
+        gridGroup.appendChild(xAxisTitle);
     }
-    gridGroup.appendChild(xAxisTitle);
+
 
     // --- Draw Y-axis (the vertical line representing x=0 or the left edge) ---
-    // Calculate the X position of the Y-axis: either the zero line, or the left grid edge
-    const yAxisLineX = zeroXGridPos !== -1 ? zeroXGridPos : offsetX;
-    const yAxisLineStart = offsetY - (showAxisArrows && yMax > EPSILON ? zeroLineExtension : 0);
-    const yAxisLineEnd = offsetY + actualGridHeight + (showAxisArrows && yMin < -EPSILON ? zeroLineExtension : 0);
+    // Only draw main axis line and its label if showMainAxes is true
+    if (showMainAxes) {
+        const yAxisLineX = zeroXGridPos !== -1 ? zeroXGridPos : offsetX;
+        
+        gridGroup.appendChild(createSVGElement('line', {
+            x1: yAxisLineX,
+            y1: yAxisLineStartExtended, // Use extended line for full potential length
+            x2: yAxisLineX,
+            y2: yAxisLineEndExtended,   // Use extended line for full potential length
+            stroke: majorGridColor,
+            'stroke-width': majorLineThickness
+        }));
 
-    gridGroup.appendChild(createSVGElement('line', {
-        x1: yAxisLineX,
-        y1: yAxisLineStart,
-        x2: yAxisLineX,
-        y2: yAxisLineEnd,
-        stroke: majorGridColor,
-        'stroke-width': majorLineThickness
-    }));
+        // Draw Y-axis label (main title 'y', rotated)
+        const yAxisTitle = createSVGElement('text', {
+            'font-family': 'Inter, sans-serif', // Corrected font-family syntax
+            'font-size': `${axisTitleFontSize}px`,
+            fill: '#333'
+        });
+        yAxisTitle.textContent = yAxisLabel;
 
-    // Draw Y-axis label (main title 'y', rotated)
-    const yAxisTitle = createSVGElement('text', {
-        'font-family': 'Inter, sans-serif',
-        'font-size': `${axisTitleFontSize}px`,
-        fill: '#333'
-    });
-    yAxisTitle.textContent = yAxisLabel;
-
-    if (yAxisLabelOnTop && yAxisLabel && yMax > EPSILON) { // Only show on top if axis extends up
-        // Position just above the extended arrow tip, with a small buffer
-        const yPos = offsetY - (zeroLineExtension + axisTitleSpacing);
-        yAxisTitle.setAttribute('x', yAxisLineX); // Align with the Y-axis line
-        yAxisTitle.setAttribute('y', yPos);
-        yAxisTitle.setAttribute('transform', ''); // No rotation needed for top label
-        yAxisTitle.setAttribute('text-anchor', 'middle');
-        yAxisTitle.setAttribute('alignment-baseline', 'alphabetic'); // Places baseline at yPos, pulling text up
-    } else if (yAxisLabel) { // Position to the left of the grid, centered vertically, rotated
-        yAxisTitle.setAttribute('x', marginLeft / 2);
-        yAxisTitle.setAttribute('y', offsetY + actualGridHeight / 2);
-        yAxisTitle.setAttribute('transform', `rotate(-90 ${marginLeft / 2},${offsetY + actualGridHeight / 2})`);
-        yAxisTitle.setAttribute('text-anchor', 'middle');
-        yAxisTitle.setAttribute('alignment-baseline', 'middle');
+        if (yAxisLabelOnTop && yAxisLabel && yMax > EPSILON) { // Only show on top if axis extends up
+            const yPos = offsetY - (zeroLineExtension + axisTitleSpacing);
+            yAxisTitle.setAttribute('x', yAxisLineX);
+            yAxisTitle.setAttribute('y', yPos);
+            yAxisTitle.setAttribute('transform', '');
+            yAxisTitle.setAttribute('text-anchor', 'middle');
+            yAxisTitle.setAttribute('alignment-baseline', 'alphabetic');
+        } else if (yAxisLabel) { // Position to the left of the grid, centered vertically, rotated
+            yAxisTitle.setAttribute('x', marginLeft / 2);
+            yAxisTitle.setAttribute('y', offsetY + actualGridHeight / 2);
+            yAxisTitle.setAttribute('transform', `rotate(-90 ${marginLeft / 2},${offsetY + actualGridHeight / 2})`);
+            yAxisTitle.setAttribute('text-anchor', 'middle');
+            yAxisTitle.setAttribute('alignment-baseline', 'middle');
+        }
+        gridGroup.appendChild(yAxisTitle);
     }
-    gridGroup.appendChild(yAxisTitle);
 
 
     // --- Draw Axis Arrows ---
+    // Only draw arrows if showAxisArrows is true (separate control)
     if (showAxisArrows) {
         const arrowColor = majorGridColor;
         const minLineLengthForArrow = 10; // Minimum length for an axis to show an arrow
 
         // X-axis positive arrow (right side)
-        if (xMax > EPSILON && (xAxisLineEnd - xAxisLineStart) >= minLineLengthForArrow) {
-            // Arrow tip at (xAxisLineEnd + arrowHeadSize), pointing right
-            gridGroup.appendChild(createArrowheadPath(xAxisLineEnd + arrowHeadSize, xAxisLineY, 0, arrowColor));
+        if (xMax > EPSILON && (xAxisLineEndExtended - xAxisLineStartExtended) >= minLineLengthForArrow) {
+            gridGroup.appendChild(createArrowheadPath(xAxisLineEndExtended + arrowHeadSize, zeroYGridPos !== -1 ? zeroYGridPos : offsetY + actualGridHeight, 0, arrowColor));
         }
 
         // X-axis negative arrow (left side)
-        if (xMin < -EPSILON && (xAxisLineEnd - xAxisLineStart) >= minLineLengthForArrow) {
-            // Arrow tip at (xAxisLineStart - arrowHeadSize), pointing left
-            gridGroup.appendChild(createArrowheadPath(xAxisLineStart - arrowHeadSize, xAxisLineY, Math.PI, arrowColor));
+        if (xMin < -EPSILON && (xAxisLineEndExtended - xAxisLineStartExtended) >= minLineLengthForArrow) {
+            gridGroup.appendChild(createArrowheadPath(xAxisLineStartExtended - arrowHeadSize, zeroYGridPos !== -1 ? zeroYGridPos : offsetY + actualGridHeight, Math.PI, arrowColor));
         }
 
         // Y-axis positive arrow (top side)
-        if (yMax > EPSILON && (yAxisLineEnd - yAxisLineStart) >= minLineLengthForArrow) {
-            // Arrow tip at (yAxisLineX, yAxisLineStart - arrowHeadSize), pointing up
-            gridGroup.appendChild(createArrowheadPath(yAxisLineX, yAxisLineStart - arrowHeadSize, -Math.PI / 2, arrowColor));
+        if (yMax > EPSILON && (yAxisLineEndExtended - yAxisLineStartExtended) >= minLineLengthForArrow) {
+            gridGroup.appendChild(createArrowheadPath(zeroXGridPos !== -1 ? zeroXGridPos : offsetX, yAxisLineStartExtended - arrowHeadSize, -Math.PI / 2, arrowColor));
         }
 
         // Y-axis negative arrow (bottom side)
-        if (yMin < -EPSILON && (yAxisLineEnd - yAxisLineStart) >= minLineLengthForArrow) {
-            // Arrow tip at (yAxisLineX, yAxisLineEnd + arrowHeadSize), pointing down
-            gridGroup.appendChild(createArrowheadPath(yAxisLineX, yAxisLineEnd + arrowHeadSize, Math.PI / 2, arrowColor));
+        if (yMin < -EPSILON && (yAxisLineEndExtended - yAxisLineStartExtended) >= minLineLengthForArrow) {
+            gridGroup.appendChild(createArrowheadPath(zeroXGridPos !== -1 ? zeroXGridPos : offsetX, yAxisLineEndExtended + arrowHeadSize, Math.PI / 2, arrowColor));
         }
     }
 
@@ -1266,7 +1362,7 @@ export function drawGrid() {
                     }
 
                     if (!overlapsExisting) {
-                        placedLabelRects.push(currentLabelRect);
+                        placedLabelRects.push(currentLabelRect); // Store the actual left position to correctly handle overlap check later.
                         autoPositionFound = true;
                         break; // Found a good auto position
                     }
