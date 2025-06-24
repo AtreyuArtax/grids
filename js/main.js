@@ -7,7 +7,7 @@ import { drawGrid, downloadSVG } from './plotter.js'; // Import downloadSVG from
 import { exportSVGtoPNG, exportSVGtoPDF } from './plotter.js';
 
 document.getElementById('exportPNG').addEventListener('click', exportSVGtoPNG);
-document.getElementById('exportPDF').addEventListener('click', exportSVGtoPDF);
+document.getElementById('exportPDF').addEventListener('click', () => exportSVGtoPDF());
 
 
 /**

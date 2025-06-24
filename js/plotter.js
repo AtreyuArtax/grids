@@ -4,6 +4,7 @@ import { calculateDynamicMargins, dynamicMarginLeft, dynamicMarginRight,
          dynamicMarginTop, dynamicMarginBottom, doesOverlap } from './labels.js';
 import { equationsToDraw } from './equations.js';
 
+
 /**
  * Creates an SVG element with the specified tag name and attributes.
  * @param {string} tagName - The SVG tag name (e.g., 'line', 'rect', 'text', 'path').
@@ -136,53 +137,189 @@ export function exportSVGtoPNG() {
 
 
 // -- Export SVG as PDF (requires jsPDF library)
-export function exportSVGtoPDF() {
-    const svgElement = document.getElementById('gridSVG');
-    const serializer = new XMLSerializer();
-    const svgString = serializer.serializeToString(svgElement);
+/**
+ * Displays a custom message box instead of using alert().
+ * This function creates a temporary DOM element to show messages.
+ * @param {string} message The message to display.
+ * @param {string} type The type of message ('error', 'info', etc.) to influence styling.
+ */
+function showMessageBox(message, type = 'error') {
+    const messageBox = document.createElement('div');
+    messageBox.className = 'message-box'; // Assign a class for potential styling
 
-    // Get viewBox size
-    const vb = svgElement.viewBox.baseVal;
-    const width = vb.width || svgElement.width.baseVal.value;
-    const height = vb.height || svgElement.height.baseVal.value;
+    // Basic inline styling for the message box
+    let bgColor, textColor, borderColor, buttonBg;
+    switch (type) {
+        case 'error':
+            bgColor = '#f8d7da'; // Light red
+            textColor = '#721c24'; // Dark red
+            borderColor = '#f5c6cb'; // Red border
+            buttonBg = '#dc3545'; // Error button color
+            break;
+        case 'info':
+        default:
+            bgColor = '#d1ecf1'; // Light blue
+            textColor = '#0c5460'; // Dark blue
+            borderColor = '#bee5eb'; // Blue border
+            buttonBg = '#17a2b8'; // Info button color
+            break;
+    }
 
-    // Convert SVG to PNG as before, then embed PNG in PDF
-    const svgBlob = new Blob([svgString], {type: "image/svg+xml;charset=utf-8"});
-    const url = URL.createObjectURL(svgBlob);
-    const img = new window.Image();
-    img.onload = function() {
-        // Create canvas with SVG's size
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#fff'; // Background
-        ctx.fillRect(0, 0, width, height);
-        ctx.drawImage(img, 0, 0, width, height);
+    messageBox.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: ${bgColor};
+        color: ${textColor};
+        border: 1px solid ${borderColor};
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        z-index: 1000;
+        font-family: 'Inter', sans-serif; /* Ensure consistent font if loaded */
+        text-align: center;
+        max-width: 350px;
+        min-width: 250px;
+        line-height: 1.5;
+    `;
 
-        // Get PNG data
-        const pngUri = canvas.toDataURL('image/png');
+    messageBox.innerHTML = `
+        <p>${message}</p>
+        <button onclick="this.parentNode.remove()" style="
+            background-color: ${buttonBg};
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 15px;
+            font-size: 1rem;
+            transition: background-color 0.2s ease;
+        ">OK</button>
+    `;
+    document.body.appendChild(messageBox);
+}
 
-        // Create PDF
-        const pdf = new window.jspdf.jsPDF({
-            orientation: width > height ? 'landscape' : 'portrait',
-            unit: 'pt',
-            format: [width, height]
-        });
+/**
+ * Exports an SVG element to a PDF, scaling it to fill a letter-size sheet
+ * with margins, adjusting orientation based on SVG aspect ratio.
+ * @param {string} svgId The ID of the SVG element to export. Defaults to 'gridSVG'.
+ * (Note: The original code didn't take an ID parameter,
+ * but this allows for more flexibility if needed).
+ */
+export function exportSVGtoPDF(svgId = 'gridSVG') {
+    const svgElement = document.getElementById(svgId);
+    if (!svgElement) {
+        console.error(`SVG element with ID '${svgId}' not found.`);
+        showMessageBox(`Error: SVG element with ID '${svgId}' not found. Please ensure the SVG element exists in the HTML.`, 'error');
+        return;
+    }
 
-        // Add image
-        pdf.addImage(pngUri, 'PNG', 0, 0, width, height);
+    // US Letter dimensions in points (1 inch = 72 points)
+    const PAGE_WIDTH_PT = 612; // 8.5 * 72
+    const PAGE_HEIGHT_PT = 792; // 11 * 72
+    const MARGIN_PT = 25; // 0.5 inch * 72 pt/inch --> at 36pt which is standard, but shrunk to 20 here to maximize size
 
-        // Download PDF
+    // Get SVG original dimensions. Prefer viewBox for intrinsic size,
+    // fallback to width/height attributes, then getBoundingClientRect.
+    let svgOriginalWidth, svgOriginalHeight;
+
+    const vb = svgElement.viewBox && svgElement.viewBox.baseVal;
+    if (vb && vb.width > 0 && vb.height > 0) {
+        svgOriginalWidth = vb.width;
+        svgOriginalHeight = vb.height;
+    } else if (svgElement.width?.baseVal?.value > 0 && svgElement.height?.baseVal?.value > 0) {
+        // Fallback to width/height attributes if viewBox is missing or invalid
+        svgOriginalWidth = svgElement.width.baseVal.value;
+        svgOriginalHeight = svgElement.height.baseVal.value;
+    } else {
+        // Last resort: use the element's rendered size. Less ideal for intrinsic export,
+        // but better than failing if no explicit size info.
+        const bbox = svgElement.getBoundingClientRect();
+        svgOriginalWidth = bbox.width;
+        svgOriginalHeight = bbox.height;
+        if (svgOriginalWidth <= 0 || svgOriginalHeight <= 0) {
+            console.error("Could not determine SVG dimensions reliably.");
+            showMessageBox("Error: Could not determine SVG dimensions reliably for export. Please ensure SVG has valid dimensions (viewBox, width/height attributes, or rendered size).", 'error');
+            return;
+        }
+    }
+
+    // Determine PDF page orientation based on SVG's aspect ratio
+    const svgAspect = svgOriginalWidth / svgOriginalHeight;
+    let pageW = PAGE_WIDTH_PT, pageH = PAGE_HEIGHT_PT, orientation = 'portrait';
+
+    // If SVG is wider than tall, set PDF to landscape and swap page dimensions
+    if (svgAspect > 1) {
+        orientation = 'landscape';
+        pageW = PAGE_HEIGHT_PT; // Width becomes height (e.g., 11 inches)
+        pageH = PAGE_WIDTH_PT;  // Height becomes width (e.g., 8.5 inches)
+    }
+
+    // Calculate usable area on the PDF page after applying margins
+    const usableW = pageW - 2 * MARGIN_PT;
+    const usableH = pageH - 2 * MARGIN_PT;
+
+    // Calculate the scale factor to fit the SVG entirely within the usable area.
+    // This ensures the SVG is scaled down if too large, or scaled up if too small,
+    // while maintaining its aspect ratio and fitting within the margins.
+    const scale = Math.min(usableW / svgOriginalWidth, usableH / svgOriginalHeight);
+
+    // Calculate the final dimensions of the SVG content when drawn on the PDF
+    const scaledContentW = svgOriginalWidth * scale;
+    const scaledContentH = svgOriginalHeight * scale;
+
+    // Calculate offsets to center the scaled SVG content within the usable area.
+    // This places the content horizontally and vertically centered within the margins.
+    const xOffset = MARGIN_PT + (usableW - scaledContentW) / 2;
+    const yOffset = MARGIN_PT + (usableH - scaledContentH) / 2;
+
+    // Defensive checks for jsPDF and svg2pdf libraries
+    const jspdf = window.jspdf && window.jspdf.jsPDF ? window.jspdf.jsPDF : window.jspdf;
+    const svg2pdf = window.svg2pdf && window.svg2pdf.svg2pdf ? window.svg2pdf.svg2pdf : window.svg2pdf;
+
+    if (typeof jspdf !== "function" || typeof svg2pdf !== "function") {
+        console.error("jsPDF or svg2pdf.js library not found. Please ensure they are loaded via <script> tags.");
+        showMessageBox("Error: Required PDF libraries (jsPDF, svg2pdf.js) not found. Please ensure they are loaded in your HTML.", 'error');
+        return;
+    }
+
+    // Initialize jsPDF document with determined orientation and format
+    const pdf = new jspdf({
+        orientation: orientation,
+        unit: 'pt',
+        format: [pageW, pageH]
+    });
+
+    // Use svg2pdf to draw the SVG onto the PDF.
+    // Crucially, we pass 'width' and 'height' as the *target scaled dimensions*
+    // and 'x'/'y' as the computed offsets. We do NOT pass a separate 'scale'
+    // parameter to svg2pdf to avoid potential double scaling issues, as the
+    // width/height parameters implicitly handle the scaling.
+    svg2pdf(svgElement, pdf, {
+        x: xOffset,
+        y: yOffset,
+        width: scaledContentW,
+        height: scaledContentH,
+        // The 'scale' property is intentionally omitted here.
+        // The desired scaling is achieved by setting 'width' and 'height'
+        // to the calculated 'scaledContentW' and 'scaledContentH'.
+    }).then(() => {
+        // Generate a timestamp for the filename
         const now = new Date();
         const pad = n => n.toString().padStart(2, '0');
-        const timestamp = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}`;
+        const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}`;
         pdf.save(`grid_${timestamp}.pdf`);
-
-        URL.revokeObjectURL(url);
-    };
-    img.src = url;
+    }).catch(err => {
+        console.error("Error exporting SVG to PDF:", err);
+        showMessageBox(`Error exporting SVG to PDF: ${err.message}`, 'error');
+    });
 }
+
+
+
+
 
 
 /**
