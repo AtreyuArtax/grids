@@ -4,6 +4,11 @@ import { gridPresets } from './grid-presets.js';
 import { handleEquationSubmit, resetEquationInputsAndButtons, renderEquationsList, toggleCustomLabelInput, equationSettings } from './equations.js'; // Import equationSettings object
 import { calculateDynamicMargins, toggleXAxisSettings } from './labels.js';
 import { drawGrid, downloadSVG } from './plotter.js'; // Import downloadSVG from plotter.js
+import { exportSVGtoPNG, exportSVGtoPDF } from './plotter.js';
+
+document.getElementById('exportPNG').addEventListener('click', exportSVGtoPNG);
+document.getElementById('exportPDF').addEventListener('click', exportSVGtoPDF);
+
 
 /**
  * Applies a selected grid preset to the UI controls and redraws the grid.

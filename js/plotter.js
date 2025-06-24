@@ -76,6 +76,113 @@ export function downloadSVG() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 }
+// plotter.js
+
+// -- Helper: Download data URI as file
+function downloadDataUri(filename, uri) {
+    const link = document.createElement('a');
+    link.href = uri;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// -- Export SVG as PNG
+export function exportSVGtoPNG() {
+    const svgElement = document.getElementById('gridSVG');
+    const serializer = new XMLSerializer();
+    const svgString = serializer.serializeToString(svgElement);
+
+    // Get SVG viewBox for crisp output
+    let width, height;
+    if (svgElement.viewBox && svgElement.viewBox.baseVal) {
+        width = svgElement.viewBox.baseVal.width;
+        height = svgElement.viewBox.baseVal.height;
+    } else {
+        // fallback, try width/height attribute
+        width = parseInt(svgElement.getAttribute('width'), 10) || 800;
+        height = parseInt(svgElement.getAttribute('height'), 10) || 600;
+    }
+
+    // Optional: allow user to scale up (for printing), e.g. 2x resolution
+    const scale = 3; // or 1 for "actual size"
+    const canvas = document.createElement('canvas');
+    canvas.width = width * scale;
+    canvas.height = height * scale;
+
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(scale, 0, 0, scale, 0, 0); // scale everything
+
+    // Draw background
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, width, height);
+
+    // Draw the SVG
+    const img = new window.Image();
+    const svgBlob = new Blob([svgString], {type: "image/svg+xml;charset=utf-8"});
+    const url = URL.createObjectURL(svgBlob);
+    img.onload = function() {
+        ctx.drawImage(img, 0, 0, width, height);
+        const pngUri = canvas.toDataURL('image/png');
+        const now = new Date();
+        const pad = n => n.toString().padStart(2, '0');
+        const timestamp = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}`;
+        downloadDataUri(`grid_${timestamp}.png`, pngUri);
+        URL.revokeObjectURL(url);
+    };
+    img.src = url;
+}
+
+
+// -- Export SVG as PDF (requires jsPDF library)
+export function exportSVGtoPDF() {
+    const svgElement = document.getElementById('gridSVG');
+    const serializer = new XMLSerializer();
+    const svgString = serializer.serializeToString(svgElement);
+
+    // Get viewBox size
+    const vb = svgElement.viewBox.baseVal;
+    const width = vb.width || svgElement.width.baseVal.value;
+    const height = vb.height || svgElement.height.baseVal.value;
+
+    // Convert SVG to PNG as before, then embed PNG in PDF
+    const svgBlob = new Blob([svgString], {type: "image/svg+xml;charset=utf-8"});
+    const url = URL.createObjectURL(svgBlob);
+    const img = new window.Image();
+    img.onload = function() {
+        // Create canvas with SVG's size
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#fff'; // Background
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Get PNG data
+        const pngUri = canvas.toDataURL('image/png');
+
+        // Create PDF
+        const pdf = new window.jspdf.jsPDF({
+            orientation: width > height ? 'landscape' : 'portrait',
+            unit: 'pt',
+            format: [width, height]
+        });
+
+        // Add image
+        pdf.addImage(pngUri, 'PNG', 0, 0, width, height);
+
+        // Download PDF
+        const now = new Date();
+        const pad = n => n.toString().padStart(2, '0');
+        const timestamp = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}`;
+        pdf.save(`grid_${timestamp}.pdf`);
+
+        URL.revokeObjectURL(url);
+    };
+    img.src = url;
+}
 
 
 /**
@@ -104,15 +211,18 @@ export function drawGrid() {
     const minorSquareSize = parseFloat(document.getElementById('squareSizeInput').value) || 40;
     const minorLineThickness = Math.max(0.5, minorSquareSize * 0.025);
     const majorLineThickness = Math.max(minorLineThickness * 1.8, minorSquareSize * 0.06);
-    const labelFontSize = Math.max(9, Math.min(Math.round(minorSquareSize * 0.38), 18));        // axis number labels
-    const axisTitleFontSize = Math.max(12, Math.min(Math.round(minorSquareSize * 0.48), 24));   // axis titles (x/y)
-    const equationLabelFontSize = Math.max(9, Math.min(Math.round(minorSquareSize * 0.32), 15)); // equation labels
+    const labelFontSize = Math.max(9, Math.min(Math.round(minorSquareSize * 0.38), 60));        // axis number labels
+    const axisTitleFontSize = Math.max(12, Math.min(Math.round(minorSquareSize * 0.48), 80));   // axis titles (x/y)
+    const equationLabelFontSize = Math.max(9, Math.min(Math.round(minorSquareSize * 0.32), 48)); // equation labels
     const yMin = parseFloat(document.getElementById('yMin').value) || 0;
     const yMax = parseFloat(document.getElementById('yMax').value) || 10;
     const yIncrement = parseFloat(document.getElementById('yIncrement').value) || 1;
     const yLabelEvery = parseInt(document.getElementById('yLabelEvery').value, 10);
     const yLabelOnZero = document.getElementById('yLabelOnZero').checked;
     const yAxisLabelOnTop = document.getElementById('yAxisLabelOnTop').checked;
+    const arrowHeadSize = Math.max(5, Math.round(minorSquareSize * 0.35));
+    const zeroLineExtension = Math.max(10, Math.round(minorSquareSize * 0.75)); // tweak the 0.65 factor for taste
+    const axisTitleSpacing = Math.max(10, Math.round(minorSquareSize * 0.65)); // tweak as needed
 
     const xAxisLabelType = document.getElementById('xAxisLabelType').value;
     let xMin, xMax, xIncrement; // xIncrement is the major mathematical step (e.g., 1 unit or pi/2 radians)
@@ -329,17 +439,22 @@ if (shouldLabel) {
         labelText = value.toFixed(xIncrement.toString().includes('.') ? xIncrement.toString().split('.')[1].length : 0);
     }
 
-    const textEl = createSVGElement('text', {
-        x: x,
-        y: (xLabelOnZero && zeroYGridPos !== -1) ? zeroYGridPos + 12 : offsetY + actualGridHeight + 10,
-        'font-family': 'Inter, sans-serif',
-        'font-size': `${labelFontSize}px`,
-        fill: '#333',
-        'text-anchor': 'middle',
-        'alignment-baseline': 'hanging'
-    });
-    textEl.textContent = labelText;
-    gridGroup.appendChild(textEl);
+    const labelYOffset = Math.round(labelFontSize * 0.6); // you can adjust this value
+
+const textEl = createSVGElement('text', {
+    x: x,
+    y: (xLabelOnZero && zeroYGridPos !== -1)
+        ? zeroYGridPos + labelYOffset
+        : offsetY + actualGridHeight + labelYOffset,
+    'font-family': 'Inter, sans-serif',
+    'font-size': `${labelFontSize}px`,
+    fill: '#333',
+    'text-anchor': 'middle',
+    'alignment-baseline': 'hanging'
+});
+textEl.textContent = labelText;
+gridGroup.appendChild(textEl);
+
 }
 
     }
@@ -347,8 +462,8 @@ if (shouldLabel) {
     // --- Draw X-axis (the horizontal line representing y=0 or the bottom edge) ---
     // Calculate the Y position of the X-axis: either the zero line, or the bottom grid edge
     const xAxisLineY = zeroYGridPos !== -1 ? zeroYGridPos : offsetY + actualGridHeight;
-    const xAxisLineStart = offsetX - (showAxisArrows && xMin < -EPSILON ? ZERO_LINE_EXTENSION : 0);
-    const xAxisLineEnd = offsetX + actualGridWidth + (showAxisArrows && xMax > EPSILON ? ZERO_LINE_EXTENSION : 0);
+    const xAxisLineStart = offsetX - (showAxisArrows && xMin < -EPSILON ? zeroLineExtension : 0);
+    const xAxisLineEnd = offsetX + actualGridWidth + (showAxisArrows && xMax > EPSILON ? zeroLineExtension : 0);
 
     gridGroup.appendChild(createSVGElement('line', {
         x1: xAxisLineStart,
@@ -369,7 +484,7 @@ if (shouldLabel) {
 
     if (xAxisLabelOnRight && xAxisLabel && xMax > EPSILON) { // Only show on right if axis extends right
         // Position just right of the extended arrow tip, with a small buffer
-        const xPos = offsetX + actualGridWidth + ZERO_LINE_EXTENSION + AXIS_TITLE_SPACING;
+        const xPos = offsetX + actualGridWidth + zeroLineExtension + axisTitleSpacing;
         xAxisTitle.setAttribute('x', xPos);
         xAxisTitle.setAttribute('y', xAxisLineY); // Align with the X-axis line
         xAxisTitle.setAttribute('text-anchor', 'start'); // Text starts from this point
@@ -385,8 +500,8 @@ if (shouldLabel) {
     // --- Draw Y-axis (the vertical line representing x=0 or the left edge) ---
     // Calculate the X position of the Y-axis: either the zero line, or the left grid edge
     const yAxisLineX = zeroXGridPos !== -1 ? zeroXGridPos : offsetX;
-    const yAxisLineStart = offsetY - (showAxisArrows && yMax > EPSILON ? ZERO_LINE_EXTENSION : 0);
-    const yAxisLineEnd = offsetY + actualGridHeight + (showAxisArrows && yMin < -EPSILON ? ZERO_LINE_EXTENSION : 0);
+    const yAxisLineStart = offsetY - (showAxisArrows && yMax > EPSILON ? zeroLineExtension : 0);
+    const yAxisLineEnd = offsetY + actualGridHeight + (showAxisArrows && yMin < -EPSILON ? zeroLineExtension : 0);
 
     gridGroup.appendChild(createSVGElement('line', {
         x1: yAxisLineX,
@@ -407,7 +522,7 @@ if (shouldLabel) {
 
     if (yAxisLabelOnTop && yAxisLabel && yMax > EPSILON) { // Only show on top if axis extends up
         // Position just above the extended arrow tip, with a small buffer
-        const yPos = offsetY - (ZERO_LINE_EXTENSION + AXIS_TITLE_SPACING);
+        const yPos = offsetY - (zeroLineExtension + axisTitleSpacing);
         yAxisTitle.setAttribute('x', yAxisLineX); // Align with the Y-axis line
         yAxisTitle.setAttribute('y', yPos);
         yAxisTitle.setAttribute('transform', ''); // No rotation needed for top label
@@ -430,26 +545,26 @@ if (shouldLabel) {
 
         // X-axis positive arrow (right side)
         if (xMax > EPSILON && (xAxisLineEnd - xAxisLineStart) >= minLineLengthForArrow) {
-            // Arrow tip at (xAxisLineEnd + ARROW_HEAD_SIZE), pointing right
-            gridGroup.appendChild(createArrowheadPath(xAxisLineEnd + ARROW_HEAD_SIZE, xAxisLineY, 0, arrowColor));
+            // Arrow tip at (xAxisLineEnd + arrowHeadSize), pointing right
+            gridGroup.appendChild(createArrowheadPath(xAxisLineEnd + arrowHeadSize, xAxisLineY, 0, arrowColor));
         }
 
         // X-axis negative arrow (left side)
         if (xMin < -EPSILON && (xAxisLineEnd - xAxisLineStart) >= minLineLengthForArrow) {
-            // Arrow tip at (xAxisLineStart - ARROW_HEAD_SIZE), pointing left
-            gridGroup.appendChild(createArrowheadPath(xAxisLineStart - ARROW_HEAD_SIZE, xAxisLineY, Math.PI, arrowColor));
+            // Arrow tip at (xAxisLineStart - arrowHeadSize), pointing left
+            gridGroup.appendChild(createArrowheadPath(xAxisLineStart - arrowHeadSize, xAxisLineY, Math.PI, arrowColor));
         }
 
         // Y-axis positive arrow (top side)
         if (yMax > EPSILON && (yAxisLineEnd - yAxisLineStart) >= minLineLengthForArrow) {
-            // Arrow tip at (yAxisLineX, yAxisLineStart - ARROW_HEAD_SIZE), pointing up
-            gridGroup.appendChild(createArrowheadPath(yAxisLineX, yAxisLineStart - ARROW_HEAD_SIZE, -Math.PI / 2, arrowColor));
+            // Arrow tip at (yAxisLineX, yAxisLineStart - arrowHeadSize), pointing up
+            gridGroup.appendChild(createArrowheadPath(yAxisLineX, yAxisLineStart - arrowHeadSize, -Math.PI / 2, arrowColor));
         }
 
         // Y-axis negative arrow (bottom side)
         if (yMin < -EPSILON && (yAxisLineEnd - yAxisLineStart) >= minLineLengthForArrow) {
-            // Arrow tip at (yAxisLineX, yAxisLineEnd + ARROW_HEAD_SIZE), pointing down
-            gridGroup.appendChild(createArrowheadPath(yAxisLineX, yAxisLineEnd + ARROW_HEAD_SIZE, Math.PI / 2, arrowColor));
+            // Arrow tip at (yAxisLineX, yAxisLineEnd + arrowHeadSize), pointing down
+            gridGroup.appendChild(createArrowheadPath(yAxisLineX, yAxisLineEnd + arrowHeadSize, Math.PI / 2, arrowColor));
         }
     }
 
@@ -631,111 +746,129 @@ if (shouldLabel) {
             equationGroup.appendChild(path);
         });
 
-        // Draw line arrows and domain dots
-        if (eq.showLineArrows && segments.length > 0) {
-            const arrowSize = ARROW_HEAD_SIZE; // Use the exported constant
-            const EPSILON_FOR_BOUNDARY = 1e-6;
-
-            const GRID_RECT = {
-                left: offsetX,
-                right: offsetX + actualGridWidth,
-                top: offsetY,
-                bottom: offsetY + actualGridHeight
-            };
-
-            // Simplified point-in-rect check for SVG
-            const isStrictlyInside = p =>
-                p.x > GRID_RECT.left + EPSILON_FOR_BOUNDARY && p.x < GRID_RECT.right - EPSILON_FOR_BOUNDARY &&
-                p.y > GRID_RECT.top + EPSILON_FOR_BOUNDARY && p.y < GRID_RECT.bottom - EPSILON_FOR_BOUNDARY;
-
-            // Helper to get line-rectangle intersection (same logic as before)
-            function getLineRectIntersection(pInside, pOutside, rect) {
-                const dx = pOutside.x - pInside.x;
-                const dy = pOutside.y - pInside.y;
-                let tBest = 1;
-
-                function tryEdge(t) {
-                    if (t >= 0 && t <= 1 + EPSILON) tBest = Math.min(tBest, t);
-                }
-
-                if (Math.abs(dx) > EPSILON) {
-                    tryEdge((rect.left - pInside.x) / dx);
-                    tryEdge((rect.right - pInside.x) / dx);
-                }
-                if (Math.abs(dy) > EPSILON) {
-                    tryEdge((rect.top - pInside.y) / dy);
-                    tryEdge((rect.bottom - pInside.y) / dy);
-                }
-                return { x: pInside.x + tBest * dx, y: pInside.y + tBest * dy };
-            }
-
-            // Function to create an endpoint dot (SVG circle)
-            function createEndpointDot(x, y, color, r = 3) {
-                return createSVGElement('circle', {
-                    cx: x,
-                    cy: y,
-                    r: r,
-                    fill: color
-                });
-            }
-
-
-            const firstSegmentPoints = segments[0];
-            if (firstSegmentPoints.length >= 2) {
-                if (eq.domainStart !== null) {
-                    const firstDomainPoint = firstSegmentPoints.find(p => Math.abs(p.graphX - eq.domainStart) < EPSILON_FOR_BOUNDARY);
-                    if (firstDomainPoint && firstDomainPoint.x >= GRID_RECT.left && firstDomainPoint.x <= GRID_RECT.right &&
-                        firstDomainPoint.y >= GRID_RECT.top && firstDomainPoint.y <= GRID_RECT.bottom) {
-                        equationGroup.appendChild(createEndpointDot(firstDomainPoint.x, firstDomainPoint.y, eq.color));
-                    } else {
-                        const p1 = firstSegmentPoints[0];
-                        const p2 = firstSegmentPoints[1];
-                        if (!isStrictlyInside(p1) && isStrictlyInside(p2)) {
-                            const intersection = getLineRectIntersection(p2, p1, GRID_RECT);
-                            equationGroup.appendChild(createEndpointDot(intersection.x, intersection.y, eq.color));
-                        }
-                    }
-                } else {
-                    const p1 = firstSegmentPoints[0];
-                    const p2 = firstSegmentPoints[1];
-                    if (!isStrictlyInside(p1) && isStrictlyInside(p2)) {
-                        const intersection = getLineRectIntersection(p2, p1, GRID_RECT);
-                        // Arrow tip at the intersection, angle based on p2 to p1 direction
-                        const angle = Math.atan2(p1.y - p2.y, p1.x - p2.x);
-                        equationGroup.appendChild(createArrowheadPath(intersection.x, intersection.y, angle, eq.color)); // Use ARROW_HEAD_SIZE default
-                    }
-                }
-            }
-
-            const lastSegmentPoints = segments[segments.length - 1];
-            if (lastSegmentPoints.length >= 2) {
-                if (eq.domainEnd !== null) {
-                    const lastDomainPoint = lastSegmentPoints.find(p => Math.abs(p.graphX - eq.domainEnd) < EPSILON_FOR_BOUNDARY);
-                     if (lastDomainPoint && lastDomainPoint.x >= GRID_RECT.left && lastDomainPoint.x <= GRID_RECT.right &&
-                        lastDomainPoint.y >= GRID_RECT.top && lastDomainPoint.y <= GRID_RECT.bottom) {
-                        equationGroup.appendChild(createEndpointDot(lastDomainPoint.x, lastDomainPoint.y, eq.color));
-                    } else {
-                        const p1 = lastSegmentPoints[lastSegmentPoints.length - 2];
-                        const p2 = lastSegmentPoints[lastSegmentPoints.length - 1];
-                        if (isStrictlyInside(p1) && !isStrictlyInside(p2)) {
-                             const intersection = getLineRectIntersection(p1, p2, GRID_RECT);
-                             // Arrow tip at the intersection, angle based on p1 to p2 direction
-                            const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
-                            equationGroup.appendChild(createArrowheadPath(intersection.x, intersection.y, angle, eq.color)); // Use ARROW_HEAD_SIZE default
-                        }
-                    }
-                } else {
-                    const p1 = lastSegmentPoints[lastSegmentPoints.length - 2];
-                    const p2 = lastSegmentPoints[lastSegmentPoints.length - 1];
-                    if (isStrictlyInside(p1) && !isStrictlyInside(p2)) {
-                        const intersection = getLineRectIntersection(p1, p2, GRID_RECT);
-                        // Arrow tip at the intersection, angle based on p1 to p2 direction
-                        const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
-                        equationGroup.appendChild(createArrowheadPath(intersection.x, intersection.y, angle, eq.color)); // Use ARROW_HEAD_SIZE default
-                    }
-                }
+        // === NEW: Draw line arrows and domain dots (SVG logic, canvas style) ===
+if (eq.showLineArrows && segments.length > 0) {
+    // Grid bounds and helpers
+    const GRID_RECT = {
+        left: offsetX,
+        right: offsetX + actualGridWidth,
+        top: offsetY,
+        bottom: offsetY + actualGridHeight
+    };
+    const EPSILON_FOR_BOUNDARY = 1e-6;
+    function isStrictlyInside(p) {
+        return (
+            p.x > GRID_RECT.left + EPSILON_FOR_BOUNDARY &&
+            p.x < GRID_RECT.right - EPSILON_FOR_BOUNDARY &&
+            p.y > GRID_RECT.top + EPSILON_FOR_BOUNDARY &&
+            p.y < GRID_RECT.bottom - EPSILON_FOR_BOUNDARY
+        );
+    }
+    function getLineRectIntersection(pInside, pOutside, rect) {
+        const dx = pOutside.x - pInside.x;
+        const dy = pOutside.y - pInside.y;
+        let tBest = 1;
+        function tryEdge(t) {
+            if (t >= 0 && t <= 1 + EPSILON) tBest = Math.min(tBest, t);
+        }
+        if (Math.abs(dx) > EPSILON) {
+            tryEdge((rect.left - pInside.x) / dx);
+            tryEdge((rect.right - pInside.x) / dx);
+        }
+        if (Math.abs(dy) > EPSILON) {
+            tryEdge((rect.top - pInside.y) / dy);
+            tryEdge((rect.bottom - pInside.y) / dy);
+        }
+        return { x: pInside.x + tBest * dx, y: pInside.y + tBest * dy };
+    }
+    function createEndpointDot(x, y, color, r = 3) {
+        return createSVGElement('circle', {
+            cx: x,
+            cy: y,
+            r: r,
+            fill: color
+        });
+    }
+    // Find first crossing pair (entry to grid)
+    function findFirstCrossingPair(segment) {
+        for (let i = 0; i < segment.length - 1; i++) {
+            const p1 = segment[i];
+            const p2 = segment[i + 1];
+            if (!isStrictlyInside(p1) && isStrictlyInside(p2)) {
+                return { pOut: p1, pIn: p2 };
             }
         }
+        return null;
+    }
+    // Find last crossing pair (exit from grid)
+    function findLastCrossingPair(segment) {
+        for (let i = segment.length - 2; i >= 0; i--) {
+            const p1 = segment[i];
+            const p2 = segment[i + 1];
+            if (isStrictlyInside(p1) && !isStrictlyInside(p2)) {
+                return { pIn: p1, pOut: p2 };
+            }
+        }
+        return null;
+    }
+
+    // ARROW/DOT logic
+    const firstSegmentPoints = segments[0];
+    if (firstSegmentPoints.length >= 2) {
+        if (eq.domainStart !== null) {
+            // Dot at domain start
+            const firstDomainPoint = firstSegmentPoints.find(p => Math.abs(p.graphX - eq.domainStart) < EPSILON_FOR_BOUNDARY);
+            if (firstDomainPoint && isStrictlyInside(firstDomainPoint)) {
+                equationGroup.appendChild(createEndpointDot(firstDomainPoint.x, firstDomainPoint.y, eq.color));
+            } else {
+                const p1 = firstSegmentPoints[0];
+                const p2 = firstSegmentPoints[1];
+                if (!isStrictlyInside(p1) && isStrictlyInside(p2)) {
+                    const intersection = getLineRectIntersection(p2, p1, GRID_RECT);
+                    equationGroup.appendChild(createEndpointDot(intersection.x, intersection.y, eq.color));
+                }
+            }
+        } else {
+            // Arrow at left end
+            const crossingPair = findFirstCrossingPair(firstSegmentPoints);
+            if (crossingPair) {
+                const { pOut, pIn } = crossingPair;
+                const edge = getLineRectIntersection(pIn, pOut, GRID_RECT);
+                const angle = Math.atan2(edge.y - pIn.y, edge.x - pIn.x);
+                equationGroup.appendChild(createArrowheadPath(edge.x, edge.y, angle, eq.color));
+            }
+        }
+    }
+
+    const lastSegmentPoints = segments[segments.length - 1];
+    if (lastSegmentPoints.length >= 2) {
+        if (eq.domainEnd !== null) {
+            // Dot at domain end
+            const lastDomainPoint = lastSegmentPoints.find(p => Math.abs(p.graphX - eq.domainEnd) < EPSILON_FOR_BOUNDARY);
+            if (lastDomainPoint && isStrictlyInside(lastDomainPoint)) {
+                equationGroup.appendChild(createEndpointDot(lastDomainPoint.x, lastDomainPoint.y, eq.color));
+            } else {
+                const p1 = lastSegmentPoints[lastSegmentPoints.length - 2];
+                const p2 = lastSegmentPoints[lastSegmentPoints.length - 1];
+                if (isStrictlyInside(p1) && !isStrictlyInside(p2)) {
+                    const intersection = getLineRectIntersection(p1, p2, GRID_RECT);
+                    equationGroup.appendChild(createEndpointDot(intersection.x, intersection.y, eq.color));
+                }
+            }
+        } else {
+            // Arrow at right end
+            const crossingPair = findLastCrossingPair(lastSegmentPoints);
+            if (crossingPair) {
+                const { pIn, pOut } = crossingPair;
+                const edge = getLineRectIntersection(pIn, pOut, GRID_RECT);
+                const angle = Math.atan2(edge.y - pIn.y, edge.x - pIn.x);
+                equationGroup.appendChild(createArrowheadPath(edge.x, edge.y, angle, eq.color));
+            }
+        }
+    }
+}
+// === END NEW logic ===
+
 
         // --- Label Placement with Overlap Avoidance ---
         let labelText = '';
