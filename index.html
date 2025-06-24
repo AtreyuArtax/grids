@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grids. Design, plot, print.</title>
+    <!-- math.js CDN import: Added for robust equation parsing and evaluation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.min.js"></script>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='4' fill='%23E0F7FA' stroke='%230097A7' stroke-width='1.5'/%3E%3Cpath d='M3 11.5 H29 M3 20.5 H29 M11.5 3 V29 M20.5 3 V29' stroke='%2300796B' stroke-width='1'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="css/style.css">
+    <script type="module" src="js/main.js"></script>
+</head>
+<body>
+    <div class="main-flex-layout">
+        <div class="card controls-card">
+            <div style="display: flex; align-items: center; margin-bottom: 1px;">
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px; line-height:1;">
+                    <svg width="40" height="40" viewBox="0 0 32 32" style="display:block;">
+                        <rect x="2" y="2" width="28" height="28" fill="#E0F7FA" stroke="#0097A7" stroke-width="1.5" rx="4"/>
+                        <path d="M2 12 h28 M2 22 h28 M12 2 v28 M22 2 v28" stroke="#00796B" stroke-width="1"/>
+                    </svg>
+                    <span style="font-family: Inter, sans-serif; font-size: 1.4rem; font-weight: 600; color: #111; line-height: 1; margin: 0;">
+                        Grids.
+                    </span>
+                </div>
+            </div>
+
+            <fieldset class="controls-group">
+                <legend>Grid Presets</legend>
+                <div class="fieldset-content">
+                    <label>Select Preset:
+                        <select id="gridPreset">
+                            <option value="negativeAndPositive" selected>4 Quadrant</option>
+                            <option value="standardMath">1 Quadrant</option>
+                            <option value="trigGraph">Trig Graph (0 to 2π)</option>
+                            <option value="trigGraphDegrees">Trig Graph (Degrees)</option>
+                            <option value="position">Position</option>
+                            <option value="velocity">Velocity</option>
+                            <option value="acceleration">Acceleration</option>
+                            <option value="graphPaperLetter_1_4in">Letter: 1/4 inch squares</option>
+                            <option value="graphPaperLetter_1_5in">Letter: 1/5 inch (engineering)</option>
+                            <option value="graphPaperLetter_1cm">Letter: 1 cm squares</option>
+                            <option value="graphPaperLetter_5mm">Letter: 5 mm squares</option>
+                            <!-- <option value="blank">Name Here</option> -->
+                            <option value="custom">Custom Settings</option>
+                        </select>
+                    </label>
+                </div>
+            </fieldset>
+
+            <fieldset class="controls-group" id="generalSettings">
+                <legend>General Settings <span class="toggle-icon">▼</span></legend>
+                <div class="fieldset-content">
+                    <label>Square Size (px):
+                        <input type="number" id="squareSizeInput" value="40" min="10" step="5">
+                    </label>
+                    
+                    <div class="color-label-container">
+                        <label>Minor Grid:
+                            <div class="color-input-wrapper">
+                                <input type="color" id="minorGridColor" value="#a9a9a9">
+                                <div class="color-swatches">
+                                    <div class="color-swatch" style="background-color: #cccccc;" data-color="#cccccc"></div> <!-- Light Grey -->
+                                    <div class="color-swatch" style="background-color: #a9a9a9;" data-color="#a9a9a9"></div> <!-- Dim Grey -->
+                                    <div class="color-swatch" style="background-color: #646464;" data-color="#646464"></div> <!-- Medium Grey -->
+                                    <div class="color-swatch" style="background-color: #323232;" data-color="#323232"></div> <!-- Darker Grey -->
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                    <div class="color-label-container">
+                        <label>Zero Line:
+                            <div class="color-input-wrapper">
+                                <input type="color" id="majorGridColor" value="#555555">
+                                <div class="color-swatches">
+                                    
+                                    
+                                    <div class="color-swatch" style="background-color: #808080;" data-color="#808080"></div> <!-- Medium Grey -->
+                                    <div class="color-swatch" style="background-color: #555555;" data-color="#555555"></div> <!-- Dark Grey -->
+                                    <div class="color-swatch" style="background-color: #333333;" data-color="#333333"></div> <!-- Darker Grey -->
+                                    <div class="color-swatch" style="background-color: #000000;" data-color="#000000"></div> <!-- Black -->
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                    <label class="checkbox-label">Suppress '0' Label:
+                        <input type="checkbox" id="suppressZeroLabel">
+                    </label>
+                    <label class="checkbox-label">Show Axis Arrows:
+                        <input type="checkbox" id="showAxisArrows" checked>
+                    </label>
+                </div>
+            </fieldset>
+
+            <fieldset class="controls-group" id="yAxisSettings">
+                <legend>y-Axis Settings <span class="toggle-icon">▼</span></legend>
+                <div class="fieldset-content">
+                    <label>y Min:
+                        <input type="number" id="yMin" value="0">
+                    </label>
+                    <label>y Max:
+                        <input type="number" id="yMax" value="10">
+                    </label>
+                    <label>Increment:
+                        <input type="number" id="yIncrement" value="1" min="0.001" step="0.1"
+                        title="Sets the numerical value represented by each minor grid square. For example, '1' means each small square counts as 1 unit.">
+                    </label>
+                    <label>Label Nth Step:
+                        <input type="number" id="yLabelEvery" value="1" min="1" step="1">
+                    </label>
+                    <label>Axis Label:
+                        <input type="text" id="yAxisLabel" value="y">
+                    </label>
+                    <label class="checkbox-label">Numbers on Axis:
+                        <input type="checkbox" id="yLabelOnZero" checked>
+                    </label>
+                    <label class="checkbox-label">Axis Label on Top:
+                        <input type="checkbox" id="yAxisLabelOnTop">
+                    </label>
+                </div>
+            </fieldset>
+
+            <fieldset class="controls-group" id="xAxisSettings">
+                <legend>x-Axis Settings <span class="toggle-icon">▼</span></legend>
+                <div class="fieldset-content">
+                    <label>x-Axis Label Type:
+                        <select id="xAxisLabelType">
+                            <option value="numbers">Numbers</option>
+                            <option value="radians">Radians (π)</option>
+                            <option value="degrees">Degrees (°)</option> <!-- NEW OPTION -->
+                        </select>
+                    </label>
+
+                    <div id="numericalXAxisSettings">
+                        <label>x Min:
+                            <input type="number" id="xMin" value="0">
+                        </label>
+                        <label>x Max:
+                            <input type="number" id="xMax" value="10">
+                        </label>
+                        <label>Increment:
+                            <input type="number" id="xIncrement" value="1" min="0.001" step="0.1"
+                            title="Sets the numerical value represented by each minor grid square. For example, '1' means each small square counts as 1 unit.">
+                        </label>
+                    </div>
+
+                    <div id="radianXAxisSettings" class="hidden">
+                        <label>x Min (π multiples):
+                            <input type="number" id="xMinRadians" value="0" step="0.5">
+                        </label>
+                        <label>x Max (π multiples):
+                            <input type="number" id="xMaxRadians" value="2" step="0.5">
+                        </label>
+                        <label>Radian Step Multiplier (e.g., 0.5 for π/2):
+                            <input type="number" id="radianStepMultiplier" value="0.5" min="0.01" step="0.01">
+                        </label>
+                        <label>Grid Units per Radian Step:
+                            <input type="number" id="xGridUnitsPerRadianStep" value="3" min="1" step="1">
+                        </label>
+                    </div>
+
+                    <label>Label Nth Step:
+                        <input type="number" id="xLabelEvery" value="1" min="1" step="1">
+                    </label>
+                    <label>Axis Label:
+                        <input type="text" id="xAxisLabel" value="x">
+                    </label>
+                    <label class="checkbox-label">Numbers on Axis:
+                        <input type="checkbox" id="xLabelOnZero" checked>
+                    </label>
+                    <label class="checkbox-label">Axis Label on Right:
+                        <input type="checkbox" id="xAxisLabelOnRight">
+                    </label>
+                </div>
+            </fieldset>
+
+            <fieldset class="controls-group" id="equationPlotting">
+                <legend>Equation Plotting <span class="toggle-icon">▼</span></legend>
+                <div class="fieldset-content">
+                    <div class="color-label-container">
+                        <label>Line Color:
+                            <div class="color-input-wrapper">
+                                <input type="color" id="equationColor" value="#000000"> <!-- default color -->
+                                <div class="color-swatches">
+                                    <div class="color-swatch" style="background-color: #000000;" data-color="#000000"></div> <!-- Black -->
+                                    <div class="color-swatch" style="background-color: #808080;" data-color="#808080"></div> <!-- Grey -->
+                                    <div class="color-swatch" style="background-color: #FF0000;" data-color="#FF0000"></div> <!-- Red -->
+                                    <div class="color-swatch" style="background-color: #0000FF;" data-color="#0000FF"></div> <!-- Blue -->
+                                    <div class="color-swatch" style="background-color: #008000;" data-color="#008000"></div> <!-- Green -->
+                                    <div class="color-swatch" style="background-color: #800080;" data-color="#800080"></div> <!-- Purple -->
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                    <label>Equation:
+                        <!-- Updated title attribute to reflect math.js syntax -->
+                        <input type="text" id="equationInput" placeholder="e.g., sin(x), x^2, -1/2x+3"
+                                title="Enter functions using math.js syntax (e.g., sin(x), cos(x), tan(x), sqrt(x), log(x), abs(x), pi, e). Use ^ for exponentiation (e.g., x^2). Examples: x^2, 3x + 5. Implied multiplication (e.g., 2x) is supported.">
+                    </label>
+                    <label>Domain Start (optional):
+                        <input type="number" id="domainStart" placeholder="e.g., -3" step="any" title="Minimum x-value for the function's domain.">
+                    </label>
+                    <label>Domain End (optional):
+                        <input type="number" id="domainEnd" placeholder="e.g., 12" step="any" title="Maximum x-value for the function's domain.">
+                    </label>
+                    <label>Inequality Type:
+                        <select id="inequalityType">
+                            <option value="=">=</option>
+                            <option value="<">&lt;</option>
+                            <option value=">">&gt;</option>
+                            <option value="<=">&le;</option>
+                            <option value=">=">&ge;</option>
+                        </select>
+                    </label>
+                    <label>Line Style:
+                        <select id="equationLineStyle">
+                            <option value="solid">Solid</option>
+                            <option value="dashed">Dashed</option>
+                            <option value="dots">Dots</option>
+                            <option value="dotsAndDash">Dots and Dash</option>
+                        </select>
+                    </label>
+                    <label>Label Type:
+                        <select id="equationLabelType" title="Select custom and leave blank for no label">
+                            <option value="custom">Custom Label</option>
+                            <option value="equation">Equation Text</option>
+                            
+                        </select>
+                    </label>
+                    <label id="customLabelContainer" class="hidden">Custom Label:
+                        <input type="text" id="equationCustomLabel" placeholder="leave blank for no label"
+                        title="Leave blank for no label">
+                    </label>
+                    <!-- NEW: This is the per-equation line arrow checkbox -->
+                    <label class="checkbox-label">Show arrows for this equation:
+                        <input type="checkbox" id="showLineArrows" checked>
+                    </label>
+                    <div class="button-group">
+                        <button id="addOrUpdateEquationButton">Add Equation</button>
+                        <button id="cancelEditButton" class="hidden">Cancel Edit</button>
+                    </div>
+                    <div id="equationsList">
+                    </div>
+                </div>
+            </fieldset>
+        </div>
+
+        <div class="card canvas-card sticky-canvas">
+            <svg id="gridSVG"></svg>
+            <div id="gridErrorMessage"></div>
+            <button id="downloadSVG">Download Grid as SVG</button>
+        </div>
+    </div>
+</body>
+</html>

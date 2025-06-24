@@ -1,0 +1,181 @@
+// This module handles overall application flow, UI interactions, and initializes other modules.
+// Removed import of downloadPNG, as it's no longer used with SVG output.
+import { gridPresets } from './grid-presets.js';
+import { handleEquationSubmit, resetEquationInputsAndButtons, renderEquationsList, toggleCustomLabelInput, equationSettings } from './equations.js'; // Import equationSettings object
+import { calculateDynamicMargins, toggleXAxisSettings } from './labels.js';
+import { drawGrid, downloadSVG } from './plotter.js'; // Import downloadSVG from plotter.js
+
+/**
+ * Applies a selected grid preset to the UI controls and redraws the grid.
+ * @param {string} presetName - The name of the preset to apply.
+ */
+function applyPreset(presetName) {
+    if (presetName === "custom") {
+        calculateDynamicMargins(); // Recalculate all margins for custom changes
+        drawGrid();
+        return;
+    }
+
+    const preset = gridPresets[presetName];
+    if (preset) {
+        document.getElementById('squareSizeInput').value = preset.squareSizeInput;
+        document.getElementById('yMin').value = preset.yMin;
+        document.getElementById('yMax').value = preset.yMax;
+        document.getElementById('yIncrement').value = preset.yIncrement;
+        document.getElementById('yLabelEvery').value = preset.yLabelEvery;
+        document.getElementById('yAxisLabel').value = preset.yAxisLabel;
+        document.getElementById('yLabelOnZero').checked = preset.yLabelOnZero;
+        document.getElementById('yAxisLabelOnTop').checked = preset.yAxisLabelOnTop;
+
+        // X-Axis specific settings
+        document.getElementById('xAxisLabelType').value = preset.xAxisLabelType;
+        toggleXAxisSettings(); // Update visibility based on type
+
+        if (preset.xAxisLabelType === 'numbers' || preset.xAxisLabelType === 'degrees') {
+            document.getElementById('xMin').value = preset.xMin;
+            document.getElementById('xMax').value = preset.xMax;
+            document.getElementById('xIncrement').value = preset.xIncrement;
+        } else { // radians
+            document.getElementById('xMinRadians').value = preset.xMinRadians;
+            document.getElementById('xMaxRadians').value = preset.xMaxRadians;
+            document.getElementById('radianStepMultiplier').value = preset.radianStepMultiplier;
+            document.getElementById('xGridUnitsPerRadianStep').value = preset.xGridUnitsPerRadianStep;
+        }
+
+        document.getElementById('xLabelEvery').value = preset.xLabelEvery;
+        document.getElementById('xAxisLabel').value = preset.xAxisLabel;
+        document.getElementById('xLabelOnZero').checked = preset.xLabelOnZero;
+        document.getElementById('xAxisLabelOnRight').checked = preset.xAxisLabelOnRight;
+
+        // Global options
+        document.getElementById('suppressZeroLabel').checked = preset.suppressZeroLabel;
+        document.getElementById('showAxisArrows').checked = preset.showAxisArrows;
+
+        // Set grid line colours if present in the preset
+        if (preset.minorGridColor) document.getElementById('minorGridColor').value = preset.minorGridColor;
+        if (preset.majorGridColor) document.getElementById('majorGridColor').value = preset.majorGridColor;
+
+        // When applying a preset, set the default state for the *current* equation input form's line arrows
+        document.getElementById('showLineArrows').checked = preset.showLineArrows;
+        equationSettings.lastShowLineArrowsValue = preset.showLineArrows; // Update property of the imported object
+
+        calculateDynamicMargins(); // Recalculate all margins after applying preset
+        drawGrid(); // Redraw with new preset values
+    }
+}
+
+
+// Event listeners for the DOMContentLoaded event to initialize the application.
+document.addEventListener('DOMContentLoaded', () => {
+    // Changed to downloadSVG button
+    const downloadButton = document.getElementById('downloadSVG');
+    const gridPresetSelect = document.getElementById('gridPreset');
+    const xAxisLabelTypeSelect = document.getElementById('xAxisLabelType');
+    const addOrUpdateEquationButton = document.getElementById('addOrUpdateEquationButton');
+    const cancelEditButton = document.getElementById('cancelEditButton');
+    const equationLabelTypeSelect = document.getElementById('equationLabelType');
+    const inequalityTypeSelect = document.getElementById('inequalityType');
+    const equationColorInput = document.getElementById('equationColor');
+    const showAxisArrowsCheckbox = document.getElementById('showAxisArrows');
+    const showLineArrowsCheckbox = document.getElementById('showLineArrows');
+    const allColorSwatches = document.querySelectorAll('.color-swatch');
+
+    showLineArrowsCheckbox.addEventListener('change', () => {
+        equationSettings.lastShowLineArrowsValue = showLineArrowsCheckbox.checked; // Update property of the imported object
+        calculateDynamicMargins();
+        drawGrid();
+    });
+
+    // Event listener for the download SVG button
+    downloadButton.addEventListener('click', downloadSVG);
+
+    allColorSwatches.forEach(swatch => {
+        swatch.addEventListener('click', () => {
+            const targetInputId = swatch.closest('.color-label-container').querySelector('input[type="color"]').id;
+            document.getElementById(targetInputId).value = swatch.dataset.color;
+            document.getElementById('gridPreset').value = 'custom';
+            drawGrid();
+        });
+    });
+
+    // Universal event listeners for most inputs to trigger redraw
+    const inputs = document.querySelectorAll(
+        '.controls-group input[type="number"], ' +
+        '.controls-group input[type="text"], ' +
+        '.controls-group input[type="checkbox"]:not(#showLineArrows), ' +
+        '#equationLineStyle, ' +
+        '#inequalityType'
+    );
+    inputs.forEach(input => {
+        input.addEventListener('input', () => {
+            gridPresetSelect.value = 'custom';
+            calculateDynamicMargins();
+            drawGrid();
+        });
+        input.addEventListener('change', () => {
+            gridPresetSelect.value = 'custom';
+            calculateDynamicMargins();
+            drawGrid();
+        });
+    });
+
+    // Specific event listener for the GLOBAL 'Show Axis Arrows' checkbox
+    showAxisArrowsCheckbox.addEventListener('change', () => {
+        gridPresetSelect.value = 'custom';
+        calculateDynamicMargins();
+        drawGrid();
+    });
+
+    gridPresetSelect.addEventListener('change', (event) => {
+        applyPreset(event.target.value);
+    });
+
+    xAxisLabelTypeSelect.addEventListener('change', () => {
+        toggleXAxisSettings();
+        document.getElementById('gridPreset').value = 'custom';
+        calculateDynamicMargins();
+        drawGrid();
+    });
+
+    // Event listeners for Equation Plotting
+    addOrUpdateEquationButton.addEventListener('click', handleEquationSubmit);
+    cancelEditButton.addEventListener('click', resetEquationInputsAndButtons);
+    equationLabelTypeSelect.addEventListener('change', toggleCustomLabelInput);
+
+    const collapsibleFieldsets = document.querySelectorAll('.controls-card fieldset');
+    collapsibleFieldsets.forEach(fieldset => {
+        const legend = fieldset.querySelector('legend');
+        if (legend) {
+            legend.addEventListener('click', () => {
+                fieldset.classList.toggle('collapsed');
+            });
+        }
+    });
+
+    // Collapse all fieldsets by default except for Grid Presets on load
+    const generalSettingsFieldset = document.getElementById('generalSettings');
+    if (generalSettingsFieldset) {
+        generalSettingsFieldset.classList.add('collapsed');
+    }
+
+    const yAxisSettingsFieldset = document.getElementById('yAxisSettings');
+    if (yAxisSettingsFieldset) {
+        yAxisSettingsFieldset.classList.add('collapsed');
+    }
+
+    const xAxisSettingsFieldset = document.getElementById('xAxisSettings');
+    if (xAxisSettingsFieldset) {
+        xAxisSettingsFieldset.classList.add('collapsed');
+    }
+    const equationPlottingFieldset = document.getElementById('equationPlotting');
+    if (equationPlottingFieldset) {
+        equationPlottingFieldset.classList.add('collapsed');
+    }
+
+    // Initial setup calls
+    toggleXAxisSettings();
+    toggleCustomLabelInput();
+    calculateDynamicMargins(); // Initial calculation of all margins
+    applyPreset(gridPresetSelect.value);
+    renderEquationsList();
+});

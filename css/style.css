@@ -1,0 +1,243 @@
+
+		html {
+			height: 100%;
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+			overflow-x: hidden;
+		}
+		body {
+			font-family: 'Inter', sans-serif;
+			background-color: #f0f2f5;
+			margin: 0;
+			padding: 20px 24px 0 24px; /* top right bottom left */
+			min-height: 100vh;
+		}
+		*, *::before, *::after {
+			box-sizing: inherit;
+		}
+
+		/* Main layout: handles gap between windows */
+		.main-flex-layout {
+			display: flex;
+			gap: 24px; /* Space between the two windows */
+			align-items: flex-start;
+			justify-content: center;
+			flex-wrap: wrap;
+			/* No min-height needed here unless you want a minimum size */
+		}
+
+
+        .card {
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+
+        .controls-card {
+            flex: 0 0 350px;
+            max-width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Make the canvas card sticky */
+        .canvas-card.sticky-canvas {
+            flex: 1;
+            min-width: 400px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            position: sticky;
+            top: 20px;      /* Adjust offset from top as needed */
+            align-self: flex-start;
+            z-index: 2;
+        }
+
+        canvas {
+            border: 1px solid #ddd;
+            background-color: #ffffff;
+            display: block;
+            max-width: 100%;
+            height: auto;
+            margin-bottom: 15px;
+        }
+
+        fieldset {
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 0;
+            background-color: #fdfdfd;
+        }
+
+        legend {
+            font-weight: bold;
+            color: #333;
+            padding: 0 10px;
+            cursor: pointer; /* Indicate clickable */
+            display: flex;
+            align-items: center;
+            justify-content: space-between; /* Space out title and icon */
+            user-select: none; /* Prevent text selection on click */
+        }
+
+        legend .toggle-icon {
+            font-size: 1.2em;
+            margin-left: 10px;
+            transition: transform 0.2s ease;
+        }
+
+        fieldset.collapsed .toggle-icon {
+            transform: rotate(-90deg); /* Rotate for collapsed state */
+        }
+
+        fieldset.collapsed .fieldset-content {
+            display: none; /* Hide content when collapsed */
+        }
+
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+            color: #555;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        label input[type="number"],
+        label input[type="text"],
+        label select {
+            flex-grow: 1;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 0.9em;
+            margin-left: auto; /* Push input to the right */
+        }
+        label input[type="checkbox"] {
+            margin-left: 0; /* Align checkbox to the left of its label text */
+        }
+
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.2s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        #gridErrorMessage {
+            color: #d9534f;
+            font-weight: bold;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .small-button {
+            padding: 4px 8px;
+            font-size: 0.8em;
+            border-radius: 3px;
+        }
+        #equationsList {
+            margin-top: 15px;
+            border-top: 1px solid #eee;
+            padding-top: 10px;
+            max-height: 200px; /* Limit height for scroll if many equations */
+            overflow-y: auto;
+        }
+        #equationsList div {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+            border-bottom: 1px dotted #eee;
+        }
+        #equationsList div:last-child {
+            border-bottom: none;
+        }
+        .canvas-card {
+    max-width: 700px;     /* or whatever max width makes sense for your UI */
+    width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+    padding: 10px;
+}
+#gridSVG {
+    width: 100%;
+    height: auto;
+    max-width: 100%;
+    display: block;
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+
+
+
+        /* Color Swatches Styling */
+        .color-swatches {
+            display: flex;
+            gap: 8px;
+            /* margin-top: 5px; Removed for better alignment */
+            flex-wrap: nowrap; /* Forces swatches to stay on one line */
+            justify-content: flex-end; /* Align swatches to the right of the label */
+        }
+        .color-swatch {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%; /* Make them circular */
+            border: 1px solid #ccc;
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease-in-out;
+        }
+        .color-swatch:hover {
+            transform: scale(1.1);
+            border-color: #007bff;
+        }
+        .color-label-container {
+            display: flex;
+            flex-direction: column;
+            width: 100%; /* Take full width of parent */
+        }
+        .color-input-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            /* width: 100%; Removed, now flex-grow will manage width */
+            flex-grow: 1; /* Allow it to grow and take available space */
+            min-width: 0; /* Important for flex items to prevent overflow */
+        }
