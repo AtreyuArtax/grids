@@ -468,6 +468,499 @@ function onMouseUp(event) {
     }
 }
 
+/**
+ * Helper function to draw grid lines and axis labels for either X or Y axis.
+ * @param {Object} axisOptions - Options specific to the axis (min, max, increment, etc.).
+ * @param {Object} gridOptions - General grid drawing options.
+ * @param {SVGElement} gridGroup - The SVG group to append elements to.
+ */
+function drawAxisLabelsAndLines(axisOptions, gridOptions, gridGroup) {
+    const {
+        isXAxis, min, max, increment, labelEvery, labelOnZero, labelOffsetCoord,
+        xAxisLabelType, // Only for X-axis
+        fixedCoord // For drawing the grid lines (the 'y' for horizontal, 'x' for vertical)
+    } = axisOptions;
+
+    const {
+        offsetX, offsetY, actualGridWidth, actualGridHeight, minorSquareSize,
+        minorLineThickness, majorLineThickness, majorGridColor, minorGridColor,
+        labelFontSize, showMainAxes, suppressZeroLabel, paperStyle,
+        zeroXGridPos, zeroYGridPos // For origin suppression logic
+    } = gridOptions;
+
+    const numSteps = (max - min) / increment;
+    const valuePerMinorSquare = isXAxis ? gridOptions.xValuePerMinorSquare : increment;
+
+    for (let i = 0; i <= numSteps; i++) {
+        const value = min + i * increment;
+        let coord; // The canvas coordinate for the current line/label
+        if (isXAxis) {
+            coord = offsetX + (value - min) / valuePerMinorSquare * minorSquareSize;
+        } else {
+            coord = offsetY + actualGridHeight - (value - min) / valuePerMinorSquare * minorSquareSize;
+        }
+
+        const isMathematicalZeroLine = Math.abs(value) < EPSILON;
+        const drawAsMajorAxis = showMainAxes && isMathematicalZeroLine;
+        const strokeWidth = drawAsMajorAxis ? majorLineThickness : minorLineThickness;
+        const stroke = drawAsMajorAxis ? majorGridColor : minorGridColor;
+
+        // Draw grid lines
+        if (paperStyle === 'grid') {
+            const lineAttrs = isXAxis
+                ? { x1: coord, y1: offsetY, x2: coord, y2: offsetY + actualGridHeight }
+                : { x1: offsetX, y1: coord, x2: offsetX + actualGridWidth, y2: coord };
+            gridGroup.appendChild(createSVGElement('line', { ...lineAttrs, stroke: stroke, 'stroke-width': strokeWidth }));
+        }
+
+        // Labeling Logic
+        let shouldLabel = false;
+        if (labelEvery > 0) {
+            if (isXAxis && xAxisLabelType === 'radians') {
+                const xGridUnitsPerRadianStep = parseInt(document.getElementById('xGridUnitsPerRadianStep').value, 10) || 6;
+                const radianStepMultiplier = parseFloat(document.getElementById('radianStepMultiplier').value) || 0.5;
+                const theoreticalMajorStepVal = Math.round((value - min) / (radianStepMultiplier * Math.PI));
+                if (xGridUnitsPerRadianStep > 0 && Math.round((value - min) / valuePerMinorSquare) % xGridUnitsPerRadianStep === 0 && theoreticalMajorStepVal % labelEvery === 0) {
+                    shouldLabel = true;
+                }
+            } else {
+                if (Math.round((value - min) / valuePerMinorSquare) % labelEvery === 0) {
+                    shouldLabel = true;
+                }
+            }
+        }
+
+        if (isMathematicalZeroLine && showMainAxes && labelOnZero) {
+            shouldLabel = true;
+        }
+
+        if (shouldLabel) {
+            if (value === 0 && suppressZeroLabel) {
+                continue;
+            }
+            // Suppress X-axis '0' if Y-axis is showing '0' and both pass through origin
+            if (isXAxis && isMathematicalZeroLine && showMainAxes && gridOptions.yLabelOnZero && zeroYGridPos !== -1 && zeroXGridPos !== -1) {
+                continue;
+            }
+
+            let labelText;
+            if (isXAxis) {
+                if (xAxisLabelType === 'radians') {
+                    labelText = formatRadianLabel(value);
+                } else if (xAxisLabelType === 'degrees') {
+                    labelText = value.toFixed(increment.toString().includes('.') ? increment.toString().split('.')[1].length : 0) + '°';
+                } else {
+                    labelText = value.toFixed(increment.toString().includes('.') ? increment.toString().split('.')[1].length : 0);
+                }
+            } else { // Y-axis
+                labelText = value.toFixed(increment.toString().includes('.') ? increment.toString().split('.')[1].length : 0);
+            }
+
+            const textAttrs = {};
+            if (isXAxis) {
+                textAttrs.x = coord;
+                textAttrs.y = (showMainAxes && labelOnZero && zeroYGridPos !== -1) ? zeroYGridPos + Math.round(labelFontSize * 0.6) : offsetY + actualGridHeight + Math.round(labelFontSize * 0.6);
+                textAttrs['text-anchor'] = 'middle';
+                textAttrs['alignment-baseline'] = 'hanging';
+            } else { // Y-axis
+                textAttrs.x = (showMainAxes && labelOnZero && zeroXGridPos !== -1) ? zeroXGridPos - 5 : offsetX - 10;
+                textAttrs.y = coord;
+                textAttrs['text-anchor'] = 'end';
+                textAttrs['alignment-baseline'] = 'middle';
+            }
+
+            const textEl = createSVGElement('text', {
+                ...textAttrs,
+                'font-family': 'Inter, sans-serif',
+                'font-size': `${labelFontSize}px`,
+                fill: '#333'
+            });
+            textEl.textContent = labelText;
+            gridGroup.appendChild(textEl);
+        }
+    }
+}
+
+/**
+ * Draws the shading for inequalities.
+ * @param {SVGElement} equationGroup - The SVG group for the current equation.
+ * @param {Object} eq - The equation object.
+ * @param {Array<Array<Object>>} segments - Array of line segments for the equation.
+ * @param {Object} gridOptions - General grid drawing options.
+ */
+function drawEquationShading(equationGroup, eq, segments, gridOptions) {
+    if (!eq.inequalityType || eq.inequalityType === '=') {
+        return;
+    }
+
+    const { offsetX, offsetY, actualGridWidth, actualGridHeight, yMin, yIncrement, minorSquareSize, xValuePerMinorSquare, xMin, currentXAxisLabelType } = gridOptions;
+    const fillOpacity = SHADE_ALPHA;
+    const fillColor = eq.color;
+
+    const allClippedPoints = [];
+    segments.forEach(seg => {
+        seg.forEach(pt => {
+            const clippedY = Math.max(offsetY, Math.min(offsetY + actualGridHeight, pt.y));
+            allClippedPoints.push({ x: pt.x, y: clippedY });
+        });
+    });
+    allClippedPoints.sort((a, b) => a.x - b.x);
+
+    let polygonPoints = [];
+    if (allClippedPoints.length > 0) {
+        if (eq.inequalityType === '<' || eq.inequalityType === '<=' ) {
+            polygonPoints.push(`${offsetX},${offsetY + actualGridHeight}`); // Bottom-left of grid
+            polygonPoints.push(...allClippedPoints.map(p => `${p.x},${p.y}`));
+            polygonPoints.push(`${offsetX + actualGridWidth},${offsetY + actualGridHeight}`); // Bottom-right of grid
+        } else if (eq.inequalityType === '>' || eq.inequalityType === '>=') {
+            polygonPoints.push(`${offsetX},${offsetY}`); // Top-left of grid
+            polygonPoints.push(...allClippedPoints.map(p => `${p.x},${p.y}`));
+            polygonPoints.push(`${offsetX + actualGridWidth},${offsetY}`); // Top-right of grid
+        }
+    } else {
+        // Attempt to shade entire grid if no valid points for the curve
+        let shouldShadeEntireGrid = false;
+        try {
+            let testXForShading = xMin - xValuePerMinorSquare;
+            if (eq.domainStart !== null) {
+                testXForShading = Math.max(testXForShading, eq.domainStart - xValuePerMinorSquare);
+            }
+            if (currentXAxisLabelType === 'degrees') {
+                testXForShading = math.unit(testXForShading, 'deg').toNumber('rad');
+            }
+
+            const testYForShading = eq.compiledExpression.evaluate({ x: testXForShading });
+
+            const midGridGraphY = yMin + (actualGridHeight / 2) * (yIncrement / minorSquareSize);
+
+            if (isFinite(testYForShading)) {
+                if ((eq.inequalityType === '<' || eq.inequalityType === '<=') && testYForShading > midGridGraphY) {
+                    shouldShadeEntireGrid = true;
+                } else if ((eq.inequalityType === '>' || eq.inequalityType === '>=') && testYForShading < midGridGraphY) {
+                    shouldShadeEntireGrid = true;
+                }
+            }
+        } catch (e) {
+            shouldShadeEntireGrid = false;
+        }
+
+        if (shouldShadeEntireGrid) {
+             polygonPoints = [
+                `${offsetX},${offsetY}`,
+                `${offsetX + actualGridWidth},${offsetY}`,
+                `${offsetX + actualGridWidth},${offsetY + actualGridHeight}`,
+                `${offsetX},${offsetY + actualGridHeight}`
+             ];
+        }
+    }
+
+    if (polygonPoints.length > 0) {
+        const polygon = createSVGElement('polygon', {
+            points: polygonPoints.join(' '),
+            fill: fillColor,
+            'fill-opacity': fillOpacity,
+            'clip-path': 'url(#gridClip)' // Apply clipping
+        });
+        equationGroup.appendChild(polygon);
+    }
+}
+
+/**
+ * Draws arrows or dots at the ends of equation lines based on domain and showLineArrows setting.
+ * @param {SVGElement} equationGroup - The SVG group for the current equation.
+ * @param {Object} eq - The equation object.
+ * @param {Array<Array<Object>>} segments - Array of line segments for the equation.
+ * @param {Object} gridOptions - General grid drawing options.
+ */
+function drawEquationEndpoints(equationGroup, eq, segments, gridOptions) {
+    if (!eq.showLineArrows || segments.length === 0) {
+        return;
+    }
+
+    const { offsetX, offsetY, actualGridWidth, actualGridHeight } = gridOptions;
+
+    // Grid bounds and helpers
+    const GRID_RECT = {
+        left: offsetX,
+        right: offsetX + actualGridWidth,
+        top: offsetY,
+        bottom: offsetY + actualGridHeight
+    };
+    const EPSILON_FOR_BOUNDARY = 1e-6;
+
+    function isStrictlyInside(p) {
+        return (
+            p.x > GRID_RECT.left + EPSILON_FOR_BOUNDARY &&
+            p.x < GRID_RECT.right - EPSILON_FOR_BOUNDARY &&
+            p.y > GRID_RECT.top + EPSILON_FOR_BOUNDARY &&
+            p.y < GRID_RECT.bottom - EPSILON_FOR_BOUNDARY
+        );
+    }
+
+    function getLineRectIntersection(pInside, pOutside) {
+        const dx = pOutside.x - pInside.x;
+        const dy = pOutside.y - pInside.y;
+        let tBest = 1;
+
+        function tryEdge(t) {
+            if (t >= -EPSILON_FOR_BOUNDARY && t <= 1 + EPSILON_FOR_BOUNDARY) tBest = Math.min(tBest, t);
+        }
+
+        if (Math.abs(dx) > EPSILON_FOR_BOUNDARY) {
+            tryEdge((GRID_RECT.left - pInside.x) / dx);
+            tryEdge((GRID_RECT.right - pInside.x) / dx);
+        }
+        if (Math.abs(dy) > EPSILON_FOR_BOUNDARY) {
+            tryEdge((GRID_RECT.top - pInside.y) / dy);
+            tryEdge((GRID_RECT.bottom - pInside.y) / dy);
+        }
+        return { x: pInside.x + tBest * dx, y: pInside.y + tBest * dy };
+    }
+
+    function createEndpointDot(x, y, color, r = 3) {
+        return createSVGElement('circle', {
+            cx: x,
+            cy: y,
+            r: r,
+            fill: color
+        });
+    }
+
+    // Find first crossing pair (entry to grid)
+    function findFirstCrossingPair(segment) {
+        for (let i = 0; i < segment.length - 1; i++) {
+            const p1 = segment[i];
+            const p2 = segment[i + 1];
+            if (!isStrictlyInside(p1) && isStrictlyInside(p2)) {
+                return { pOut: p1, pIn: p2 };
+            }
+        }
+        return null;
+    }
+
+    // Find last crossing pair (exit from grid)
+    function findLastCrossingPair(segment) {
+        for (let i = segment.length - 2; i >= 0; i--) {
+            const p1 = segment[i];
+            const p2 = segment[i + 1];
+            if (isStrictlyInside(p1) && !isStrictlyInside(p2)) {
+                return { pIn: p1, pOut: p2 };
+            }
+        }
+        return null;
+    }
+
+    // ARROW/DOT logic for the first segment
+    const firstSegmentPoints = segments[0];
+    if (firstSegmentPoints.length >= 2) {
+        if (eq.domainStart !== null) {
+            const firstDomainPoint = firstSegmentPoints.find(p => Math.abs(p.graphX - eq.domainStart) < EPSILON_FOR_BOUNDARY);
+            if (firstDomainPoint && isStrictlyInside(firstDomainPoint)) {
+                equationGroup.appendChild(createEndpointDot(firstDomainPoint.x, firstDomainPoint.y, eq.color));
+            } else {
+                const crossingPair = findFirstCrossingPair(firstSegmentPoints);
+                if (crossingPair) {
+                    const { pOut, pIn } = crossingPair;
+                    const intersection = getLineRectIntersection(pIn, pOut);
+                    equationGroup.appendChild(createEndpointDot(intersection.x, intersection.y, eq.color));
+                }
+            }
+        } else {
+            const crossingPair = findFirstCrossingPair(firstSegmentPoints);
+            if (crossingPair) {
+                const { pOut, pIn } = crossingPair;
+                const edge = getLineRectIntersection(pIn, pOut);
+                const angle = Math.atan2(pIn.y - edge.y, pIn.x - edge.x) + Math.PI; // Pointing outward
+                equationGroup.appendChild(createArrowheadPath(edge.x, edge.y, angle, eq.color));
+            }
+        }
+    }
+
+    // ARROW/DOT logic for the last segment
+    const lastSegmentPoints = segments[segments.length - 1];
+    if (lastSegmentPoints.length >= 2) {
+        if (eq.domainEnd !== null) {
+            const lastDomainPoint = lastSegmentPoints.find(p => Math.abs(p.graphX - eq.domainEnd) < EPSILON_FOR_BOUNDARY);
+            if (lastDomainPoint && isStrictlyInside(lastDomainPoint)) {
+                equationGroup.appendChild(createEndpointDot(lastDomainPoint.x, lastDomainPoint.y, eq.color));
+            } else {
+                const crossingPair = findLastCrossingPair(lastSegmentPoints);
+                if (crossingPair) {
+                    const { pIn, pOut } = crossingPair;
+                    const intersection = getLineRectIntersection(pIn, pOut);
+                    equationGroup.appendChild(createEndpointDot(intersection.x, intersection.y, eq.color));
+                }
+            }
+        } else {
+            const crossingPair = findLastCrossingPair(lastSegmentPoints);
+            if (crossingPair) {
+                const { pIn, pOut } = crossingPair;
+                const edge = getLineRectIntersection(pIn, pOut);
+                const angle = Math.atan2(edge.y - pIn.y, edge.x - pIn.x); // Pointing outward
+                equationGroup.appendChild(createArrowheadPath(edge.x, edge.y, angle, eq.color));
+            }
+        }
+    }
+}
+
+/**
+ * Places the equation label, handling custom positions, auto-positioning, and overlap.
+ * @param {SVGElement} equationGroup - The SVG group for the current equation.
+ * @param {Object} eq - The equation object.
+ * @param {string} labelText - The formatted text for the label.
+ * @param {Object} gridOptions - General grid drawing options.
+ * @param {Array<Object>} placedLabelRects - Array of bounding boxes of already placed labels.
+ * @param {Array<Array<Object>>} segments - Array of line segments for the equation, used for auto-positioning.
+ */
+function placeEquationLabel(equationGroup, eq, labelText, gridOptions, placedLabelRects, segments) {
+    const { offsetX, offsetY, actualGridWidth, actualGridHeight, equationLabelFontSize,
+            xMin, yMin, yIncrement, minorSquareSize, xValuePerMinorSquare, currentXAxisLabelType } = gridOptions;
+
+    if (!labelText) {
+        return;
+    }
+
+    const labelTextEl = createSVGElement('text', {
+        'font-family': 'Inter, sans-serif',
+        'font-size': `${equationLabelFontSize}px`,
+        fill: eq.color,
+        'cursor': 'grab',
+        'pointer-events': 'all'
+    });
+    labelTextEl.textContent = labelText;
+    labelTextEl.classList.add('draggable-equation-label');
+    if (eq.id) {
+         labelTextEl.dataset.eqid = eq.id;
+    } else {
+        console.warn("Equation missing ID, cannot track label position persistently via ID.");
+    }
+
+    let proposedLabelX, proposedLabelY;
+    let chosenAnchor = 'start';
+    let chosenBaseline = 'middle';
+
+    // Prefer custom position if available
+    if (eq.labelPosition && typeof eq.labelPosition.x === "number" && typeof eq.labelPosition.y === "number") {
+        proposedLabelX = eq.labelPosition.x;
+        proposedLabelY = eq.labelPosition.y;
+        chosenAnchor = 'middle';
+        chosenBaseline = 'middle';
+    } else {
+        // Auto-calculated positioning
+        let labelRefPoint = null;
+        for (let i = segments.length - 1; i >= 0; i--) {
+            const segment = segments[i];
+            for (let j = segment.length - 1; j >= 0; j--) {
+                const p = segment[j];
+                if (p.x >= offsetX && p.x <= (offsetX + actualGridWidth) &&
+                    p.y >= offsetY && p.y <= (offsetY + actualGridHeight)) {
+                    labelRefPoint = p;
+                    break;
+                }
+            }
+            if (labelRefPoint) break;
+        }
+
+        if (!labelRefPoint) {
+            const testX = xMax + xValuePerMinorSquare;
+            let xForEvaluation = testX;
+            if (currentXAxisLabelType === 'degrees') {
+                xForEvaluation = math.unit(xForEvaluation, 'deg').toNumber('rad');
+            }
+            let testGraphY;
+            try {
+                testGraphY = eq.compiledExpression.evaluate({ x: xForEvaluation });
+                if (isFinite(testGraphY)) {
+                    const testCanvasY = offsetY + actualGridHeight - ((testGraphY - yMin) / yIncrement) * minorSquareSize;
+                    labelRefPoint = { x: offsetX + actualGridWidth + (minorSquareSize / 2), y: testCanvasY };
+                }
+            } catch (e) { /* ignore */ }
+        }
+
+        if (labelRefPoint) {
+            const pt = labelRefPoint;
+            const potentialPositions = [
+                { dx: 5, dy: 0, anchor: 'start', baseline: 'middle' },
+                { dx: -5, dy: 0, anchor: 'end', baseline: 'middle' },
+                { dx: 0, dy: -15, anchor: 'middle', baseline: 'alphabetic' },
+                { dx: 0, dy: 15, anchor: 'middle', baseline: 'hanging' },
+                { dx: 5, dy: -15, anchor: 'start', baseline: 'alphabetic' },
+                { dx: 5, dy: 15, anchor: 'start', baseline: 'hanging' }
+            ];
+
+            let autoPositionFound = false;
+            for (const pos of potentialPositions) {
+                proposedLabelX = pt.x + pos.dx;
+                proposedLabelY = pt.y + pos.dy;
+                chosenAnchor = pos.anchor;
+                chosenBaseline = pos.baseline;
+
+                labelTextEl.setAttribute('x', proposedLabelX);
+                labelTextEl.setAttribute('y', proposedLabelY);
+                labelTextEl.setAttribute('text-anchor', chosenAnchor);
+                labelTextEl.setAttribute('alignment-baseline', chosenBaseline);
+                equationGroup.appendChild(labelTextEl);
+
+                const bbox = labelTextEl.getBBox();
+                const currentLabelRect = { left: bbox.x, right: bbox.x + bbox.width, top: bbox.y, bottom: bbox.y + bbox.height };
+
+                const safeAreaBuffer = 50;
+                const safeAreaLeft = offsetX - safeAreaBuffer;
+                const safeAreaRight = offsetX + actualGridWidth + safeAreaBuffer;
+                const safeAreaTop = offsetY - safeAreaBuffer;
+                const safeAreaBottom = offsetY + actualGridHeight + safeAreaBuffer;
+
+                if (currentLabelRect.right < safeAreaLeft || currentLabelRect.left > safeAreaRight ||
+                    currentLabelRect.bottom < safeAreaTop || currentLabelRect.top > safeAreaBottom) {
+                    equationGroup.removeChild(labelTextEl);
+                    continue;
+                }
+
+                let overlapsExisting = false;
+                for (const existingRect of placedLabelRects) {
+                    if (doesOverlap(currentLabelRect, existingRect)) {
+                        overlapsExisting = true;
+                        break;
+                    }
+                }
+
+                if (!overlapsExisting) {
+                    placedLabelRects.push(currentLabelRect);
+                    autoPositionFound = true;
+                    break;
+                }
+                equationGroup.removeChild(labelTextEl);
+            }
+
+            if (!autoPositionFound) {
+                proposedLabelX = pt.x + 5;
+                proposedLabelY = pt.y;
+                chosenAnchor = 'start';
+                chosenBaseline = 'middle';
+                labelTextEl.setAttribute('x', proposedLabelX);
+                labelTextEl.setAttribute('y', proposedLabelY);
+                labelTextEl.setAttribute('text-anchor', chosenAnchor);
+                labelTextEl.setAttribute('alignment-baseline', chosenBaseline);
+                equationGroup.appendChild(labelTextEl);
+                placedLabelRects.push(labelTextEl.getBBox());
+            }
+        } else {
+            return; // No suitable reference point found
+        }
+    }
+
+    if (!labelTextEl.parentNode) {
+        labelTextEl.setAttribute('x', proposedLabelX);
+        labelTextEl.setAttribute('y', proposedLabelY);
+        labelTextEl.setAttribute('text-anchor', chosenAnchor);
+        labelTextEl.setAttribute('alignment-baseline', chosenBaseline);
+        equationGroup.appendChild(labelTextEl);
+        if (!eq.labelPosition) {
+             placedLabelRects.push(labelTextEl.getBBox());
+        }
+    }
+}
+
 
 /**
  * Draws the Cartesian grid, axes, and all registered equations on the SVG element.
@@ -485,426 +978,240 @@ export function drawGrid() {
     // Recalculate all dynamic margins before drawing
     calculateDynamicMargins();
 
-    // Use the dynamically calculated margins
-    const marginLeft = dynamicMarginLeft;
-    const marginRight = dynamicMarginRight;
-    const marginTop = dynamicMarginTop;
-    const marginBottom = dynamicMarginBottom;
+    // Collect all grid and axis settings into a single options object
+    const gridOptions = {
+        marginLeft: dynamicMarginLeft,
+        marginRight: dynamicMarginRight,
+        marginTop: dynamicMarginTop,
+        marginBottom: dynamicMarginBottom,
+        minorSquareSize: parseFloat(document.getElementById('squareSizeInput').value) || 40,
+        minorLineThickness: Math.max(0.5, (parseFloat(document.getElementById('squareSizeInput').value) || 40) * 0.025),
+        majorLineThickness: Math.max((Math.max(0.5, (parseFloat(document.getElementById('squareSizeInput').value) || 40) * 0.025)) * 1.8, (parseFloat(document.getElementById('squareSizeInput').value) || 40) * 0.06),
+        labelFontSize: Math.max(9, Math.min(Math.round((parseFloat(document.getElementById('squareSizeInput').value) || 40) * 0.38), 60)),
+        axisTitleFontSize: Math.max(12, Math.min(Math.round((parseFloat(document.getElementById('squareSizeInput').value) || 40) * 0.48), 80)),
+        equationLabelFontSize: Math.max(9, Math.min(Math.round((parseFloat(document.getElementById('squareSizeInput').value) || 40) * 0.32), 48)),
+        yMin: parseFloat(document.getElementById('yMin').value) || 0,
+        yMax: parseFloat(document.getElementById('yMax').value) || 10,
+        yIncrement: parseFloat(document.getElementById('yIncrement').value) || 1,
+        yLabelEvery: parseInt(document.getElementById('yLabelEvery').value, 10),
+        yLabelOnZero: document.getElementById('yLabelOnZero').checked,
+        yAxisLabelOnTop: document.getElementById('yAxisLabelOnTop').checked,
+        arrowHeadSize: Math.max(5, Math.round((parseFloat(document.getElementById('squareSizeInput').value) || 40) * 0.35)),
+        zeroLineExtension: Math.max(10, Math.round((parseFloat(document.getElementById('squareSizeInput').value) || 40) * 0.75)),
+        axisTitleSpacing: Math.max(10, Math.round((parseFloat(document.getElementById('squareSizeInput').value) || 40) * 0.65)),
+        showMainAxes: document.getElementById('showAxes') ? document.getElementById('showAxes').checked : true,
+        showAxisArrows: document.getElementById('showAxisArrows') ? document.getElementById('showAxisArrows').checked : true,
+        xAxisLabelType: document.getElementById('xAxisLabelType').value,
+        xMin: 0, xMax: 10, xIncrement: 1, xValuePerMinorSquare: 1, // Will be updated below
+        xLabelEvery: parseInt(document.getElementById('xLabelEvery').value, 10),
+        xLabelOnZero: document.getElementById('xLabelOnZero').checked,
+        xAxisLabelOnRight: document.getElementById('xAxisLabelOnRight').checked,
+        xAxisLabel: parseSuperscript(document.getElementById('xAxisLabel').value),
+        yAxisLabel: parseSuperscript(document.getElementById('yAxisLabel').value),
+        suppressZeroLabel: document.getElementById('suppressZeroLabel').checked,
+        minorGridColor: document.getElementById('minorGridColor').value,
+        majorGridColor: document.getElementById('majorGridColor').value,
+        paperStyle: document.getElementById('paperStyle').value || 'grid'
+    };
 
-    // Get input values, with robust fallbacks for NaN
-    const minorSquareSize = parseFloat(document.getElementById('squareSizeInput').value) || 40;
-    const minorLineThickness = Math.max(0.5, minorSquareSize * 0.025);
-    const majorLineThickness = Math.max(minorLineThickness * 1.8, minorSquareSize * 0.06);
-    const labelFontSize = Math.max(9, Math.min(Math.round(minorSquareSize * 0.38), 60));        // axis number labels
-    const axisTitleFontSize = Math.max(12, Math.min(Math.round(minorSquareSize * 0.48), 80));   // axis titles (x/y)
-    const equationLabelFontSize = Math.max(9, Math.min(Math.round(minorSquareSize * 0.32), 48)); // equation labels
-    const yMin = parseFloat(document.getElementById('yMin').value) || 0;
-    const yMax = parseFloat(document.getElementById('yMax').value) || 10;
-    const yIncrement = parseFloat(document.getElementById('yIncrement').value) || 1;
-    const yLabelEvery = parseInt(document.getElementById('yLabelEvery').value, 10);
-    const yLabelOnZero = document.getElementById('yLabelOnZero').checked;
-    const yAxisLabelOnTop = document.getElementById('yAxisLabelOnTop').checked;
-    const arrowHeadSize = Math.max(5, Math.round(minorSquareSize * 0.35));
-    const zeroLineExtension = Math.max(10, Math.round(minorSquareSize * 0.75)); // tweak the 0.65 factor for taste
-    const axisTitleSpacing = Math.max(10, Math.round(minorSquareSize * 0.65)); // tweak as needed
-
-    // Get the state of the "Show Main Axes" checkbox
-    const showMainAxes = document.getElementById('showAxes') ? document.getElementById('showAxes').checked : true;
-    // Get the state of the "Show Axis Arrows" checkbox (separate control)
-    const showAxisArrows = document.getElementById('showAxisArrows') ? document.getElementById('showAxisArrows').checked : true;
-
-    const xAxisLabelType = document.getElementById('xAxisLabelType').value;
-    let xMin, xMax, xIncrement; // xIncrement is the major mathematical step (e.g., 1 unit or pi/2 radians)
-    let xValuePerMinorSquare; // How much mathematical value one minorSquareSize represents on X-axis
-
-    if (xAxisLabelType === 'radians') {
+    if (gridOptions.xAxisLabelType === 'radians') {
         const xMinRadians = parseFloat(document.getElementById('xMinRadians').value) || 0;
-        const xMaxRadians = parseFloat(document.getElementById('xMaxRadians').value) || (2 * Math.PI / Math.PI); // Default to 2, representing 2π
-        const radianStepMultiplier = parseFloat(document.getElementById('radianStepMultiplier').value) || 0.5; // Default to π/2
+        const xMaxRadians = parseFloat(document.getElementById('xMaxRadians').value) || (2 * Math.PI / Math.PI);
+        const radianStepMultiplier = parseFloat(document.getElementById('radianStepMultiplier').value) || 0.5;
         const xGridUnitsPerRadianStep = parseInt(document.getElementById('xGridUnitsPerRadianStep').value, 10) || 6;
 
-        xMin = xMinRadians * Math.PI;
-        xMax = xMaxRadians * Math.PI;
-        xIncrement = radianStepMultiplier * Math.PI; // Mathematical value of one radian step (e.g., pi/2)
+        gridOptions.xMin = xMinRadians * Math.PI;
+        gridOptions.xMax = xMaxRadians * Math.PI;
+        gridOptions.xIncrement = radianStepMultiplier * Math.PI;
+        gridOptions.xValuePerMinorSquare = gridOptions.xIncrement / xGridUnitsPerRadianStep;
 
         if (radianStepMultiplier <= 0 || xGridUnitsPerRadianStep <= 0 || !isFinite(radianStepMultiplier) || !isFinite(xGridUnitsPerRadianStep)) {
             gridErrorMessage.textContent = "Error: Radian Step Multiplier and Grid Units per Radian Step must be positive numbers.";
             return;
         }
-        // Calculate how much X-axis value each minor grid square represents
-        xValuePerMinorSquare = xIncrement / xGridUnitsPerRadianStep;
-    } else { // numbers or degrees
-        xMin = parseFloat(document.getElementById('xMin').value) || 0;
-        xMax = parseFloat(document.getElementById('xMax').value) || 10;
-        xIncrement = parseFloat(document.getElementById('xIncrement').value) || 1;
-        xValuePerMinorSquare = xIncrement;
+    } else {
+        gridOptions.xMin = parseFloat(document.getElementById('xMin').value) || 0;
+        gridOptions.xMax = parseFloat(document.getElementById('xMax').value) || 10;
+        gridOptions.xIncrement = parseFloat(document.getElementById('xIncrement').value) || 1;
+        gridOptions.xValuePerMinorSquare = gridOptions.xIncrement;
     }
-
-    const xLabelEvery = parseInt(document.getElementById('xLabelEvery').value, 10);
-    const xLabelOnZero = document.getElementById('xLabelOnZero').checked;
-    const xAxisLabelOnRight = document.getElementById('xAxisLabelOnRight').checked;
-    
-    const xAxisLabel = parseSuperscript(document.getElementById('xAxisLabel').value);
-    const yAxisLabel = parseSuperscript(document.getElementById('yAxisLabel').value);
-    const suppressZeroLabel = document.getElementById('suppressZeroLabel').checked;
-
-    // Get grid line colors
-    const minorGridColor = document.getElementById('minorGridColor').value;
-    const majorGridColor = document.getElementById('majorGridColor').value;
 
     // --- Input Validation ---
-    if (yIncrement <= 0 || xIncrement <= 0 || minorSquareSize <= 0 || !isFinite(yIncrement) || !isFinite(xIncrement) || !isFinite(minorSquareSize)) {
+    if (gridOptions.yIncrement <= 0 || gridOptions.xIncrement <= 0 || gridOptions.minorSquareSize <= 0 || !isFinite(gridOptions.yIncrement) || !isFinite(gridOptions.xIncrement) || !isFinite(gridOptions.minorSquareSize)) {
         gridErrorMessage.textContent = "Error: Increment and Square Size values must be positive numbers.";
-        return; // Stop drawing
+        return;
     }
 
-    const yRange = yMax - yMin;
-    const xRange = xMax - xMin;
+    const yRange = gridOptions.yMax - gridOptions.yMin;
+    const xRange = gridOptions.xMax - gridOptions.xMin;
 
-    // Handle cases where range is 0 or negative
     if (yRange < 0 || xRange < 0) {
         gridErrorMessage.textContent = "Error: Max axis value must be greater than Min axis value.";
         return;
     }
 
-    // Calculate total number of minor grid rows/columns
-    const numMinorGridRows = yRange / yIncrement;
-    const numMinorGridCols = xRange / xValuePerMinorSquare;
+    gridOptions.numMinorGridRows = yRange / gridOptions.yIncrement;
+    gridOptions.numMinorGridCols = xRange / gridOptions.xValuePerMinorSquare;
 
-    // Check for finite numbers after division, which handles cases like 0/0 or division by non-finite
-    if (!isFinite(numMinorGridRows) || !isFinite(numMinorGridCols)) {
+    if (!isFinite(gridOptions.numMinorGridRows) || !isFinite(gridOptions.numMinorGridCols)) {
         gridErrorMessage.textContent = "Error: Invalid axis ranges or increments resulting in non-finite grid dimensions.";
         return;
     }
 
-    // Calculate actual grid dimensions in pixels
-    const actualGridHeight = numMinorGridRows * minorSquareSize;
-    const actualGridWidth = numMinorGridCols * minorSquareSize;
+    gridOptions.actualGridHeight = gridOptions.numMinorGridRows * gridOptions.minorSquareSize;
+    gridOptions.actualGridWidth = gridOptions.numMinorGridCols * gridOptions.minorSquareSize;
 
-    // --- Dynamic SVG Resizing (using viewBox) ---
-    const requiredSVGWidth = actualGridWidth + marginLeft + marginRight;
-    const requiredSVGHeight = actualGridHeight + marginTop + marginBottom;
+    const requiredSVGWidth = gridOptions.actualGridWidth + gridOptions.marginLeft + gridOptions.marginRight;
+    const requiredSVGHeight = gridOptions.actualGridHeight + gridOptions.marginTop + gridOptions.marginBottom;
 
-    // Robustness check for SVG dimensions
     if (!isFinite(requiredSVGWidth) || !isFinite(requiredSVGHeight) || requiredSVGWidth <= 0 || requiredSVGHeight <= 0) {
         gridErrorMessage.textContent = "Error: Calculated grid dimensions are invalid. Check input values and preset settings.";
         console.error("Invalid SVG dimensions calculated:", { requiredSVGWidth, requiredSVGHeight });
-        // Set minimal valid size to prevent browser errors and show an empty canvas
         svg.setAttribute('width', 1);
         svg.setAttribute('height', 1);
         svg.setAttribute('viewBox', '0 0 1 1');
-        return; // Exit drawing if dimensions are bad
+        return;
     }
 
-
-    // svg.setAttribute('width', requiredSVGWidth); // No longer needed if using viewBox for scaling
-    // svg.setAttribute('height', requiredSVGHeight); // No longer needed if using viewBox for scaling
     svg.setAttribute('viewBox', `0 0 ${requiredSVGWidth} ${requiredSVGHeight}`);
-    svg.style.backgroundColor = '#fff'; // Explicit white background
+    svg.style.backgroundColor = '#fff';
 
-    // Create a group for all grid and axis elements to allow easy clearing
     const gridGroup = createSVGElement('g', { id: 'gridGroup' });
     svg.appendChild(gridGroup);
 
-    // Calculate offset to position the grid within its new, dynamically sized area
-    const offsetX = marginLeft;
-    const offsetY = marginTop;
-
-    // Get paper style from HTML
-    const paperStyle = document.getElementById('paperStyle').value || 'grid';
-
-    // --- Branch for Paper Style: Dot vs. Grid ---
-    if (paperStyle === 'dot') {
-        // Dot style settings (tweak for taste)
-        const dotColor = minorGridColor;
-        const dotRadius = Math.max(1.2, minorSquareSize * 0.11); // e.g. 4 for 40px squares
-
-        drawDotGrid(gridGroup, {
-            offsetX, offsetY,
-            numMinorGridRows, numMinorGridCols,
-            minorSquareSize,
-            dotColor,
-            dotRadius
-        });
-
-        // If you want only dots for dot paper, return here to skip drawing lines and axis labels
-        // If you want lines AND dots, comment out this return.
-        // For standard dot paper, we usually only want dots.
-        // Axis lines and labels are drawn after this block.
-    }
+    gridOptions.offsetX = gridOptions.marginLeft;
+    gridOptions.offsetY = gridOptions.marginTop;
 
     // Find the Y-position of the zero line relative to the grid top
-    let zeroYGridPos = -1;
-    if (yMin <= 0 && yMax >= 0) {
-        zeroYGridPos = offsetY + (yMax / yIncrement) * minorSquareSize;
-    }
+    gridOptions.zeroYGridPos = (gridOptions.yMin <= 0 && gridOptions.yMax >= 0)
+        ? gridOptions.offsetY + (gridOptions.yMax / gridOptions.yIncrement) * gridOptions.minorSquareSize
+        : -1;
 
     // Find the X-position of the zero line relative to the grid left
-    let zeroXGridPos = -1;
-    if (xMin <= 0 && xMax >= 0) {
-        zeroXGridPos = offsetX + (-xMin / xValuePerMinorSquare) * minorSquareSize;
+    gridOptions.zeroXGridPos = (gridOptions.xMin <= 0 && gridOptions.xMax >= 0)
+        ? gridOptions.offsetX + (-gridOptions.xMin / gridOptions.xValuePerMinorSquare) * gridOptions.minorSquareSize
+        : -1;
+
+
+    // --- Draw Dot Grid if selected ---
+    if (gridOptions.paperStyle === 'dot') {
+        drawDotGrid(gridGroup, {
+            offsetX: gridOptions.offsetX,
+            offsetY: gridOptions.offsetY,
+            numMinorGridRows: gridOptions.numMinorGridRows,
+            numMinorGridCols: gridOptions.numMinorGridCols,
+            minorSquareSize: gridOptions.minorSquareSize,
+            dotColor: gridOptions.minorGridColor,
+            dotRadius: Math.max(1.2, gridOptions.minorSquareSize * 0.11)
+        });
     }
-
-    // Calculate axis line end points - ALWAYS calculate full potential extension for arrow placement
-    // These values define the potential maximum length of the axis line.
-    const xAxisLineStartExtended = offsetX - (xMin < -EPSILON ? zeroLineExtension : 0);
-    const xAxisLineEndExtended = offsetX + actualGridWidth + (xMax > EPSILON ? zeroLineExtension : 0);
-    const yAxisLineStartExtended = offsetY - (yMax > EPSILON ? zeroLineExtension : 0);
-    const yAxisLineEndExtended = offsetY + actualGridHeight + (yMin < -EPSILON ? zeroLineExtension : 0);
-
 
     // --- Draw Y-axis grid lines and labels ---
-    for (let r = 0; r <= numMinorGridRows; r++) {
-        const y = offsetY + r * minorSquareSize;
-        const value = yMax - r * yIncrement;
-
-        const isMathematicalZeroLine = Math.abs(value) < EPSILON; // Check for actual zero
-        // `drawAsMajorAxis` determines if this grid line should be thicker/major, based on showMainAxes
-        const drawAsMajorAxis = showMainAxes && isMathematicalZeroLine;
-
-        const strokeWidth = drawAsMajorAxis ? majorLineThickness : minorLineThickness;
-        const stroke = drawAsMajorAxis ? majorGridColor : minorGridColor;
-
-        // Draw grid lines (thickness/color depends on `drawAsMajorAxis`, only draw if grid paper)
-        if (paperStyle === 'grid') {
-            const line = createSVGElement('line', {
-                x1: offsetX,
-                y1: y,
-                x2: offsetX + actualGridWidth,
-                y2: y,
-                stroke: stroke,
-                'stroke-width': strokeWidth
-            });
-            gridGroup.appendChild(line);
-        }
-
-        // Y-axis Labeling Logic (numbers) - only show '0' if main axes are visible and conditions met
-        if (
-            yLabelEvery > 0 &&
-            (
-                (r % yLabelEvery === 0)
-                || (showMainAxes && yLabelOnZero && isMathematicalZeroLine) // Only show '0' if main axes are visible
-            )
-            && !(value === 0 && suppressZeroLabel) // Always respect suppressZeroLabel
-        ) {
-            // NO extra check or continue here! Y-axis gets to draw '0' at the origin if appropriate.
-            // The X-axis will handle the suppression if Y-axis draws it.
-
-            const labelText = value.toFixed(yIncrement.toString().includes('.') ? yIncrement.toString().split('.')[1].length : 0);
-            const textEl = createSVGElement('text', {
-                x: (showMainAxes && yLabelOnZero && zeroXGridPos !== -1) ? zeroXGridPos - 5 : offsetX - 10, // offset towards X-axis 0 if main axes visible
-                y: y,
-                'font-family': 'Inter, sans-serif', // Corrected font-family syntax
-                'font-size': `${labelFontSize}px`,
-                fill: '#333',
-                'text-anchor': 'end',
-                'alignment-baseline': 'middle'
-            });
-            textEl.textContent = labelText;
-            gridGroup.appendChild(textEl);
-        }
-    }
+    drawAxisLabelsAndLines({
+        isXAxis: false,
+        min: gridOptions.yMin,
+        max: gridOptions.yMax,
+        increment: gridOptions.yIncrement,
+        labelEvery: gridOptions.yLabelEvery,
+        labelOnZero: gridOptions.yLabelOnZero
+    }, gridOptions, gridGroup);
 
     // --- Draw X-axis grid lines and labels ---
-    for (let c = 0; c <= numMinorGridCols; c++) {
-        const x = offsetX + c * minorSquareSize;
-        const value = xMin + c * xValuePerMinorSquare;
+    drawAxisLabelsAndLines({
+        isXAxis: true,
+        min: gridOptions.xMin,
+        max: gridOptions.xMax,
+        increment: gridOptions.xIncrement,
+        labelEvery: gridOptions.xLabelEvery,
+        labelOnZero: gridOptions.xLabelOnZero,
+        xAxisLabelType: gridOptions.xAxisLabelType
+    }, gridOptions, gridGroup);
 
-        const isMathematicalZeroLine = Math.abs(value) < EPSILON; // Check for actual zero
-        // `drawAsMajorAxis` determines if this grid line should be thicker/major, based on showMainAxes
-        const drawAsMajorAxis = showMainAxes && isMathematicalZeroLine;
 
-        const strokeWidth = drawAsMajorAxis ? majorLineThickness : minorLineThickness;
-        const stroke = drawAsMajorAxis ? majorGridColor : minorGridColor;
-
-        // Draw grid lines (thickness/color depends on `drawAsMajorAxis`, only draw if grid paper)
-        if (paperStyle === 'grid') {
-            const line = createSVGElement('line', {
-                x1: x,
-                y1: offsetY,
-                x2: x,
-                y2: offsetY + actualGridHeight,
-                stroke: stroke,
-                'stroke-width': strokeWidth
-            });
-            gridGroup.appendChild(line);
-        }
-
-        // X-axis Labeling Logic (numbers or radians) - only show '0' if main axes are visible and conditions met
-        let shouldLabel = false;
-        if (xLabelEvery > 0) {
-            if (xAxisLabelType === 'radians') {
-                const xGridUnitsPerRadianStep = parseInt(document.getElementById('xGridUnitsPerRadianStep').value, 10) || 6;
-                const radianStepMultiplier = parseFloat(document.getElementById('radianStepMultiplier').value) || 0.5;
-                const theoreticalMajorStepVal = Math.round((value - xMin) / (radianStepMultiplier * Math.PI));
-                if (
-                    xGridUnitsPerRadianStep > 0 &&
-                    Math.round((value - xMin) / xValuePerMinorSquare) % xGridUnitsPerRadianStep === 0 &&
-                    theoreticalMajorStepVal % xLabelEvery === 0
-                ) {
-                    shouldLabel = true;
-                }
-            } else {
-                if (
-                    Math.round((value - xMin) / xValuePerMinorSquare) % xLabelEvery === 0
-                ) {
-                    shouldLabel = true;
-                }
-            }
-        }
-
-        // If it's the zero line, and main axes are visible, and xLabelOnZero is checked, then label it.
-        if (isMathematicalZeroLine && showMainAxes && xLabelOnZero) {
-            shouldLabel = true;
-        }
-
-        if (shouldLabel) {
-            // Always respect suppressZeroLabel
-            if (value === 0 && suppressZeroLabel) {
-                continue;
-            }
-            // NEW: Prevent drawing '0' at origin if Y-axis is configured to show '0' and both axes pass through the origin.
-            // Y-axis takes priority for the (0,0) label.
-            if (
-                isMathematicalZeroLine && // It is the X=0 line
-                showMainAxes &&          // Main axes are enabled
-                yLabelOnZero &&          // Y-axis is configured to show its '0'
-                zeroYGridPos !== -1 &&   // Y-axis zero line is visible in the grid
-                zeroXGridPos !== -1      // X-axis zero line is visible in the grid
-            ) {
-                continue; // Skip drawing X-axis '0' label
-            }
-
-            let labelText;
-            if (xAxisLabelType === 'radians') {
-                labelText = formatRadianLabel(value);
-            } else if (xAxisLabelType === 'degrees') {
-                labelText = value.toFixed(xIncrement.toString().includes('.') ? xIncrement.toString().split('.')[1].length : 0) + '°';
-            } else {
-                labelText = value.toFixed(xIncrement.toString().includes('.') ? xIncrement.toString().split('.')[1].length : 0);
-            }
-
-            const labelYOffset = Math.round(labelFontSize * 0.6); // you can adjust this value
-
-            const textEl = createSVGElement('text', {
-                x: x,
-                y: (showMainAxes && xLabelOnZero && zeroYGridPos !== -1) // Offset towards Y-axis 0 if main axes visible
-                    ? zeroYGridPos + labelYOffset
-                    : offsetY + actualGridHeight + labelYOffset,
-                'font-family': 'Inter, sans-serif', // Corrected font-family syntax
-                'font-size': `${labelFontSize}px`,
-                fill: '#333',
-                'text-anchor': 'middle',
-                'alignment-baseline': 'hanging'
-            });
-            textEl.textContent = labelText;
-            gridGroup.appendChild(textEl);
-        }
-    }
+    // Calculate axis line end points - ALWAYS calculate full potential extension for arrow placement
+    const xAxisLineStartExtended = gridOptions.offsetX - (gridOptions.xMin < -EPSILON ? gridOptions.zeroLineExtension : 0);
+    const xAxisLineEndExtended = gridOptions.offsetX + gridOptions.actualGridWidth + (gridOptions.xMax > EPSILON ? gridOptions.zeroLineExtension : 0);
+    const yAxisLineStartExtended = gridOptions.offsetY - (gridOptions.yMax > EPSILON ? gridOptions.zeroLineExtension : 0);
+    const yAxisLineEndExtended = gridOptions.offsetY + gridOptions.actualGridHeight + (gridOptions.yMin < -EPSILON ? gridOptions.zeroLineExtension : 0);
 
 
     // --- Draw X-axis (the horizontal line representing y=0 or the bottom edge) ---
-    // Only draw main axis line and its label if showMainAxes is true
-    if (showMainAxes) {
-        const xAxisLineY = zeroYGridPos !== -1 ? zeroYGridPos : offsetY + actualGridHeight;
+    if (gridOptions.showMainAxes) {
+        const xAxisLineY = gridOptions.zeroYGridPos !== -1 ? gridOptions.zeroYGridPos : gridOptions.offsetY + gridOptions.actualGridHeight;
         
         gridGroup.appendChild(createSVGElement('line', {
-            x1: xAxisLineStartExtended, // Use extended line for full potential length
-            y1: xAxisLineY,
-            x2: xAxisLineEndExtended,   // Use extended line for full potential length
-            y2: xAxisLineY,
-            stroke: majorGridColor,
-            'stroke-width': majorLineThickness
+            x1: xAxisLineStartExtended, y1: xAxisLineY,
+            x2: xAxisLineEndExtended, y2: xAxisLineY,
+            stroke: gridOptions.majorGridColor, 'stroke-width': gridOptions.majorLineThickness
         }));
 
-        // Draw X-axis label (main title 'x')
-        const xAxisTitle = createSVGElement('text', {
-            'font-family': 'Inter, sans-serif',
-            'font-size': `${axisTitleFontSize}px`,
-            fill: '#333'
+        const xAxisTitleEl = createSVGElement('text', {
+            'font-family': 'Inter, sans-serif', 'font-size': `${gridOptions.axisTitleFontSize}px`, fill: '#333'
         });
-        xAxisTitle.textContent = xAxisLabel;
+        xAxisTitleEl.textContent = gridOptions.xAxisLabel;
 
-        if (xAxisLabelOnRight && xAxisLabel && xMax > EPSILON) { // Only show on right if axis extends right
-            const xPos = offsetX + actualGridWidth + zeroLineExtension + axisTitleSpacing;
-            xAxisTitle.setAttribute('x', xPos);
-            xAxisTitle.setAttribute('y', xAxisLineY);
-            xAxisTitle.setAttribute('text-anchor', 'start');
-            xAxisTitle.setAttribute('alignment-baseline', 'middle');
-        } else if (xAxisLabel) { // Position below the grid, centered horizontally
-            xAxisTitle.setAttribute('x', offsetX + actualGridWidth / 2);
-            xAxisTitle.setAttribute('y', offsetY + actualGridHeight + (marginBottom / 2));
-            xAxisTitle.setAttribute('text-anchor', 'middle');
-            xAxisTitle.setAttribute('alignment-baseline', 'middle');
+        if (gridOptions.xAxisLabelOnRight && gridOptions.xAxisLabel && gridOptions.xMax > EPSILON) {
+            xAxisTitleEl.setAttribute('x', xAxisLineEndExtended + gridOptions.axisTitleSpacing);
+            xAxisTitleEl.setAttribute('y', xAxisLineY);
+            xAxisTitleEl.setAttribute('text-anchor', 'start');
+            xAxisTitleEl.setAttribute('alignment-baseline', 'middle');
+        } else if (gridOptions.xAxisLabel) {
+            xAxisTitleEl.setAttribute('x', gridOptions.offsetX + gridOptions.actualGridWidth / 2);
+            xAxisTitleEl.setAttribute('y', gridOptions.offsetY + gridOptions.actualGridHeight + (gridOptions.marginBottom / 2));
+            xAxisTitleEl.setAttribute('text-anchor', 'middle');
+            xAxisTitleEl.setAttribute('alignment-baseline', 'middle');
         }
-        gridGroup.appendChild(xAxisTitle);
+        gridGroup.appendChild(xAxisTitleEl);
     }
 
-
     // --- Draw Y-axis (the vertical line representing x=0 or the left edge) ---
-    // Only draw main axis line and its label if showMainAxes is true
-    if (showMainAxes) {
-        const yAxisLineX = zeroXGridPos !== -1 ? zeroXGridPos : offsetX;
+    if (gridOptions.showMainAxes) {
+        const yAxisLineX = gridOptions.zeroXGridPos !== -1 ? gridOptions.zeroXGridPos : gridOptions.offsetX;
         
         gridGroup.appendChild(createSVGElement('line', {
-            x1: yAxisLineX,
-            y1: yAxisLineStartExtended, // Use extended line for full potential length
-            x2: yAxisLineX,
-            y2: yAxisLineEndExtended,   // Use extended line for full potential length
-            stroke: majorGridColor,
-            'stroke-width': majorLineThickness
+            x1: yAxisLineX, y1: yAxisLineStartExtended,
+            x2: yAxisLineX, y2: yAxisLineEndExtended,
+            stroke: gridOptions.majorGridColor, 'stroke-width': gridOptions.majorLineThickness
         }));
 
-        // Draw Y-axis label (main title 'y', rotated)
-        const yAxisTitle = createSVGElement('text', {
-            'font-family': 'Inter, sans-serif', // Corrected font-family syntax
-            'font-size': `${axisTitleFontSize}px`,
-            fill: '#333'
+        const yAxisTitleEl = createSVGElement('text', {
+            'font-family': 'Inter, sans-serif', 'font-size': `${gridOptions.axisTitleFontSize}px`, fill: '#333'
         });
-        yAxisTitle.textContent = yAxisLabel;
+        yAxisTitleEl.textContent = gridOptions.yAxisLabel;
 
-        if (yAxisLabelOnTop && yAxisLabel && yMax > EPSILON) { // Only show on top if axis extends up
-            const yPos = offsetY - (zeroLineExtension + axisTitleSpacing);
-            yAxisTitle.setAttribute('x', yAxisLineX);
-            yAxisTitle.setAttribute('y', yPos);
-            yAxisTitle.setAttribute('transform', '');
-            yAxisTitle.setAttribute('text-anchor', 'middle');
-            yAxisTitle.setAttribute('alignment-baseline', 'alphabetic');
-        } else if (yAxisLabel) { // Position to the left of the grid, centered vertically, rotated
-            yAxisTitle.setAttribute('x', marginLeft / 2);
-            yAxisTitle.setAttribute('y', offsetY + actualGridHeight / 2);
-            yAxisTitle.setAttribute('transform', `rotate(-90 ${marginLeft / 2},${offsetY + actualGridHeight / 2})`);
-            yAxisTitle.setAttribute('text-anchor', 'middle');
-            yAxisTitle.setAttribute('alignment-baseline', 'middle');
+        if (gridOptions.yAxisLabelOnTop && gridOptions.yAxisLabel && gridOptions.yMax > EPSILON) {
+            yAxisTitleEl.setAttribute('x', yAxisLineX);
+            yAxisTitleEl.setAttribute('y', yAxisLineStartExtended - gridOptions.axisTitleSpacing);
+            yAxisTitleEl.setAttribute('transform', '');
+            yAxisTitleEl.setAttribute('text-anchor', 'middle');
+            yAxisTitleEl.setAttribute('alignment-baseline', 'alphabetic');
+        } else if (gridOptions.yAxisLabel) {
+            yAxisTitleEl.setAttribute('x', gridOptions.marginLeft / 2);
+            yAxisTitleEl.setAttribute('y', gridOptions.offsetY + gridOptions.actualGridHeight / 2);
+            yAxisTitleEl.setAttribute('transform', `rotate(-90 ${gridOptions.marginLeft / 2},${gridOptions.offsetY + gridOptions.actualGridHeight / 2})`);
+            yAxisTitleEl.setAttribute('text-anchor', 'middle');
+            yAxisTitleEl.setAttribute('alignment-baseline', 'middle');
         }
-        gridGroup.appendChild(yAxisTitle);
+        gridGroup.appendChild(yAxisTitleEl);
     }
 
 
     // --- Draw Axis Arrows ---
-    // Only draw arrows if showAxisArrows is true (separate control)
-    if (showAxisArrows) {
-        const arrowColor = majorGridColor;
-        const minLineLengthForArrow = 10; // Minimum length for an axis to show an arrow
+    if (gridOptions.showAxisArrows) {
+        const arrowColor = gridOptions.majorGridColor;
+        const minLineLengthForArrow = 10;
 
-        // X-axis positive arrow (right side)
-        if (xMax > EPSILON && (xAxisLineEndExtended - xAxisLineStartExtended) >= minLineLengthForArrow) {
-            gridGroup.appendChild(createArrowheadPath(xAxisLineEndExtended + arrowHeadSize, zeroYGridPos !== -1 ? zeroYGridPos : offsetY + actualGridHeight, 0, arrowColor));
+        if (gridOptions.xMax > EPSILON && (xAxisLineEndExtended - xAxisLineStartExtended) >= minLineLengthForArrow) {
+            gridGroup.appendChild(createArrowheadPath(xAxisLineEndExtended + gridOptions.arrowHeadSize, gridOptions.zeroYGridPos !== -1 ? gridOptions.zeroYGridPos : gridOptions.offsetY + gridOptions.actualGridHeight, 0, arrowColor));
         }
-
-        // X-axis negative arrow (left side)
-        if (xMin < -EPSILON && (xAxisLineEndExtended - xAxisLineStartExtended) >= minLineLengthForArrow) {
-            gridGroup.appendChild(createArrowheadPath(xAxisLineStartExtended - arrowHeadSize, zeroYGridPos !== -1 ? zeroYGridPos : offsetY + actualGridHeight, Math.PI, arrowColor));
+        if (gridOptions.xMin < -EPSILON && (xAxisLineEndExtended - xAxisLineStartExtended) >= minLineLengthForArrow) {
+            gridGroup.appendChild(createArrowheadPath(xAxisLineStartExtended - gridOptions.arrowHeadSize, gridOptions.zeroYGridPos !== -1 ? gridOptions.zeroYGridPos : gridOptions.offsetY + gridOptions.actualGridHeight, Math.PI, arrowColor));
         }
-
-        // Y-axis positive arrow (top side)
-        if (yMax > EPSILON && (yAxisLineEndExtended - yAxisLineStartExtended) >= minLineLengthForArrow) {
-            gridGroup.appendChild(createArrowheadPath(zeroXGridPos !== -1 ? zeroXGridPos : offsetX, yAxisLineStartExtended - arrowHeadSize, -Math.PI / 2, arrowColor));
+        if (gridOptions.yMax > EPSILON && (yAxisLineEndExtended - yAxisLineStartExtended) >= minLineLengthForArrow) {
+            gridGroup.appendChild(createArrowheadPath(gridOptions.zeroXGridPos !== -1 ? gridOptions.zeroXGridPos : gridOptions.offsetX, yAxisLineStartExtended - gridOptions.arrowHeadSize, -Math.PI / 2, arrowColor));
         }
-
-        // Y-axis negative arrow (bottom side)
-        if (yMin < -EPSILON && (yAxisLineEndExtended - yAxisLineStartExtended) >= minLineLengthForArrow) {
-            gridGroup.appendChild(createArrowheadPath(zeroXGridPos !== -1 ? zeroXGridPos : offsetX, yAxisLineEndExtended + arrowHeadSize, Math.PI / 2, arrowColor));
+        if (gridOptions.yMin < -EPSILON && (yAxisLineEndExtended - yAxisLineStartExtended) >= minLineLengthForArrow) {
+            gridGroup.appendChild(createArrowheadPath(gridOptions.zeroXGridPos !== -1 ? gridOptions.zeroXGridPos : gridOptions.offsetX, yAxisLineEndExtended + gridOptions.arrowHeadSize, Math.PI / 2, arrowColor));
         }
     }
 
@@ -912,10 +1219,10 @@ export function drawGrid() {
     const defs = createSVGElement('defs');
     const clipPath = createSVGElement('clipPath', { id: 'gridClip' });
     const clipRect = createSVGElement('rect', {
-        x: offsetX,
-        y: offsetY,
-        width: actualGridWidth,
-        height: actualGridHeight
+        x: gridOptions.offsetX,
+        y: gridOptions.offsetY,
+        width: gridOptions.actualGridWidth,
+        height: gridOptions.actualGridHeight
     });
     clipPath.appendChild(clipRect);
     defs.appendChild(clipPath);
@@ -927,23 +1234,20 @@ export function drawGrid() {
 
     // --- Draw Equations ---
     equationsToDraw.forEach(eq => {
-        const equationGroup = createSVGElement('g'); // Group for each equation's elements
-        svg.appendChild(equationGroup); // Append to SVG immediately to apply clipPath
-
-        const currentXAxisLabelType = document.getElementById('xAxisLabelType').value;
+        const equationGroup = createSVGElement('g');
+        svg.appendChild(equationGroup);
 
         const segments = [];
         let currentSegment = [];
         let lastCanvasY = null;
 
-        const plotResolution = actualGridWidth * 2;
-        const plotStepX = (xMax - xMin) / plotResolution;
-
-        const jumpThreshold = requiredSVGHeight * 0.5; // If y jumps by more than half the SVG height, lift the pen
+        const plotResolution = gridOptions.actualGridWidth * 2;
+        const plotStepX = (gridOptions.xMax - gridOptions.xMin) / plotResolution;
+        const jumpThreshold = requiredSVGHeight * 0.5;
 
         for (let i = 0; i <= plotResolution; i++) {
-            const graphX = xMin + i * plotStepX;
-            const canvasX = offsetX + (graphX - xMin) / xValuePerMinorSquare * minorSquareSize;
+            const graphX = gridOptions.xMin + i * plotStepX;
+            const canvasX = gridOptions.offsetX + (graphX - gridOptions.xMin) / gridOptions.xValuePerMinorSquare * gridOptions.minorSquareSize;
 
             const inDomain = (eq.domainStart === null || graphX >= eq.domainStart - EPSILON) &&
                              (eq.domainEnd === null || graphX <= eq.domainEnd + EPSILON);
@@ -954,13 +1258,13 @@ export function drawGrid() {
             try {
                 if (inDomain) {
                     let xForEvaluation = graphX;
-                    if (currentXAxisLabelType === 'degrees') {
+                    if (gridOptions.xAxisLabelType === 'degrees') {
                         xForEvaluation = math.unit(xForEvaluation, 'deg').toNumber('rad');
                     }
                     graphY = eq.compiledExpression.evaluate({ x: xForEvaluation });
 
                     if (isFinite(graphY)) {
-                        const canvasY = offsetY + actualGridHeight - ((graphY - yMin) / yIncrement) * minorSquareSize;
+                        const canvasY = gridOptions.offsetY + gridOptions.actualGridHeight - ((graphY - gridOptions.yMin) / gridOptions.yIncrement) * gridOptions.minorSquareSize;
 
                         if (currentSegment.length > 0 && Math.abs(canvasY - lastCanvasY) > jumpThreshold) {
                             segments.push(currentSegment);
@@ -990,86 +1294,22 @@ export function drawGrid() {
             segments.push(currentSegment);
         }
 
-        // Shading for inequalities
-        if (eq.inequalityType && eq.inequalityType !== '=') {
-            const fillOpacity = SHADE_ALPHA;
-            const fillColor = eq.color;
+        // Draw shading
+        drawEquationShading(equationGroup, eq, segments, {
+            offsetX: gridOptions.offsetX, offsetY: gridOptions.offsetY,
+            actualGridWidth: gridOptions.actualGridWidth, actualGridHeight: gridOptions.actualGridHeight,
+            yMin: gridOptions.yMin, yIncrement: gridOptions.yIncrement, minorSquareSize: gridOptions.minorSquareSize,
+            xValuePerMinorSquare: gridOptions.xValuePerMinorSquare, xMin: gridOptions.xMin,
+            currentXAxisLabelType: gridOptions.xAxisLabelType
+        });
 
-            const allClippedPoints = [];
-            segments.forEach(seg => {
-                seg.forEach(pt => {
-                    const clippedY = Math.max(offsetY, Math.min(offsetY + actualGridHeight, pt.y));
-                    allClippedPoints.push({ x: pt.x, y: clippedY });
-                });
-            });
-            allClippedPoints.sort((a, b) => a.x - b.x);
-
-            let polygonPoints = [];
-            if (allClippedPoints.length > 0) {
-                if (eq.inequalityType === '<' || eq.inequalityType === '<=' ) {
-                    polygonPoints.push(`${offsetX},${offsetY + actualGridHeight}`); // Bottom-left of grid
-                    polygonPoints.push(...allClippedPoints.map(p => `${p.x},${p.y}`));
-                    polygonPoints.push(`${offsetX + actualGridWidth},${offsetY + actualGridHeight}`); // Bottom-right of grid
-                } else if (eq.inequalityType === '>' || eq.inequalityType === '>=') {
-                    polygonPoints.push(`${offsetX},${offsetY}`); // Top-left of grid
-                    polygonPoints.push(...allClippedPoints.map(p => `${p.x},${p.y}`));
-                    polygonPoints.push(`${offsetX + actualGridWidth},${offsetY}`); // Top-right of grid
-                }
-            } else {
-                // Attempt to shade entire grid if no valid points for the curve
-                let shouldShadeEntireGrid = false;
-                try {
-                    let testXForShading = xMin - xValuePerMinorSquare;
-                    if (eq.domainStart !== null) {
-                        testXForShading = Math.max(testXForShading, eq.domainStart - xValuePerMinorSquare);
-                    }
-                    if (currentXAxisLabelType === 'degrees') {
-                        testXForShading = math.unit(testXForShading, 'deg').toNumber('rad');
-                    }
-
-                    const testYForShading = eq.compiledExpression.evaluate({ x: testXForShading });
-
-                    const midGridGraphY = yMin + (actualGridHeight / 2) * (yIncrement / minorSquareSize);
-
-                    if (isFinite(testYForShading)) {
-                        if ((eq.inequalityType === '<' || eq.inequalityType === '<=') && testYForShading > midGridGraphY) {
-                            shouldShadeEntireGrid = true;
-                        } else if ((eq.inequalityType === '>' || eq.inequalityType === '>=') && testYForShading < midGridGraphY) {
-                            shouldShadeEntireGrid = true;
-                        }
-                    }
-                } catch (e) {
-                    shouldShadeEntireGrid = false;
-                }
-
-                if (shouldShadeEntireGrid) {
-                     polygonPoints = [
-                        `${offsetX},${offsetY}`,
-                        `${offsetX + actualGridWidth},${offsetY}`,
-                        `${offsetX + actualGridWidth},${offsetY + actualGridHeight}`,
-                        `${offsetX},${offsetY + actualGridHeight}`
-                     ];
-                }
-            }
-
-            if (polygonPoints.length > 0) {
-                const polygon = createSVGElement('polygon', {
-                    points: polygonPoints.join(' '),
-                    fill: fillColor,
-                    'fill-opacity': fillOpacity,
-                    'clip-path': 'url(#gridClip)' // Apply clipping
-                });
-                equationGroup.appendChild(polygon);
-            }
-        }
-
-        // Line style
+        // Draw line
         const stroke = eq.color;
-        const equationLineThickness = Math.max(1.2, Math.min(minorSquareSize * 0.06, 3.5));
-        let strokeDasharray = LINE_STYLES[eq.lineStyle] || "0"; // Default to solid
+        const equationLineThickness = Math.max(1.2, Math.min(gridOptions.minorSquareSize * 0.06, 3.5));
+        let strokeDasharray = LINE_STYLES[eq.lineStyle] || "0";
 
         if (eq.inequalityType === '<' || eq.inequalityType === '>') {
-            strokeDasharray = LINE_STYLES.dashed; // Always dashed for strict inequalities
+            strokeDasharray = LINE_STYLES.dashed;
         }
 
         segments.forEach(seg => {
@@ -1081,140 +1321,21 @@ export function drawGrid() {
                 'stroke-width': equationLineThickness,
                 'stroke-dasharray': strokeDasharray,
                 fill: 'none',
-                'clip-path': 'url(#gridClip)' // Apply clipping
+                'clip-path': 'url(#gridClip)'
             });
             equationGroup.appendChild(path);
         });
 
-        // === Draw line arrows and domain dots (SVG logic, canvas style) ===
-        if (eq.showLineArrows && segments.length > 0) {
-            // Grid bounds and helpers
-            const GRID_RECT = {
-                left: offsetX,
-                right: offsetX + actualGridWidth,
-                top: offsetY,
-                bottom: offsetY + actualGridHeight
-            };
-            const EPSILON_FOR_BOUNDARY = 1e-6;
-            function isStrictlyInside(p) {
-                return (
-                    p.x > GRID_RECT.left + EPSILON_FOR_BOUNDARY &&
-                    p.x < GRID_RECT.right - EPSILON_FOR_BOUNDARY &&
-                    p.y > GRID_RECT.top + EPSILON_FOR_BOUNDARY &&
-                    p.y < GRID_RECT.bottom - EPSILON_FOR_BOUNDARY
-                );
-            }
-            function getLineRectIntersection(pInside, pOutside, rect) {
-                const dx = pOutside.x - pInside.x;
-                const dy = pOutside.y - pInside.y;
-                let tBest = 1;
-                function tryEdge(t) {
-                    if (t >= -EPSILON_FOR_BOUNDARY && t <= 1 + EPSILON_FOR_BOUNDARY) tBest = Math.min(tBest, t);
-                }
-                if (Math.abs(dx) > EPSILON_FOR_BOUNDARY) {
-                    tryEdge((rect.left - pInside.x) / dx);
-                    tryEdge((rect.right - pInside.x) / dx);
-                }
-                if (Math.abs(dy) > EPSILON_FOR_BOUNDARY) {
-                    tryEdge((rect.top - pInside.y) / dy);
-                    tryEdge((rect.bottom - pInside.y) / dy);
-                }
-                return { x: pInside.x + tBest * dx, y: pInside.y + tBest * dy };
-            }
-            function createEndpointDot(x, y, color, r = 3) {
-                return createSVGElement('circle', {
-                    cx: x,
-                    cy: y,
-                    r: r,
-                    fill: color
-                });
-            }
-            // Find first crossing pair (entry to grid)
-            function findFirstCrossingPair(segment) {
-                for (let i = 0; i < segment.length - 1; i++) {
-                    const p1 = segment[i];
-                    const p2 = segment[i + 1];
-                    // If p1 is outside/on boundary and p2 is inside
-                    if (!isStrictlyInside(p1) && isStrictlyInside(p2)) {
-                        return { pOut: p1, pIn: p2 };
-                    }
-                }
-                return null;
-            }
-            // Find last crossing pair (exit from grid)
-            function findLastCrossingPair(segment) {
-                for (let i = segment.length - 2; i >= 0; i--) {
-                    const p1 = segment[i];
-                    const p2 = segment[i + 1];
-                    // If p1 is inside and p2 is outside/on boundary
-                    if (isStrictlyInside(p1) && !isStrictlyInside(p2)) {
-                        return { pIn: p1, pOut: p2 };
-                    }
-                }
-                return null;
-            }
+        // Draw line arrows and domain dots
+        drawEquationEndpoints(equationGroup, eq, segments, {
+            offsetX: gridOptions.offsetX, offsetY: gridOptions.offsetY,
+            actualGridWidth: gridOptions.actualGridWidth, actualGridHeight: gridOptions.actualGridHeight,
+            yMin: gridOptions.yMin, yIncrement: gridOptions.yIncrement, minorSquareSize: gridOptions.minorSquareSize,
+            xValuePerMinorSquare: gridOptions.xValuePerMinorSquare, xMin: gridOptions.xMin,
+            currentXAxisLabelType: gridOptions.xAxisLabelType
+        });
 
-            // ARROW/DOT logic
-            const firstSegmentPoints = segments[0];
-            if (firstSegmentPoints.length >= 2) {
-                if (eq.domainStart !== null) {
-                    // Dot at domain start
-                    const firstDomainPoint = firstSegmentPoints.find(p => Math.abs(p.graphX - eq.domainStart) < EPSILON_FOR_BOUNDARY);
-                    if (firstDomainPoint && isStrictlyInside(firstDomainPoint)) {
-                        equationGroup.appendChild(createEndpointDot(firstDomainPoint.x, firstDomainPoint.y, eq.color));
-                    } else {
-                        // Find where the line enters the visible grid area and place dot there
-                        const crossingPair = findFirstCrossingPair(firstSegmentPoints);
-                        if (crossingPair) {
-                            const { pOut, pIn } = crossingPair;
-                            const intersection = getLineRectIntersection(pIn, pOut, GRID_RECT);
-                            equationGroup.appendChild(createEndpointDot(intersection.x, intersection.y, eq.color));
-                        }
-                    }
-                } else {
-                    // Arrow at left end
-                    const crossingPair = findFirstCrossingPair(firstSegmentPoints);
-                    if (crossingPair) {
-                        const { pOut, pIn } = crossingPair;
-                        const edge = getLineRectIntersection(pIn, pOut, GRID_RECT);
-                        const angle = Math.atan2(edge.y - pIn.y, edge.x - pIn.x);
-                        equationGroup.appendChild(createArrowheadPath(edge.x, edge.y, angle, eq.color));
-                    }
-                }
-            }
-
-            const lastSegmentPoints = segments[segments.length - 1];
-            if (lastSegmentPoints.length >= 2) {
-                if (eq.domainEnd !== null) {
-                    // Dot at domain end
-                    const lastDomainPoint = lastSegmentPoints.find(p => Math.abs(p.graphX - eq.domainEnd) < EPSILON_FOR_BOUNDARY);
-                    if (lastDomainPoint && isStrictlyInside(lastDomainPoint)) {
-                        equationGroup.appendChild(createEndpointDot(lastDomainPoint.x, lastDomainPoint.y, eq.color));
-                    } else {
-                        // Find where the line exits the visible grid area and place dot there
-                        const crossingPair = findLastCrossingPair(lastSegmentPoints);
-                        if (crossingPair) {
-                            const { pIn, pOut } = crossingPair;
-                            const intersection = getLineRectIntersection(pIn, pOut, GRID_RECT);
-                            equationGroup.appendChild(createEndpointDot(intersection.x, intersection.y, eq.color));
-                        }
-                    }
-                } else {
-                    // Arrow at right end
-                    const crossingPair = findLastCrossingPair(lastSegmentPoints);
-                    if (crossingPair) {
-                        const { pIn, pOut } = crossingPair;
-                        const edge = getLineRectIntersection(pIn, pOut, GRID_RECT);
-                        const angle = Math.atan2(edge.y - pIn.y, edge.x - pIn.x);
-                        equationGroup.appendChild(createArrowheadPath(edge.x, edge.y, angle, eq.color));
-                    }
-                }
-            }
-        }
-        // === END NEW line arrows/domain dots logic ===
-
-
-        // --- Label Placement with Overlap Avoidance and Custom Positioning ---
+        // Label Placement
         let labelText = '';
         if (eq.labelType === 'custom' && eq.customLabel.trim() !== '') {
             labelText = formatEquationTextForDisplay(eq.customLabel);
@@ -1222,190 +1343,9 @@ export function drawGrid() {
             labelText = formatEquationTextForDisplay(`y ${eq.inequalityType || '='} ${eq.rawExpression}`);
         }
 
-        if (!labelText) {
-            return; // No label to draw
-        }
-
-        const labelTextEl = createSVGElement('text', {
-            'font-family': 'Inter, sans-serif',
-            'font-size': `${equationLabelFontSize}px`,
-            fill: eq.color,
-            'cursor': 'grab', // Make it clear the label is draggable
-            'pointer-events': 'all' // Ensure the entire bounding box captures events
-        });
-        labelTextEl.textContent = labelText;
-        labelTextEl.classList.add('draggable-equation-label'); // Add class for drag detection
-        // Ensure eq.id is available and unique for proper tracking
-        if (eq.id) {
-             labelTextEl.dataset.eqid = eq.id;
-        } else {
-            console.warn("Equation missing ID, cannot track label position persistently via ID.");
-            // Fallback for identification if ID is missing (e.g., use array index, but this is less robust)
-            // If equationsToDraw is not constant, using index is problematic after additions/deletions.
-        }
-
-        let proposedLabelX, proposedLabelY;
-        let chosenAnchor = 'start';
-        let chosenBaseline = 'middle';
-
-        // Prefer custom position if available
-        if (eq.labelPosition && typeof eq.labelPosition.x === "number" && typeof eq.labelPosition.y === "number") {
-            proposedLabelX = eq.labelPosition.x;
-            proposedLabelY = eq.labelPosition.y;
-            // When using a custom position, assume optimal anchor/baseline for now, or you could store these too
-            // For simplicity, we'll keep the default 'start'/'middle' or infer from a `getBBox` later if needed.
-            // If the user drags, the position is absolute, so the anchor/baseline becomes less critical for placement
-            // but still affects how the text's internal origin aligns to proposedLabelX/Y.
-            // For now, let's keep it simple with default as center aligned.
-            chosenAnchor = 'middle';
-            chosenBaseline = 'middle';
-        } else {
-            // AUTO-CALCULATED POSITIONING (your existing logic)
-            let labelRefPoint = null;
-            for (let i = segments.length - 1; i >= 0; i--) {
-                const segment = segments[i];
-                for (let j = segment.length - 1; j >= 0; j--) {
-                    const p = segment[j];
-                    // Check if point is within visible grid bounds
-                    if (p.x >= offsetX && p.x <= (offsetX + actualGridWidth) &&
-                        p.y >= offsetY && p.y <= (offsetY + actualGridHeight)) {
-                        labelRefPoint = p;
-                        break;
-                    }
-                }
-                if (labelRefPoint) break;
-            }
-
-            if (!labelRefPoint) {
-                // If no visible point, try to find a point on the extended line just outside the right border
-                const testX = xMax + xValuePerMinorSquare; // A bit outside the right bound
-                let xForEvaluation = testX;
-                if (currentXAxisLabelType === 'degrees') {
-                    xForEvaluation = math.unit(xForEvaluation, 'deg').toNumber('rad');
-                }
-                let testGraphY;
-                try {
-                    testGraphY = eq.compiledExpression.evaluate({ x: xForEvaluation });
-                    if (isFinite(testGraphY)) {
-                        const testCanvasY = offsetY + actualGridHeight - ((testGraphY - yMin) / yIncrement) * minorSquareSize;
-                        labelRefPoint = {
-                            x: offsetX + actualGridWidth + (minorSquareSize / 2), // Slightly to the right of the grid
-                            y: testCanvasY
-                        };
-                    }
-                } catch (e) {
-                    // Ignore, no fallback point found
-                }
-            }
-
-
-            if (labelRefPoint) {
-                const pt = labelRefPoint;
-                const potentialPositions = [
-                    { dx: 5, dy: 0, anchor: 'start', baseline: 'middle' },
-                    { dx: -5, dy: 0, anchor: 'end', baseline: 'middle' },
-                    { dx: 0, dy: -15, anchor: 'middle', baseline: 'alphabetic' },
-                    { dx: 0, dy: 15, anchor: 'middle', baseline: 'hanging' },
-                    { dx: 5, dy: -15, anchor: 'start', baseline: 'alphabetic' },
-                    { dx: 5, dy: 15, anchor: 'start', baseline: 'hanging' }
-                ];
-
-                let autoPositionFound = false;
-                for (const pos of potentialPositions) {
-                    proposedLabelX = pt.x + pos.dx;
-                    proposedLabelY = pt.y + pos.dy;
-                    chosenAnchor = pos.anchor;
-                    chosenBaseline = pos.baseline;
-
-                    // Temporarily apply to measure for overlap
-                    labelTextEl.setAttribute('x', proposedLabelX);
-                    labelTextEl.setAttribute('y', proposedLabelY);
-                    labelTextEl.setAttribute('text-anchor', chosenAnchor);
-                    labelTextEl.setAttribute('alignment-baseline', chosenBaseline);
-                    equationGroup.appendChild(labelTextEl); // Temporarily append to measure
-
-                    const bbox = labelTextEl.getBBox(); // Get bounding box of the text element
-
-                    // Adjust for text-anchor to calculate bounding box accurately for overlap
-                    let currentRectLeft = bbox.x;
-                    let currentRectTop = bbox.y;
-                    const textWidth = bbox.width;
-                    const textHeight = bbox.height;
-
-                    const currentLabelRect = {
-                        left: currentRectLeft,
-                        right: currentRectLeft + textWidth,
-                        top: currentRectTop,
-                        bottom: currentRectTop + textHeight
-                    };
-
-                    const safeAreaBuffer = 50; // Allow labels to extend a bit beyond the grid for visibility
-                    const safeAreaLeft = offsetX - safeAreaBuffer;
-                    const safeAreaRight = offsetX + actualGridWidth + safeAreaBuffer;
-                    const safeAreaTop = offsetY - safeAreaBuffer;
-                    const safeAreaBottom = offsetY + actualGridHeight + safeAreaBuffer;
-
-                    // Check if label is within a reasonable display area
-                    if (currentLabelRect.right < safeAreaLeft || currentLabelRect.left > safeAreaRight ||
-                        currentLabelRect.bottom < safeAreaTop || currentLabelRect.top > safeAreaBottom) {
-                        // Label is too far outside safe area, try next position
-                        equationGroup.removeChild(labelTextEl); // Remove temporary element
-                        continue;
-                    }
-
-                    let overlapsExisting = false;
-                    for (const existingRect of placedLabelRects) {
-                        if (doesOverlap(currentLabelRect, existingRect)) {
-                            overlapsExisting = true;
-                            break;
-                        }
-                    }
-
-                    if (!overlapsExisting) {
-                        placedLabelRects.push(currentLabelRect); // Store the actual left position to correctly handle overlap check later.
-                        autoPositionFound = true;
-                        break; // Found a good auto position
-                    }
-                    equationGroup.removeChild(labelTextEl); // Remove temporary element if it overlaps
-                }
-
-                if (!autoPositionFound) {
-                    // Fallback if no ideal auto-position found without overlap, just place it at the last ref point
-                    // and let it overlap. This ensures the label is always drawn.
-                    proposedLabelX = pt.x + 5; // Default small offset
-                    proposedLabelY = pt.y;
-                    chosenAnchor = 'start';
-                    chosenBaseline = 'middle';
-
-                     // Still add it to the placedLabelRects to potentially block future labels
-                    labelTextEl.setAttribute('x', proposedLabelX);
-                    labelTextEl.setAttribute('y', proposedLabelY);
-                    labelTextEl.setAttribute('text-anchor', chosenAnchor);
-                    labelTextEl.setAttribute('alignment-baseline', chosenBaseline);
-                    equationGroup.appendChild(labelTextEl);
-                    placedLabelRects.push(labelTextEl.getBBox()); // Get actual bbox after placement
-                }
-            } else {
-                // If no reference point from segments found at all, don't draw label (or draw at a default corner)
-                return;
-            }
-        }
-
-        // Final application of attributes (if not already appended in auto-position logic)
-        if (!labelTextEl.parentNode) { // Check if it's already appended by the auto-position logic
-            labelTextEl.setAttribute('x', proposedLabelX);
-            labelTextEl.setAttribute('y', proposedLabelY);
-            labelTextEl.setAttribute('text-anchor', chosenAnchor);
-            labelTextEl.setAttribute('alignment-baseline', chosenBaseline);
-            equationGroup.appendChild(labelTextEl);
-            // If it wasn't added to placedLabelRects during auto-positioning check, add its final bbox now
-            if (!eq.labelPosition) { // Only add if it's an auto-placed label, custom labels don't participate in initial overlap avoidance for other labels
-                 placedLabelRects.push(labelTextEl.getBBox());
-            }
-        }
+        placeEquationLabel(equationGroup, eq, labelText, gridOptions, placedLabelRects, segments);
     });
 
     // Re-attach drag event listeners after all SVG elements are redrawn
-    // This is crucial because drawGrid clears and recreates the SVG content.
     setupDragging();
 }
