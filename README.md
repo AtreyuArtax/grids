@@ -42,7 +42,7 @@ Grids/
 ├── grid-presets.js      # Predefined grid templates
 ├── equations.js         # Equation parsing and plotting
 ├── sw.js                # Service worker (network proxy)
-├──manifest.json         # Information to run PWA
+├── manifest.json         # Information to run PWA
 └── README.md            # Project documentation (this file)
 ```
 
