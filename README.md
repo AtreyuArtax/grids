@@ -1,4 +1,4 @@
-# Grids
+# Grids.
 
 **Grids.** is a powerful, fully client-side SVG grid generator and equation plotter. Designed for precision and flexibility, it lets you create customizable Cartesian-style graph paper and plot mathematical functions — then export your creations in multiple formats.
 
@@ -12,7 +12,6 @@
 - 📐 Generate fully customizable **Cartesian grids**
 - 💾 **Export as SVG, PNG, or PDF** — great for printing or digital use
 - 🎯 Precision scaling for professional-quality output
-- 
 
 ## 🚀 Try It Live
 
@@ -42,6 +41,8 @@ Grids/
 ├── labels.js            # Dynamic label logic
 ├── grid-presets.js      # Predefined grid templates
 ├── equations.js         # Equation parsing and plotting
+├── sw.js                # Service worker (network proxy)
+├──manifest.json         # Information to run PWA
 └── README.md            # Project documentation (this file)
 ```
 
