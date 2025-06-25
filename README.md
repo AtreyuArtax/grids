@@ -1,8 +1,8 @@
 # Grids
 
-**Grids** is a powerful, fully client-side SVG grid generator and equation plotter. Designed for precision and flexibility, it lets you create customizable Cartesian-style graph paper and plot mathematical functions — then export your creations in multiple formats.
+**Grids.** is a powerful, fully client-side SVG grid generator and equation plotter. Designed for precision and flexibility, it lets you create customizable Cartesian-style graph paper and plot mathematical functions — then export your creations in multiple formats.
 
-![screenshot](./screenshot.png) <!-- optional: replace with an actual screenshot path -->
+![screenshot](./assets/screenshot.png) 
 
 ## ✨ Features
 
@@ -12,14 +12,15 @@
 - 📐 Generate fully customizable **Cartesian grids**
 - 💾 **Export as SVG, PNG, or PDF** — great for printing or digital use
 - 🎯 Precision scaling for professional-quality output
+- 
 
 ## 🚀 Try It Live
 
 Launch the app directly in your browser:  
 🔗 **[https://AtreyuArtax.github.io/grids](https://AtreyuArtax.github.io/grids)**  
-*(assuming you’re using GitHub Pages — let me know if you'd like help setting this up)*
 
 > No installation or build tools required — just open `index.html`.
+> PWA compatability.
 
 ## 🧭 How to Use
 
@@ -52,10 +53,8 @@ Grids/
 
 ## 📌 Roadmap
 
-- [ ] Add support for polar and logarithmic grids
-- [ ] Interactive snapping and annotation tools
+- [ ] Add advanced support for polar grids
 - [ ] Custom color themes and accessibility modes
-- [ ] Grid background patterns (dot, dashed, etc.)
 
 ## 🤝 Contributing
 

@@ -67,9 +67,9 @@
                         </select>
                     </label>
 
-                    <label>Square Size (px):
-                        <input type="number" id="squareSizeInput" value="15" min="10" step="5"
-                        title ="Sets the width and height (in SVG pixels) of each minor grid square. This affects the size of the grid in SVG, PNG, and PDF exports. Larger values make each square—and the whole grid—bigger in exported files.">
+                    <label>Label Size:
+                        <input type="number" id="squareSizeInput" value="15" min="10" step="5" max="30"
+                        title ="This affects the font and label size but is not directly font size. Smaller values make the labels LARGER, and larger values make the labels SMALLER. Values between 10 and 20 seem to look best.">
                     </label>
                     
                     <div class="color-label-container">
@@ -217,8 +217,8 @@
                 <legend>
                     <span class="info-icon" tabindex="0" aria-describedby="labelInfoTooltip">i</span>
                     <span class="info-tooltip" id="labelInfoTooltip" role="tooltip">
-                        After you have plotted and positioned equation labels, changing the grid (min/max values, increments, or aspect ratio) may reset label positions. <br><br>
-                        <b>Tip:</b> Set your grid first, then plot and adjust labels for best results.
+                        Set your grid <b>first</b>, then plot and adjust labels for best results.<br>
+                        Changing any grid settings (max/min values, increments, show arrows, suprress '0') <b>will</b> reset label positions.     
                     </span>
                     Equation Plotting
                     <span class="toggle-icon">▼</span>
