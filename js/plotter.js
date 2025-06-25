@@ -491,6 +491,22 @@ function drawAxisLabelsAndLines(axisOptions, gridOptions, gridGroup) {
     const numSteps = (max - min) / increment;
     const valuePerMinorSquare = isXAxis ? gridOptions.xValuePerMinorSquare : increment;
 
+    // --- Draw minor grid lines for X-axis in radians mode ---
+    if (isXAxis && xAxisLabelType === 'radians' && paperStyle === 'grid') {
+        const minorStep = gridOptions.xValuePerMinorSquare;
+        const numMinorSteps = Math.round((max - min) / minorStep);
+        for (let i = 0; i <= numMinorSteps; i++) {
+            const value = min + i * minorStep;
+            const coord = offsetX + (value - min) / minorStep * minorSquareSize;
+            // Don't draw over the major lines (they'll be drawn later)
+            gridGroup.appendChild(createSVGElement('line', {
+                x1: coord, y1: offsetY,
+                x2: coord, y2: offsetY + actualGridHeight,
+                stroke: minorGridColor,
+                'stroke-width': minorLineThickness
+            }));
+        }
+    }
     for (let i = 0; i <= numSteps; i++) {
         const value = min + i * increment;
         let coord; // The canvas coordinate for the current line/label
