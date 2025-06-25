@@ -1170,11 +1170,13 @@ export function drawGrid() {
     }, gridOptions, gridGroup);
 
 
-    // Calculate axis line end points - ALWAYS calculate full potential extension for arrow placement
-    const xAxisLineStartExtended = gridOptions.offsetX - (gridOptions.xMin < -EPSILON ? gridOptions.zeroLineExtension : 0);
-    const xAxisLineEndExtended = gridOptions.offsetX + gridOptions.actualGridWidth + (gridOptions.xMax > EPSILON ? gridOptions.zeroLineExtension : 0);
-    const yAxisLineStartExtended = gridOptions.offsetY - (gridOptions.yMax > EPSILON ? gridOptions.zeroLineExtension : 0);
-    const yAxisLineEndExtended = gridOptions.offsetY + gridOptions.actualGridHeight + (gridOptions.yMin < -EPSILON ? gridOptions.zeroLineExtension : 0);
+    // Calculate axis line end points - extension must match arrow size for seamless join
+    const extension = gridOptions.showAxisArrows ? Math.max(gridOptions.zeroLineExtension, gridOptions.arrowHeadSize) : 0;
+
+    const xAxisLineStartExtended = gridOptions.offsetX - (gridOptions.xMin < -EPSILON ? extension : 0);
+    const xAxisLineEndExtended = gridOptions.offsetX + gridOptions.actualGridWidth + (gridOptions.xMax > EPSILON ? extension : 0);
+    const yAxisLineStartExtended = gridOptions.offsetY - (gridOptions.yMax > EPSILON ? extension : 0);
+    const yAxisLineEndExtended = gridOptions.offsetY + gridOptions.actualGridHeight + (gridOptions.yMin < -EPSILON ? extension : 0);
 
 
     // --- Draw X-axis (the horizontal line representing y=0 or the bottom edge) ---
@@ -1239,23 +1241,56 @@ export function drawGrid() {
 
 
     // --- Draw Axis Arrows ---
-    if (gridOptions.showAxisArrows) {
-        const arrowColor = gridOptions.majorGridColor;
-        const minLineLengthForArrow = 10;
+if (gridOptions.showAxisArrows) {
+    const arrowColor = gridOptions.majorGridColor;
+    const minLineLengthForArrow = 10;
 
-        if (gridOptions.xMax > EPSILON && (xAxisLineEndExtended - xAxisLineStartExtended) >= minLineLengthForArrow) {
-            gridGroup.appendChild(createArrowheadPath(xAxisLineEndExtended + gridOptions.arrowHeadSize, gridOptions.zeroYGridPos !== -1 ? gridOptions.zeroYGridPos : gridOptions.offsetY + gridOptions.actualGridHeight, 0, arrowColor));
-        }
-        if (gridOptions.xMin < -EPSILON && (xAxisLineEndExtended - xAxisLineStartExtended) >= minLineLengthForArrow) {
-            gridGroup.appendChild(createArrowheadPath(xAxisLineStartExtended - gridOptions.arrowHeadSize, gridOptions.zeroYGridPos !== -1 ? gridOptions.zeroYGridPos : gridOptions.offsetY + gridOptions.actualGridHeight, Math.PI, arrowColor));
-        }
-        if (gridOptions.yMax > EPSILON && (yAxisLineEndExtended - yAxisLineStartExtended) >= minLineLengthForArrow) {
-            gridGroup.appendChild(createArrowheadPath(gridOptions.zeroXGridPos !== -1 ? gridOptions.zeroXGridPos : gridOptions.offsetX, yAxisLineStartExtended - gridOptions.arrowHeadSize, -Math.PI / 2, arrowColor));
-        }
-        if (gridOptions.yMin < -EPSILON && (yAxisLineEndExtended - yAxisLineStartExtended) >= minLineLengthForArrow) {
-            gridGroup.appendChild(createArrowheadPath(gridOptions.zeroXGridPos !== -1 ? gridOptions.zeroXGridPos : gridOptions.offsetX, yAxisLineEndExtended + gridOptions.arrowHeadSize, Math.PI / 2, arrowColor));
-        }
+    // X-axis positive direction (right)
+    if (gridOptions.xMax > EPSILON && (xAxisLineEndExtended - xAxisLineStartExtended) >= minLineLengthForArrow) {
+        // Arrowhead tip is exactly at the end of the axis line
+        gridGroup.appendChild(
+            createArrowheadPath(
+                xAxisLineEndExtended,
+                gridOptions.zeroYGridPos !== -1 ? gridOptions.zeroYGridPos : gridOptions.offsetY + gridOptions.actualGridHeight,
+                0,
+                arrowColor
+            )
+        );
     }
+    // X-axis negative direction (left)
+    if (gridOptions.xMin < -EPSILON && (xAxisLineEndExtended - xAxisLineStartExtended) >= minLineLengthForArrow) {
+        gridGroup.appendChild(
+            createArrowheadPath(
+                xAxisLineStartExtended,
+                gridOptions.zeroYGridPos !== -1 ? gridOptions.zeroYGridPos : gridOptions.offsetY + gridOptions.actualGridHeight,
+                Math.PI,
+                arrowColor
+            )
+        );
+    }
+    // Y-axis positive direction (up)
+    if (gridOptions.yMax > EPSILON && (yAxisLineEndExtended - yAxisLineStartExtended) >= minLineLengthForArrow) {
+        gridGroup.appendChild(
+            createArrowheadPath(
+                gridOptions.zeroXGridPos !== -1 ? gridOptions.zeroXGridPos : gridOptions.offsetX,
+                yAxisLineStartExtended,
+                -Math.PI / 2,
+                arrowColor
+            )
+        );
+    }
+    // Y-axis negative direction (down)
+    if (gridOptions.yMin < -EPSILON && (yAxisLineEndExtended - yAxisLineStartExtended) >= minLineLengthForArrow) {
+        gridGroup.appendChild(
+            createArrowheadPath(
+                gridOptions.zeroXGridPos !== -1 ? gridOptions.zeroXGridPos : gridOptions.offsetX,
+                yAxisLineEndExtended,
+                Math.PI / 2,
+                arrowColor
+            )
+        );
+    }
+} 
 
     // --- Create a clipping path for equation lines ---
     const defs = createSVGElement('defs');
