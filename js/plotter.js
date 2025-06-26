@@ -577,12 +577,14 @@ function drawAxisLabelsAndLines(axisOptions, gridOptions, gridGroup) {
                 textAttrs.x = coord;
                 textAttrs.y = (showMainAxes && labelOnZero && zeroYGridPos !== -1) ? zeroYGridPos + Math.round(labelFontSize * 0.6) : offsetY + actualGridHeight + Math.round(labelFontSize * 0.6);
                 textAttrs['text-anchor'] = 'middle';
-                textAttrs['alignment-baseline'] = 'hanging';
+                textAttrs['dominant-baseline'] = 'middle';    // <-- KEY: perfect vertical center in all browsers
+                textAttrs['dy'] = '0.35em';                   // <-- Tweak: nudges the baseline just right
             } else { // Y-axis
                 textAttrs.x = (showMainAxes && labelOnZero && zeroXGridPos !== -1) ? zeroXGridPos - 5 : offsetX - 10;
                 textAttrs.y = coord;
                 textAttrs['text-anchor'] = 'end';
-                textAttrs['alignment-baseline'] = 'middle';
+                textAttrs['dominant-baseline'] = 'middle';    // <-- Vertical center for y labels
+                textAttrs['dy'] = '';
             }
 
             const textEl = createSVGElement('text', {

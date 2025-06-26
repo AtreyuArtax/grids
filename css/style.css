@@ -9,7 +9,7 @@ body {
     font-family: 'Inter', sans-serif;
     background-color: #f0f2f5;
     margin: 0;
-    padding: 20px 24px 0 24px; /* top right bottom left */
+    padding: 20px 24px 15px 24px; /* top right bottom left, bottom was 0, now 40px */
     min-height: 100vh;
 }
 *, *::before, *::after {
@@ -304,4 +304,113 @@ legend {
     /* width: 100%; Removed, now flex-grow will manage width */
     flex-grow: 1; /* Allow it to grow and take available space */
     min-width: 0; /* Important for flex items to prevent overflow */
+}
+.footer-privacy {
+    position: fixed;
+    right: 18px;
+    bottom: 10px;
+    z-index: 300;
+    width: auto;
+    text-align: right;
+    background: none;
+    margin: 0;
+    padding: 0;
+    pointer-events: none; /* Only link is clickable */
+}
+
+.privacy-link {
+    color: #aaa;
+    font-size: 0.96rem;
+    text-decoration: none;
+    background: none;
+    border: none;
+    border-radius: 0;
+    padding: 0 6px;
+    box-shadow: none;
+    opacity: 0.85;
+    pointer-events: auto;
+    transition: color 0.2s, opacity 0.2s;
+    line-height: 1.7;
+    display: inline-block;
+}
+
+.privacy-link:hover,
+.privacy-link:focus {
+  color: #555;
+  text-decoration: underline;
+}
+
+.privacy-modal {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  background: rgba(0,0,0,0.26);
+  z-index: 2000;
+  align-items: center;
+  justify-content: center;
+}
+
+.privacy-modal-content {
+  background: #fff;
+  color: #333;
+  border-radius: 12px;
+  max-width: 360px;
+  margin: 40px auto;
+  padding: 28px 20px 16px 20px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  position: relative;
+}
+
+.privacy-modal-content h2 {
+  font-size: 1.1rem;
+  margin-top: 0;
+  color: #333;
+}
+
+.privacy-modal-content p {
+  font-size: 0.98rem;
+  margin-bottom: 0;
+  line-height: 1.6;
+}
+
+.privacy-close-btn {
+  margin-top: 16px;
+  float: right;
+  color: #888;
+  background: none;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.privacy-close-btn:hover,
+.privacy-close-btn:focus {
+  color: #555;
+  text-decoration: underline;
+}
+@media (max-width: 700px) {
+  .footer-privacy {
+    position: static !important;
+    width: 100%;
+    right: auto;
+    bottom: auto;
+    text-align: center;
+    margin-top: 28px;
+    margin-bottom: 8px;
+    pointer-events: auto;
+    background: none;
+  }
+  .privacy-link {
+    display: inline-block;
+    width: auto;
+    padding: 6px 18px;
+    margin: 0 auto;
+    box-shadow: none;
+    background: none;
+    border: none;
+    opacity: 0.75;
+    color: #666;
+  }
 }

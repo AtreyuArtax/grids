@@ -9,7 +9,7 @@
     <script src="https://unpkg.com/jspdf@latest/dist/jspdf.umd.min.js"></script>
     <script src="https://unpkg.com/svg2pdf.js@2.2.3/dist/svg2pdf.umd.min.js"></script>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='4' fill='%23E0F7FA' stroke='%230097A7' stroke-width='1.5'/%3E%3Cpath d='M3 11.5 H29 M3 20.5 H29 M11.5 3 V29 M20.5 3 V29' stroke='%2300796B' stroke-width='1'/%3E%3C/svg%3E">
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=2">
     <script type="module" src="js/main.js"></script>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1976d2">
@@ -243,7 +243,7 @@
                     <label>Equation:
                         <!-- Updated title attribute to reflect math.js syntax -->
                         <input type="text" id="equationInput" placeholder="e.g., sin(x), x^2, -1/2x+3"
-                                title="Enter functions using math.js syntax (e.g., sin(x), cos(x), tan(x), sqrt(x), log(x), abs(x), pi, e). Use ^ for exponentiation (e.g., x^2). Examples: x^2, 3x + 5. Implied multiplication (e.g., 2x) is supported.">
+                                 title="Enter functions using math.js syntax (e.g., sin(x), cos(x), tan(x), sqrt(x), log(x), abs(x), pi, e). Use ^ for exponentiation (e.g., x^2). Examples: x^2, 3x + 5. Implied multiplication (e.g., 2x) is supported.">
                     </label>
                     <label>Domain Start (optional):
                         <input type="number" id="domainStart" placeholder="e.g., -3" step="any" title="Minimum x-value for the function's domain.">
@@ -297,14 +297,17 @@
             <svg id="gridSVG"></svg>
             <div id="gridErrorMessage"></div>
            <div class="button-row">
-    <button id="downloadSVG">Export as SVG</button>
-    <button id="exportPNG">Export as PNG</button>
-    <button id="exportPDF">Export as PDF</button>
-</div>
-
-
+                <button id="downloadSVG">Export as SVG</button>
+                <button id="exportPNG">Export as PNG</button>
+                <button id="exportPDF">Export as PDF</button>
+            </div>
         </div>
     </div>
+    <!-- Privacy Policy Footer - Moved to be the very last child of body -->
+    <div class="footer-privacy">
+      <a href="#" id="privacyPolicyLink" class="privacy-link">Privacy Policy</a>
+    </div>
+
     <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -312,5 +315,34 @@
       });
     }
     </script>
+    <!-- Privacy Policy Modal -->
+<div id="privacyPolicyModal" class="privacy-modal">
+    <div class="privacy-modal-content">
+        <h2>Privacy Policy</h2>
+        <p>
+            This website does not collect, store, or share any personal information.<br><br>
+            &bull; No login is required.<br>
+            &bull; No cookies or tracking technologies are used.<br>
+            &bull; No information is stored on our servers or your device.<br>
+            &bull; No analytics or third-party tracking is in use.<br><br>
+            All features are fully client-side. Your privacy is completely respected while using this site.
+        </p>
+        <button id="closePrivacyPolicy" class="privacy-close-btn">Close</button>
+    </div>
+</div>
+<script>
+    // Modal logic
+    document.getElementById('privacyPolicyLink').onclick = function(e) {
+        e.preventDefault();
+        document.getElementById('privacyPolicyModal').style.display = 'flex';
+    };
+    document.getElementById('closePrivacyPolicy').onclick = function() {
+        document.getElementById('privacyPolicyModal').style.display = 'none';
+    };
+    document.getElementById('privacyPolicyModal').onclick = function(e) {
+        if (e.target === this) this.style.display = 'none';
+    }
+</script>
+
 </body>
 </html>
