@@ -13,6 +13,7 @@ import { calculateDynamicMargins, toggleXAxisSettings } from './labels.js';
 import { drawGrid, downloadSVG } from './plotter.js';
 import { exportSVGtoPNG, exportSVGtoPDF } from './plotter.js';
 
+document.getElementById('downloadSVG').addEventListener('click', downloadSVG);
 document.getElementById('exportPNG').addEventListener('click', exportSVGtoPNG);
 document.getElementById('exportPDF').addEventListener('click', () => exportSVGtoPDF());
 
