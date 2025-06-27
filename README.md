@@ -8,7 +8,7 @@
 
 - 🧮 **Plot equations** directly in the grid
 - 🔲 **Adjust grid size**, line spacing, and label frequency
-- 🖋 **Enable/disable axis labels**, choose fonts, and style labels
+- 🖋 **Enable/disable axis labels**, choose fonts, style labels, and units
 - 📐 Generate fully customizable **Cartesian grids**
 - 💾 **Export as SVG, PNG, or PDF** — great for printing or digital use
 - 🎯 Precision scaling for professional-quality output

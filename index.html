@@ -56,7 +56,7 @@
                 </div>
             </fieldset>
 
-            <fieldset class="controls-group" id="generalSettings">
+            <fieldset class="controls-group collapsible" id="generalSettings">
                 <legend>General Settings <span class="toggle-icon">▼</span></legend>
                 <div class="fieldset-content">
                     <label for="paperStyle">Paper Style:
@@ -73,7 +73,7 @@
                     </label>
                     
                     <div class="color-label-container">
-                        <label>Minor Grid:
+                        <label for="minorGridColor">Minor Grid:</label>
                             <div class="color-input-wrapper">
                                 <input type="color" id="minorGridColor" value="#a9a9a9">
                                 <div class="color-swatches">
@@ -83,15 +83,12 @@
                                     <div class="color-swatch" style="background-color: #323232;" data-color="#323232"></div> <!-- Darker Grey -->
                                 </div>
                             </div>
-                        </label>
                     </div>
                     <div class="color-label-container">
-                        <label>Zero Line:
+                        <label for="majorGridColor">Zero Line:</label>
                             <div class="color-input-wrapper">
                                 <input type="color" id="majorGridColor" value="#555555">
                                 <div class="color-swatches">
-                                    
-                                    
                                     <div class="color-swatch" style="background-color: #808080;" data-color="#808080"></div> <!-- Medium Grey -->
                                     <div class="color-swatch" style="background-color: #555555;" data-color="#555555"></div> <!-- Dark Grey -->
                                     <div class="color-swatch" style="background-color: #333333;" data-color="#333333"></div> <!-- Darker Grey -->
@@ -130,7 +127,7 @@
             </div>
 
             <div id="cartesianAxisSettings">
-                <fieldset class="controls-group" id="yAxisSettings">
+                <fieldset class="controls-group collapsible" id="yAxisSettings">
                     <legend>y-Axis Settings <span class="toggle-icon">▼</span></legend>
                     <div class="fieldset-content">
                         <label>y Min:
@@ -158,7 +155,7 @@
                     </div>
                 </fieldset>
 
-                <fieldset class="controls-group" id="xAxisSettings">
+                <fieldset class="controls-group collapsible" id="xAxisSettings">
                     <legend>x-Axis Settings <span class="toggle-icon">▼</span></legend>
                     <div class="fieldset-content">
                         <label>x-Axis Label Type:
@@ -213,12 +210,12 @@
                 </fieldset>
             </div>
 
-            <fieldset class="controls-group" id="equationPlotting">
+            <fieldset class="controls-group collapsible" id="equationPlotting">
                 <legend>
                     <span class="info-icon" tabindex="0" aria-describedby="labelInfoTooltip">i</span>
                     <span class="info-tooltip" id="labelInfoTooltip" role="tooltip">
-                        After you have plotted and positioned equation labels, changing the grid (min/max values, increments, or aspect ratio) may reset label positions. <br><br>
-                        <b>Tip:</b> Set your grid first, then plot and adjust labels for best results.
+                        Set your grid style and dimensions <b>before</b> moving labels. <br><br>
+                        Your label positions <b>will reset</b> if you change anything about the grid (min/max values, increments, axes arrow on/off, suppress '0', etc.)
                     </span>
                     Equation Plotting
                     <span class="toggle-icon">▼</span>
@@ -226,7 +223,7 @@
 
                 <div class="fieldset-content">
                     <div class="color-label-container">
-                        <label>Line Color:
+                        <label for="equationColor">Line Colour: </label>
                             <div class="color-input-wrapper">
                                 <input type="color" id="equationColor" value="#000000"> <!-- default color -->
                                 <div class="color-swatches">
@@ -342,6 +339,7 @@
     document.getElementById('privacyPolicyModal').onclick = function(e) {
         if (e.target === this) this.style.display = 'none';
     }
+    
 </script>
 
 </body>

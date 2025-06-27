@@ -1,3 +1,4 @@
+/********  GLOBAL RESET & BASE  ********/
 html {
     height: 100%;
     margin: 0;
@@ -9,23 +10,27 @@ body {
     font-family: 'Inter', sans-serif;
     background-color: #f0f2f5;
     margin: 0;
-    padding: 20px 24px 15px 24px; /* top right bottom left, bottom was 0, now 40px */
-    min-height: 100vh;
+    /* Added padding-bottom for the fixed footer at the bottom right. */
+    /* 40px estimated height for footer: 10px bottom margin + ~30px for link content */
+    padding: 20px 24px 15px 24px; /* top right bottom left */
+    min-height: 100vh; /* Ensure body covers full viewport height */
+    box-sizing: border-box; /* Include padding in height calculation */
 }
 *, *::before, *::after {
     box-sizing: inherit;
 }
 
-/* Main layout: handles gap between windows */
+/********  FLEX LAYOUT  ********/
 .main-flex-layout {
     display: flex;
-    gap: 24px; /* Space between the two windows */
-    align-items: flex-start;
+    gap: 24px;                         /* space between control & canvas */
+    align-items: flex-start; /* Keeps children aligned at the top */
     justify-content: center;
     flex-wrap: wrap;
-    /* No min-height needed here unless you want a minimum size */
+    /* Max width for the main content block, allowing it to center */
 }
 
+/********  CARD STYLING  ********/
 .card {
     background-color: #ffffff;
     border-radius: 8px;
@@ -34,6 +39,9 @@ body {
     margin-bottom: 20px;
 }
 
+
+
+/********  CONTROL-PANEL CARD  ********/
 .controls-card {
     flex: 0 0 350px;
     max-width: 100%;
@@ -42,35 +50,40 @@ body {
     gap: 20px;
 }
 
-/* Make the canvas card sticky and full-height */
+/********  CANVAS CARD (sticky)  ********/
 .canvas-card.sticky-canvas {
     flex: 1;
     min-width: 400px;
     max-width: 50%;
-    /* KEY: Fill 98% of viewport, always floating 20px from top */
+    /* Adjusted height calculation for body padding and sticky top offset, plus a small buffer */
     height: 90vh;
     max-height: 90vh;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: center; /* Re-added for internal centering of SVG/buttons */
     padding: 10px;
     position: sticky;
-    top: 20px;      /* Adjust offset from top as needed */
-    align-self: flex-start;
+    top: 20px;                         /* distance from top when sticky */
+    align-self: flex-start; /* Ensure it aligns to the top of the flex container */
     z-index: 2;
-    box-sizing: border-box;
+    
+    box-sizing: border-box; /* Crucial for calc to work with padding */
 }
 
-canvas {
-    border: 1px solid #ddd;
+/********  CANVAS ELEMENT  ********/
+#gridSVG { /* Target the SVG element */
     background-color: #ffffff;
     display: block;
-    max-width: 100%;
+    width: 100%;
     height: auto;
-    margin-bottom: 15px;
+    flex-grow: 1; /* Allow SVG to fill available space within canvas-card */
+    min-height: 0; /* Important for flex items to allow shrinking */
+    margin: 0 auto;
+    box-sizing: border-box; /* Ensure padding/border are included in size */
 }
 
+/********  FORM & FIELDSETS  ********/
 fieldset {
     border: 1px solid #e0e0e0;
     border-radius: 6px;
@@ -78,44 +91,30 @@ fieldset {
     margin: 0;
     background-color: #fdfdfd;
 }
-
 legend {
     font-weight: bold;
     color: #333;
+    position: relative;
     padding: 0 10px;
-    cursor: pointer; /* Indicate clickable */
     display: flex;
     align-items: center;
-    justify-content: space-between; /* Space out title and icon */
-    user-select: none; /* Prevent text selection on click */
-    position: relative;
+    justify-content: space-between;
+    user-select: none;
     gap: 8px;
 }
-
-legend .toggle-icon {
-    font-size: 1.2em;
-    margin-left: 10px;
-    transition: transform 0.2s ease;
-}
-
-fieldset.collapsed .toggle-icon {
-    transform: rotate(-90deg); /* Rotate for collapsed state */
-}
-
-fieldset.collapsed .fieldset-content {
-    display: none; /* Hide content when collapsed */
-}
+legend .toggle-icon         { font-size: 1.2em; margin-left: 10px; transition: transform 0.2s; }
+fieldset.collapsed .toggle-icon { transform: rotate(-90deg); }
+fieldset.collapsed .fieldset-content { display: none; }
 
 label {
-    display: block;
+    display: flex; /* Changed from 'block' to 'flex' for consistent alignment inside fields */
+    align-items: center;
+    gap: 10px;
     margin-bottom: 8px;
     font-size: 0.9em;
     color: #555;
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    /* Removed width: 100%; here to allow labels to shrink-wrap their content */
 }
-
 label input[type="number"],
 label input[type="text"],
 label select {
@@ -124,62 +123,50 @@ label select {
     border: 1px solid #ccc;
     border-radius: 4px;
     font-size: 0.9em;
-    margin-left: auto; /* Push input to the right */
+    margin-left: auto;
 }
-label input[type="checkbox"] {
-    margin-left: 0; /* Align checkbox to the left of its label text */
+/* Styling for the native color input element */
+label input[type="color"] {
+    width: 32px; /* Fixed width */
+    height: 32px; /* Fixed height */
+    border: 1px solid #ccc;
+    border-radius: 4px; /* Match other inputs */
+    padding: 0; /* Remove default padding from color input */
+    flex-shrink: 0; /* Prevent it from shrinking */
+    cursor: pointer;
 }
+
+label input[type="checkbox"] { margin-left: 0; }
 
 .checkbox-label {
     display: flex;
     align-items: center;
     gap: 8px;
     margin-bottom: 8px;
+    /* This label specific class will now also shrink-wrap */
+    width: fit-content; /* Ensure the label only takes up space needed for its content */
 }
 
+/********  BUTTONS  ********/
 button {
     background-color: #007bff;
-    color: white;
+    color: #fff;
     padding: 10px 15px;
     border: none;
     border-radius: 5px;
     cursor: pointer;
     font-size: 1em;
-    transition: background-color 0.2s ease;
+    transition: background-color 0.2s;
 }
+button:hover { background-color: #0056b3; }
+.button-group { display: flex; gap: 10px; margin-top: 15px; flex-wrap: nowrap; }
 
-button:hover {
-    background-color: #0056b3;
-}
-
-.button-group {
-    display: flex;
-    gap: 10px;
-    margin-top: 15px;
-    flex-wrap: wrap;
-}
-
-#gridErrorMessage {
-    color: #d9534f;
-    font-weight: bold;
-    margin-top: 10px;
-    text-align: center;
-}
-
-.hidden {
-    display: none !important;
-}
-
-.small-button {
-    padding: 4px 8px;
-    font-size: 0.8em;
-    border-radius: 3px;
-}
+/********  EQUATIONS LIST  ********/
 #equationsList {
     margin-top: 15px;
     border-top: 1px solid #eee;
     padding-top: 10px;
-    max-height: 200px; /* Limit height for scroll if many equations */
+    max-height: 200px;
     overflow-y: auto;
 }
 #equationsList div {
@@ -189,133 +176,128 @@ button:hover {
     padding: 5px 0;
     border-bottom: 1px dotted #eee;
 }
-#equationsList div:last-child {
-    border-bottom: none;
-}
-.canvas-card {
-    max-width: 700px;     /* or whatever max width makes sense for your UI */
-    width: 100%;
-    overflow-x: hidden;
-    box-sizing: border-box;
-    padding: 10px;
-}
-#gridSVG {
-    width: 100%;
-    height: auto;
-    max-width: 100%;
-    display: block;
-    margin: 0 auto;
-    box-sizing: border-box;
-}
-.button-row {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 16px;
-}
-/* --- Info Icon Styles --- */
+#equationsList div:last-child { border-bottom: none; }
+
+/********  SVG & EXPORT ROW  ********/
+.button-row  { display: flex; gap: 12px; margin-bottom: 16px; }
+
+/********  INFO ICON + TOOLTIP  ********/
 .info-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.25em;
-  height: 1.25em;
-  border-radius: 50%;
-  background: #e0f5ff;
-  color: #1570A6;
-  font-weight: bold;
-  font-size: 1em;
-  border: 1px solid #b6defd;
-  cursor: pointer;
-  margin-right: 7px;
-  transition: background 0.15s;
-  position: relative;
-  outline: none;
-}
-.info-icon:focus,
-.info-icon:hover {
-  background: #b6defd;
-}
-
-/* --- Tooltip Styles --- */
-.info-tooltip {
-  display: none;
-  position: absolute;
-  left: 2.7em;
-  top: 50%;
-  transform: translateY(-50%);
-  background: #fffbe8;
-  color: #554;
-  border: 1px solid #eed97c;
-  box-shadow: 0 2px 8px rgba(80,80,0,0.08);
-  padding: 12px 18px;
-  border-radius: 8px;
-  font-size: 1em;
-  min-width: 270px;
-  z-index: 100;
-  pointer-events: none;
-  white-space: pre-line;
-}
-
-/* KEY: Show tooltip when .info-icon is hovered or focused */
-.info-icon:focus + .info-tooltip,
-.info-icon:hover + .info-tooltip {
-  display: block;
-  pointer-events: auto;
-}
-
-/* For accessibility: Ensure legend is relatively positioned */
-legend {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-/* Color Swatches Styling */
-.color-swatches {
-    display: flex;
-    gap: 8px;
-    /* margin-top: 5px; Removed for better alignment */
-    flex-wrap: nowrap; /* Forces swatches to stay on one line */
-    justify-content: flex-end; /* Align swatches to the right of the label */
-}
-.color-swatch {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%; /* Make them circular */
-    border: 1px solid #ccc;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.25em;
+    height: 1.25em;
+    border-radius: 50%;
+    background: #e0f5ff;
+    color: #1570A6;
+    font-weight: bold;
+    font-size: 1em;
+    border: 1px solid #b6defd;
     cursor: pointer;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    transition: transform 0.2s ease-in-out;
+    margin-right: 7px;
+    transition: background 0.15s;
+    position: relative;
+    outline: none;
 }
-.color-swatch:hover {
-    transform: scale(1.1);
-    border-color: #007bff;
+.info-icon:hover,
+.info-icon:focus {
+    background: #b6defd;
 }
+
+.info-tooltip {
+    display: none;                /* Hide the tooltip by default; shown on hover/focus of the icon */
+    position: absolute;           /* Position relative to the nearest positioned ancestor (legend) */
+    left: 2.7em;                  /* Offset tooltip horizontally to the right of the info icon */
+    top: 50%;                     /* Vertically center the tooltip relative to the info icon */
+    transform: translateY(-50%);  /* Fine-tune so tooltip is perfectly vertically centered on the icon */
+    background: #fffbe8;
+    color: #554;
+    border: 1px solid #eed97c;
+    box-shadow: 0 2px 8px rgba(80,80,0,0.08);
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 1em;
+    width: auto;
+    min-width: 300px;
+    max-width: 400px;
+    white-space: normal;
+    word-break: break-word;
+    z-index: 100;            /* On top of all content */
+    text-align: left;
+    pointer-events: auto;
+}
+.info-icon:hover + .info-tooltip,
+.info-icon:focus + .info-tooltip {
+    display: block;
+}
+
+
+
+/********  COLOR SWATCHES  ********/
 .color-label-container {
     display: flex;
-    flex-direction: column;
-    width: 100%; /* Take full width of parent */
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
 }
 .color-input-wrapper {
     display: flex;
     align-items: center;
-    gap: 10px;
-    /* width: 100%; Removed, now flex-grow will manage width */
-    flex-grow: 1; /* Allow it to grow and take available space */
-    min-width: 0; /* Important for flex items to prevent overflow */
+    gap: 10px; /* Space between color input and swatches */
+    flex-grow: 1; /* Allows the wrapper to expand within its label */
+    min-width: 0; /* Ensures it can shrink if necessary */
 }
+
+.color-swatches {
+    display: flex;
+    gap: 8px; /* Space between individual swatches */
+    flex-wrap: nowrap; /* Keep swatches on one line */
+    flex-shrink: 1; /* Allow swatches container to shrink */
+    overflow-x: visible; /* Add horizontal scroll for swatches if needed */
+    padding-bottom: 2px; /* prevent cut-off scrollbar */
+    
+}
+.color-swatch {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 1px solid #ccc;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+    flex-shrink: 0; /* Prevents individual swatches from shrinking */
+}
+.color-swatch:hover { transform: scale(1.1); border-color: #007bff; }
+
+.color-input-wrapper input[type="color"] {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    min-height: 28px;
+    max-width: 28px;
+    max-height: 28px;
+    border: 1px solid #ccc;
+    border-radius: 4px; /* or 50% for a circle, if you prefer */
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+    vertical-align: middle;
+    cursor: pointer;
+}
+
+/********  FOOTER PRIVACY LINK (Fixed to bottom right - Restored from your provided CSS)  ********/
 .footer-privacy {
     position: fixed;
-    right: 18px;
-    bottom: 10px;
-    z-index: 300;
-    width: auto;
+    right: 18px; /* Offset from right edge */
+    bottom: 10px; /* Offset from bottom edge */
+    z-index: 300; /* Ensure it floats above other content */
+    width: auto; /* Content-driven width */
     text-align: right;
-    background: none;
+    background: none; /* No background color, blends with page */
     margin: 0;
-    padding: 0;
-    pointer-events: none; /* Only link is clickable */
+    padding: 0; /* No explicit padding; controlled by link padding */
+    pointer-events: none; /* Allows clicks to pass through except for the link itself */
 }
 
 .privacy-link {
@@ -325,13 +307,13 @@ legend {
     background: none;
     border: none;
     border-radius: 0;
-    padding: 0 6px;
+    padding: 0 6px; /* Small padding for clickable area */
     box-shadow: none;
-    opacity: 0.85;
-    pointer-events: auto;
+    opacity: 0.85; /* Slightly transparent */
+    pointer-events: auto; /* Allows the link itself to be clickable */
     transition: color 0.2s, opacity 0.2s;
-    line-height: 1.7;
-    display: inline-block;
+    line-height: 1.7; /* Line height for better spacing */
+    display: inline-block; /* Essential for padding and width properties */
 }
 
 .privacy-link:hover,
@@ -340,6 +322,33 @@ legend {
   text-decoration: underline;
 }
 
+/* Media query for mobile responsiveness of the fixed footer */
+@media (max-width: 700px) {
+  .footer-privacy {
+    position: static !important; /* Revert to static position on small screens */
+    width: 100%;
+    right: auto;
+    bottom: auto;
+    text-align: center;
+    margin-top: 28px; /* Space above when static */
+    margin-bottom: 8px; /* Space below when static */
+    pointer-events: auto; /* All clicks active */
+    background: none;
+  }
+  .privacy-link {
+    display: inline-block;
+    width: auto;
+    padding: 6px 18px; /* Larger clickable area on mobile */
+    margin: 0 auto; /* Center the link */
+    box-shadow: none;
+    background: none;
+    border: none;
+    opacity: 0.75;
+    color: #666;
+  }
+}
+
+/********  PRIVACY MODAL  ********/
 .privacy-modal {
   display: none;
   position: fixed;
@@ -390,27 +399,6 @@ legend {
   color: #555;
   text-decoration: underline;
 }
-@media (max-width: 700px) {
-  .footer-privacy {
-    position: static !important;
-    width: 100%;
-    right: auto;
-    bottom: auto;
-    text-align: center;
-    margin-top: 28px;
-    margin-bottom: 8px;
-    pointer-events: auto;
-    background: none;
-  }
-  .privacy-link {
-    display: inline-block;
-    width: auto;
-    padding: 6px 18px;
-    margin: 0 auto;
-    box-shadow: none;
-    background: none;
-    border: none;
-    opacity: 0.75;
-    color: #666;
-  }
+.hidden {
+    display: none !important; /* Ensures the hidden element is not displayed */
 }

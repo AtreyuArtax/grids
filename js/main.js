@@ -79,9 +79,17 @@ function applyPreset(presetName) {
         document.getElementById('suppressZeroLabel').checked = preset.suppressZeroLabel;
         document.getElementById('showAxisArrows').checked = preset.showAxisArrows;
 
-        // Set grid line colours if present in the preset
-        if (preset.minorGridColor) document.getElementById('minorGridColor').value = preset.minorGridColor;
-        if (preset.majorGridColor) document.getElementById('majorGridColor').value = preset.majorGridColor;
+        // Set grid line colours and update their visible displays if present in the preset
+        if (preset.minorGridColor) {
+            document.getElementById('minorGridColor').value = preset.minorGridColor;
+        }
+        if (preset.majorGridColor) {
+            document.getElementById('majorGridColor').value = preset.majorGridColor;
+        }
+        if (preset.equationColor) { // Assuming presets might have equationColor
+            document.getElementById('equationColor').value = preset.equationColor;
+        }
+
 
         // When applying a preset, set the default state for the *current* equation input form's line arrows
         document.getElementById('showLineArrows').checked = preset.showLineArrows;
@@ -126,37 +134,33 @@ document.addEventListener('DOMContentLoaded', () => {
     const cancelEditButton = document.getElementById('cancelEditButton');
     const equationLabelTypeSelect = document.getElementById('equationLabelType');
     const inequalityTypeSelect = document.getElementById('inequalityType');
-    const equationColorInput = document.getElementById('equationColor');
     const showAxisArrowsCheckbox = document.getElementById('showAxisArrows');
     const showLineArrowsCheckbox = document.getElementById('showLineArrows');
     const allColorSwatches = document.querySelectorAll('.color-swatch');
     const paperStyleSelect = document.getElementById('paperStyle');
 
-    // Show arrows for this equation (checkbox)
-    showLineArrowsCheckbox.addEventListener('change', () => {
-        equationSettings.lastShowLineArrowsValue = showLineArrowsCheckbox.checked;
-        calculateDynamicMargins();
-        drawGrid();
-    });
-
-    // Download SVG
-    downloadButton.addEventListener('click', downloadSVG);
-
-    // Quick color picker (swatches)
-    allColorSwatches.forEach(swatch => {
-        swatch.addEventListener('click', () => {
-            const targetInputId = swatch.closest('.color-label-container').querySelector('input[type="color"]').id;
-            document.getElementById(targetInputId).value = swatch.dataset.color;
-            document.getElementById('gridPreset').value = 'custom';
-            drawGrid();
+    // --- Color swatch logic ---
+    document.querySelectorAll('.color-input-wrapper').forEach(wrapper => {
+        const colorInput = wrapper.querySelector('input[type="color"]');
+        wrapper.querySelectorAll('.color-swatch').forEach(swatch => {
+            swatch.addEventListener('click', function(e) {
+                const color = this.getAttribute('data-color');
+                colorInput.value = color;
+                // Trigger input event so any listeners update
+                colorInput.dispatchEvent(new Event('input', { bubbles: true }));
+                // Prevent color picker from opening
+                e.preventDefault();
+            });
         });
     });
 
-    // Universal input listeners
+
+    // Universal input listeners - This covers all input types including input[type="color"]
+    // when changes occur from native picker or via script (like from swatches)
     const inputs = document.querySelectorAll(
         '.controls-group input[type="number"], ' +
         '.controls-group input[type="text"], ' +
-        '.controls-group input[type="color"], ' +
+        '.controls-group input[type="color"], ' + /* Now explicitly include color inputs here */
         '.controls-group input[type="checkbox"]:not(#showLineArrows), ' +
         '#equationLineStyle, ' +
         '#inequalityType'
@@ -173,6 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
             drawGrid();
         });
     });
+
 
     // Show Axis Arrows checkbox
     showAxisArrowsCheckbox.addEventListener('change', () => {
@@ -199,7 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
     cancelEditButton.addEventListener('click', resetEquationInputsAndButtons);
     equationLabelTypeSelect.addEventListener('change', toggleCustomLabelInput);
 
-    // --- NEW: Paper Style dropdown ---
+    // --- Paper Style dropdown ---
     if (paperStyleSelect) {
         paperStyleSelect.addEventListener('change', () => {
             gridPresetSelect.value = 'custom'; // Set preset to custom when user changes paper style
@@ -208,7 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- NEW: Polar input listeners ---
+    // --- Polar input listeners ---
     ['polarNumCircles', 'polarNumRadials', 'polarDegrees'].forEach(id => {
         const el = document.getElementById(id);
         if (el) { // Ensure element exists before adding listener
@@ -221,10 +226,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // Collapse fieldsets (collapsible menus)
-    const collapsibleFieldsets = document.querySelectorAll('.controls-card fieldset');
+    const collapsibleFieldsets = document.querySelectorAll('.controls-card fieldset.collapsible');
     collapsibleFieldsets.forEach(fieldset => {
         const legend = fieldset.querySelector('legend');
-        if (legend) {
+        // Exclude the 'Grid Presets' fieldset from collapsing behavior
+        if (legend && fieldset.id !== 'gridPresetsFieldset') { // Added an ID for Grid Presets fieldset in HTML
             legend.addEventListener('click', () => {
                 fieldset.classList.toggle('collapsed');
             });
@@ -240,6 +246,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Collapse all fieldsets by default except Grid Presets
+    // Ensure 'Grid Presets' is not collapsed on load
+    const gridPresetsFieldset = document.getElementById('gridPresetsFieldset'); // Get reference to grid presets fieldset
+    if (gridPresetsFieldset) {
+        gridPresetsFieldset.classList.remove('collapsed'); // Ensure it starts expanded
+    }
     const generalSettingsFieldset = document.getElementById('generalSettings');
     if (generalSettingsFieldset) generalSettingsFieldset.classList.add('collapsed');
     const yAxisSettingsFieldset = document.getElementById('yAxisSettings');
