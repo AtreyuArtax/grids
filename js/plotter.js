@@ -300,19 +300,23 @@ function drawCartesianGrid(svg, isPDFExport = false) {
         }
     }
 
+    // Calculate zero line positions
+    const zeroX = xToSVG(0);
+    const zeroY = yToSVG(0);
+
     // Draw axes
     if (showAxes) {
-        const zeroX = xToSVG(0);
-        const zeroY = yToSVG(0);
-
         // Y-axis (vertical line)
         if (zeroX >= dynamicMarginLeft && zeroX <= dynamicMarginLeft + gridWidth) {
             const yAxisLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
             const yStart = Math.max(dynamicMarginTop, yToSVG(yMax));
             const yEnd = Math.min(dynamicMarginTop + gridHeight, yToSVG(yMin));
             
+            // Extend line for arrow if needed
+            const yLineStart = showAxisArrows && yMax > EPSILON ? yStart - ZERO_LINE_EXTENSION : yStart;
+            
             yAxisLine.setAttribute('x1', zeroX);
-            yAxisLine.setAttribute('y1', showAxisArrows && yMax > EPSILON ? yStart - ZERO_LINE_EXTENSION : yStart);
+            yAxisLine.setAttribute('y1', yLineStart);
             yAxisLine.setAttribute('x2', zeroX);
             yAxisLine.setAttribute('y2', yEnd);
             yAxisLine.setAttribute('stroke', majorGridColor);
@@ -321,7 +325,7 @@ function drawCartesianGrid(svg, isPDFExport = false) {
 
             // Y-axis arrow
             if (showAxisArrows && yMax > EPSILON) {
-                const arrowY = yStart - ZERO_LINE_EXTENSION;
+                const arrowY = yLineStart;
                 const arrow = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
                 const points = [
                     [zeroX, arrowY],
@@ -340,9 +344,12 @@ function drawCartesianGrid(svg, isPDFExport = false) {
             const xStart = Math.max(dynamicMarginLeft, xToSVG(xMin));
             const xEnd = Math.min(dynamicMarginLeft + gridWidth, xToSVG(xMax));
             
+            // Extend line for arrow if needed
+            const xLineEnd = showAxisArrows && xMax > EPSILON ? xEnd + ZERO_LINE_EXTENSION : xEnd;
+            
             xAxisLine.setAttribute('x1', xStart);
             xAxisLine.setAttribute('y1', zeroY);
-            xAxisLine.setAttribute('x2', showAxisArrows && xMax > EPSILON ? xEnd + ZERO_LINE_EXTENSION : xEnd);
+            xAxisLine.setAttribute('x2', xLineEnd);
             xAxisLine.setAttribute('y2', zeroY);
             xAxisLine.setAttribute('stroke', majorGridColor);
             xAxisLine.setAttribute('stroke-width', '2');
@@ -350,7 +357,7 @@ function drawCartesianGrid(svg, isPDFExport = false) {
 
             // X-axis arrow
             if (showAxisArrows && xMax > EPSILON) {
-                const arrowX = xEnd + ZERO_LINE_EXTENSION;
+                const arrowX = xLineEnd;
                 const arrow = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
                 const points = [
                     [arrowX, zeroY],
@@ -375,7 +382,16 @@ function drawCartesianGrid(svg, isPDFExport = false) {
                 
                 const labelText = value.toFixed(yIncrement.toString().includes('.') ? yIncrement.toString().split('.')[1].length : 0);
                 const y = yToSVG(value);
-                const x = dynamicMarginLeft - 10;
+                
+                // Position labels based on yLabelOnZero setting
+                let x;
+                if (yLabelOnZero && zeroX >= dynamicMarginLeft && zeroX <= dynamicMarginLeft + gridWidth) {
+                    // Labels on the axis (zero line)
+                    x = zeroX - 15; // 15px offset from the axis line
+                } else {
+                    // Labels outside the grid
+                    x = dynamicMarginLeft - 10;
+                }
                 
                 const text = createSVGTextWithPDFCompat(labelText, x, y, {
                     'text-anchor': 'end',
@@ -415,7 +431,7 @@ function drawCartesianGrid(svg, isPDFExport = false) {
                 }
             }
 
-            if (yLabelOnZero && isZeroLine) {
+            if (xLabelOnZero && isZeroLine) {
                 shouldLabel = true;
             }
 
@@ -432,7 +448,16 @@ function drawCartesianGrid(svg, isPDFExport = false) {
                 }
                 
                 const x = xToSVG(value);
-                const y = dynamicMarginTop + gridHeight + 20;
+                
+                // Position labels based on xLabelOnZero setting
+                let y;
+                if (xLabelOnZero && zeroY >= dynamicMarginTop && zeroY <= dynamicMarginTop + gridHeight) {
+                    // Labels on the axis (zero line)
+                    y = zeroY + 20; // 20px offset below the axis line
+                } else {
+                    // Labels outside the grid
+                    y = dynamicMarginTop + gridHeight + 20;
+                }
                 
                 const text = createSVGTextWithPDFCompat(labelText, x, y, {
                     'text-anchor': 'middle',
@@ -448,7 +473,9 @@ function drawCartesianGrid(svg, isPDFExport = false) {
         if (yAxisLabelOnTop) {
             const zeroX = xToSVG(0);
             if (zeroX >= dynamicMarginLeft && zeroX <= dynamicMarginLeft + gridWidth) {
-                const titleY = dynamicMarginTop - AXIS_TITLE_SPACING;
+                // Calculate proper position considering arrow and extension
+                const arrowExtension = showAxisArrows && yMax > EPSILON ? ZERO_LINE_EXTENSION + arrowHeadSize : 0;
+                const titleY = dynamicMarginTop - arrowExtension - AXIS_TITLE_SPACING;
                 const text = createSVGTextWithPDFCompat(yAxisLabel, zeroX, titleY, {
                     'text-anchor': 'middle',
                     'font-size': `${fontSizes.axisTitles}px`,
@@ -473,7 +500,9 @@ function drawCartesianGrid(svg, isPDFExport = false) {
         if (xAxisLabelOnRight) {
             const zeroY = yToSVG(0);
             if (zeroY >= dynamicMarginTop && zeroY <= dynamicMarginTop + gridHeight) {
-                const titleX = dynamicMarginLeft + gridWidth + AXIS_TITLE_SPACING + (showAxisArrows ? ZERO_LINE_EXTENSION + arrowHeadSize : 0);
+                // Calculate proper position considering arrow and extension
+                const arrowExtension = showAxisArrows && xMax > EPSILON ? ZERO_LINE_EXTENSION + arrowHeadSize : 0;
+                const titleX = dynamicMarginLeft + gridWidth + arrowExtension + AXIS_TITLE_SPACING;
                 const text = createSVGTextWithPDFCompat(xAxisLabel, titleX, zeroY, {
                     'text-anchor': 'start',
                     'font-size': `${fontSizes.axisTitles}px`,
