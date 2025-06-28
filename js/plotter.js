@@ -19,6 +19,11 @@ import {
 import { dynamicMarginLeft, dynamicMarginRight, dynamicMarginTop, dynamicMarginBottom } from './labels.js';
 import { equationsToDraw } from './equations.js';
 
+// Global variables for drag functionality
+let isDragging = false;
+let draggedElement = null;
+let dragOffset = { x: 0, y: 0 };
+
 /**
  * Safely gets element value with fallback.
  * @param {string} id - Element ID.
@@ -116,6 +121,92 @@ function createSVGTextWithPDFCompat(textContent, x, y, options = {}, isPDFExport
     });
     
     return text;
+}
+
+/**
+ * Makes an SVG text element draggable.
+ * @param {SVGTextElement} textElement - The text element to make draggable.
+ */
+function makeDraggable(textElement) {
+    textElement.style.cursor = 'move';
+    textElement.style.userSelect = 'none';
+    
+    textElement.addEventListener('mousedown', startDrag);
+    textElement.addEventListener('touchstart', startDrag, { passive: false });
+}
+
+/**
+ * Starts the drag operation.
+ * @param {Event} e - The mouse or touch event.
+ */
+function startDrag(e) {
+    e.preventDefault();
+    isDragging = true;
+    draggedElement = e.target;
+    
+    const svg = document.getElementById('gridSVG');
+    const rect = svg.getBoundingClientRect();
+    
+    let clientX, clientY;
+    if (e.type === 'touchstart') {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+    } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+    }
+    
+    const currentX = parseFloat(draggedElement.getAttribute('x'));
+    const currentY = parseFloat(draggedElement.getAttribute('y'));
+    
+    dragOffset.x = clientX - rect.left - currentX;
+    dragOffset.y = clientY - rect.top - currentY;
+    
+    document.addEventListener('mousemove', drag);
+    document.addEventListener('mouseup', stopDrag);
+    document.addEventListener('touchmove', drag, { passive: false });
+    document.addEventListener('touchend', stopDrag);
+}
+
+/**
+ * Handles the drag movement.
+ * @param {Event} e - The mouse or touch event.
+ */
+function drag(e) {
+    if (!isDragging || !draggedElement) return;
+    
+    e.preventDefault();
+    
+    const svg = document.getElementById('gridSVG');
+    const rect = svg.getBoundingClientRect();
+    
+    let clientX, clientY;
+    if (e.type === 'touchmove') {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+    } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+    }
+    
+    const newX = clientX - rect.left - dragOffset.x;
+    const newY = clientY - rect.top - dragOffset.y;
+    
+    draggedElement.setAttribute('x', newX);
+    draggedElement.setAttribute('y', newY);
+}
+
+/**
+ * Stops the drag operation.
+ */
+function stopDrag() {
+    isDragging = false;
+    draggedElement = null;
+    
+    document.removeEventListener('mousemove', drag);
+    document.removeEventListener('mouseup', stopDrag);
+    document.removeEventListener('touchmove', drag);
+    document.removeEventListener('touchend', stopDrag);
 }
 
 /**
@@ -323,12 +414,12 @@ function drawCartesianGrid(svg, isPDFExport = false) {
             yAxisLine.setAttribute('stroke-width', '2');
             svg.appendChild(yAxisLine);
 
-            // Y-axis arrow
+            // Y-axis arrow - FIXED: Arrow positioned at END of extension line
             if (showAxisArrows && yMax > EPSILON) {
-                const arrowY = yLineStart;
+                const arrowY = yLineStart; // This is the end of the extension line
                 const arrow = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
                 const points = [
-                    [zeroX, arrowY],
+                    [zeroX, arrowY], // Tip at the end of extension line
                     [zeroX - arrowHeadSize/2, arrowY + arrowHeadSize],
                     [zeroX + arrowHeadSize/2, arrowY + arrowHeadSize]
                 ].map(p => p.join(',')).join(' ');
@@ -355,12 +446,12 @@ function drawCartesianGrid(svg, isPDFExport = false) {
             xAxisLine.setAttribute('stroke-width', '2');
             svg.appendChild(xAxisLine);
 
-            // X-axis arrow
+            // X-axis arrow - FIXED: Arrow positioned at END of extension line
             if (showAxisArrows && xMax > EPSILON) {
-                const arrowX = xLineEnd;
+                const arrowX = xLineEnd; // This is the end of the extension line
                 const arrow = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
                 const points = [
-                    [arrowX, zeroY],
+                    [arrowX, zeroY], // Tip at the end of extension line
                     [arrowX - arrowHeadSize, zeroY - arrowHeadSize/2],
                     [arrowX - arrowHeadSize, zeroY + arrowHeadSize/2]
                 ].map(p => p.join(',')).join(' ');
@@ -371,7 +462,7 @@ function drawCartesianGrid(svg, isPDFExport = false) {
         }
     }
 
-    // Draw Y-axis labels
+    // Draw Y-axis labels - FIXED: Proper positioning based on yLabelOnZero
     if (yIncrement > 0) {
         for (let val = yMin; val <= yMax; val += yIncrement) {
             const value = val;
@@ -383,11 +474,11 @@ function drawCartesianGrid(svg, isPDFExport = false) {
                 const labelText = value.toFixed(yIncrement.toString().includes('.') ? yIncrement.toString().split('.')[1].length : 0);
                 const y = yToSVG(value);
                 
-                // Position labels based on yLabelOnZero setting
+                // FIXED: Position labels based on yLabelOnZero setting
                 let x;
                 if (yLabelOnZero && zeroX >= dynamicMarginLeft && zeroX <= dynamicMarginLeft + gridWidth) {
-                    // Labels on the axis (zero line)
-                    x = zeroX - 15; // 15px offset from the axis line
+                    // Labels on the axis (zero line) - moved closer to axis
+                    x = zeroX - 8; // Reduced from 15 to 8 pixels
                 } else {
                     // Labels outside the grid
                     x = dynamicMarginLeft - 10;
@@ -397,12 +488,18 @@ function drawCartesianGrid(svg, isPDFExport = false) {
                     'text-anchor': 'end',
                     'font-size': `${fontSizes.axisNumbers}px`
                 }, isPDFExport);
+                
+                // Make draggable if not PDF export
+                if (!isPDFExport) {
+                    makeDraggable(text);
+                }
+                
                 svg.appendChild(text);
             }
         }
     }
 
-    // Draw X-axis labels
+    // Draw X-axis labels - FIXED: Proper positioning based on xLabelOnZero
     let xValuePerMinorSquare = xIncrement;
     if (xAxisLabelType === 'radians') {
         const radianStepMultiplier = getElementValue('radianStepMultiplier', 'float', 0.5);
@@ -449,11 +546,11 @@ function drawCartesianGrid(svg, isPDFExport = false) {
                 
                 const x = xToSVG(value);
                 
-                // Position labels based on xLabelOnZero setting
+                // FIXED: Position labels based on xLabelOnZero setting
                 let y;
                 if (xLabelOnZero && zeroY >= dynamicMarginTop && zeroY <= dynamicMarginTop + gridHeight) {
-                    // Labels on the axis (zero line)
-                    y = zeroY + 20; // 20px offset below the axis line
+                    // Labels on the axis (zero line) - moved closer to axis
+                    y = zeroY + 15; // Reduced from 20 to 15 pixels
                 } else {
                     // Labels outside the grid
                     y = dynamicMarginTop + gridHeight + 20;
@@ -463,6 +560,12 @@ function drawCartesianGrid(svg, isPDFExport = false) {
                     'text-anchor': 'middle',
                     'font-size': `${fontSizes.axisNumbers}px`
                 }, isPDFExport);
+                
+                // Make draggable if not PDF export
+                if (!isPDFExport) {
+                    makeDraggable(text);
+                }
+                
                 svg.appendChild(text);
             }
         }
@@ -481,6 +584,12 @@ function drawCartesianGrid(svg, isPDFExport = false) {
                     'font-size': `${fontSizes.axisTitles}px`,
                     'font-weight': 'bold'
                 }, isPDFExport);
+                
+                // Make draggable if not PDF export
+                if (!isPDFExport) {
+                    makeDraggable(text);
+                }
+                
                 svg.appendChild(text);
             }
         } else {
@@ -492,6 +601,12 @@ function drawCartesianGrid(svg, isPDFExport = false) {
                 'font-weight': 'bold',
                 'transform': `rotate(-90 ${titleX} ${titleY})`
             }, isPDFExport);
+            
+            // Make draggable if not PDF export
+            if (!isPDFExport) {
+                makeDraggable(text);
+            }
+            
             svg.appendChild(text);
         }
     }
@@ -508,6 +623,12 @@ function drawCartesianGrid(svg, isPDFExport = false) {
                     'font-size': `${fontSizes.axisTitles}px`,
                     'font-weight': 'bold'
                 }, isPDFExport);
+                
+                // Make draggable if not PDF export
+                if (!isPDFExport) {
+                    makeDraggable(text);
+                }
+                
                 svg.appendChild(text);
             }
         } else {
@@ -518,6 +639,12 @@ function drawCartesianGrid(svg, isPDFExport = false) {
                 'font-size': `${fontSizes.axisTitles}px`,
                 'font-weight': 'bold'
             }, isPDFExport);
+            
+            // Make draggable if not PDF export
+            if (!isPDFExport) {
+                makeDraggable(text);
+            }
+            
             svg.appendChild(text);
         }
     }
@@ -608,11 +735,11 @@ function drawSingleEquation(svg, equation, xToSVG, yToSVG, xMin, xMax, yMin, yMa
     
     svg.appendChild(path);
     
-    // Draw arrows if enabled
+    // Draw arrows if enabled - FIXED: Left arrow points away from grid
     if (showLineArrows && points.length >= 2) {
         const arrowHeadSize = getArrowHeadSize();
         
-        // Arrow at start
+        // Arrow at start (left side) - FIXED: Points away from grid
         if (points.length >= 2) {
             const start = points[0];
             const second = points[1];
@@ -620,18 +747,19 @@ function drawSingleEquation(svg, equation, xToSVG, yToSVG, xMin, xMax, yMin, yMa
             const secondSVG = { x: xToSVG(second.x), y: yToSVG(second.y) };
             
             const arrow1 = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-            const angle1 = Math.atan2(secondSVG.y - startSVG.y, secondSVG.x - startSVG.x) + Math.PI;
+            // FIXED: Reverse the angle so arrow points away from the grid (towards the left)
+            const angle1 = Math.atan2(startSVG.y - secondSVG.y, startSVG.x - secondSVG.x);
             const points1 = [
                 [startSVG.x, startSVG.y],
-                [startSVG.x + arrowHeadSize * Math.cos(angle1 + 0.5), startSVG.y + arrowHeadSize * Math.sin(angle1 + 0.5)],
-                [startSVG.x + arrowHeadSize * Math.cos(angle1 - 0.5), startSVG.y + arrowHeadSize * Math.sin(angle1 - 0.5)]
+                [startSVG.x - arrowHeadSize * Math.cos(angle1 + 0.5), startSVG.y - arrowHeadSize * Math.sin(angle1 + 0.5)],
+                [startSVG.x - arrowHeadSize * Math.cos(angle1 - 0.5), startSVG.y - arrowHeadSize * Math.sin(angle1 - 0.5)]
             ].map(p => p.join(',')).join(' ');
             arrow1.setAttribute('points', points1);
             arrow1.setAttribute('fill', color);
             svg.appendChild(arrow1);
         }
         
-        // Arrow at end
+        // Arrow at end (right side) - points in direction of line
         if (points.length >= 2) {
             const end = points[points.length - 1];
             const secondLast = points[points.length - 2];
@@ -651,7 +779,7 @@ function drawSingleEquation(svg, equation, xToSVG, yToSVG, xMin, xMax, yMin, yMa
         }
     }
     
-    // Draw equation label
+    // Draw equation label - RESTORED: Draggable functionality
     if ((labelType === 'custom' && customLabel.trim() !== '') || labelType === 'equation') {
         let labelText = '';
         if (labelType === 'custom' && customLabel.trim() !== '') {
@@ -670,6 +798,12 @@ function drawSingleEquation(svg, equation, xToSVG, yToSVG, xMin, xMax, yMin, yMa
                 'font-size': `${fontSizes.equationLabels}px`,
                 'fill': color
             }, isPDFExport);
+            
+            // RESTORED: Make draggable if not PDF export
+            if (!isPDFExport) {
+                makeDraggable(text);
+            }
+            
             svg.appendChild(text);
         }
     }
