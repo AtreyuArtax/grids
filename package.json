@@ -1,0 +1,12 @@
+{
+  "name": "grids",
+  "version": "1.0.0",
+  "description": "A tool for plotting SVG grids and equations.",
+  "main": "index.html",
+  "scripts": {
+    "build": "echo 'No specific build step required for this static site. Files are ready.'"
+  },
+  "keywords": ["grid", "svg", "plotting", "equations", "math"],
+  "author": "",
+  "license": "MIT"
+}
