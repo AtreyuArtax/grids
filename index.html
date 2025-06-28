@@ -67,9 +67,25 @@
                         </select>
                     </label>
 
-                    <label>Label Size:
-                        <input type="number" id="squareSizeInput" value="15" min="10" step="5" max="30"
-                        title ="This affects the font and label size but is not directly font size. Smaller values make the labels LARGER, and larger values make the labels SMALLER. Values between 10 and 20 seem to look best.">
+                    <!-- Hidden square size input - keep for internal calculations -->
+                    <input type="hidden" id="squareSizeInput" value="15">
+
+                    <label>Font Size:
+                        <select id="fontSize">
+                            <option value="small">Small</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="large">Large</option>
+                            <option value="custom">Custom</option>
+                        </select>
+                    </label>
+
+                    <label id="customFontSizeContainer" class="hidden">Custom Font Size (px):
+                        <input type="number" id="customFontSize" value="14" min="8" max="24" step="1">
+                    </label>
+
+                    <label>Arrow Size:
+                        <input type="number" id="arrowSize" value="8" min="4" max="16" step="1"
+                        title="Size of arrow heads on axes and equation lines">
                     </label>
                     
                     <div class="color-label-container">
@@ -251,8 +267,8 @@
                     <label>Inequality Type:
                         <select id="inequalityType">
                             <option value="=">=</option>
-                            <option value="<">&lt;</option>
-                            <option value=">">&gt;</option>
+                            <option value="<"><</option>
+                            <option value=">">></option>
                             <option value="<=">&le;</option>
                             <option value=">=">&ge;</option>
                         </select>

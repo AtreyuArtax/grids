@@ -4,7 +4,6 @@
 export const EPSILON = 1e-6; // Small tolerance for floating point comparisons
 export const ZERO_LINE_EXTENSION = 10; // Length of the axis line extension beyond the grid
 export const AXIS_TITLE_SPACING = 14; // Increased spacing between arrow tip and the start of the axis title
-export const ARROW_HEAD_SIZE = 8; // Default size for arrowheads, used in both drawing and margin calculations
 
 // Defines line dash patterns for various line styles.
 export const LINE_STYLES = {
@@ -16,6 +15,51 @@ export const LINE_STYLES = {
 
 // Alpha value for shading inequalities.
 export const SHADE_ALPHA = 0.2;
+
+/**
+ * Gets the current arrow head size from the UI control.
+ * @returns {number} The arrow head size.
+ */
+export function getArrowHeadSize() {
+    const element = document.getElementById('arrowSize');
+    return element ? safeParseFloat(element.value, 8) : 8;
+}
+
+/**
+ * Gets the current font sizes based on the UI controls.
+ * @returns {Object} Object containing font sizes for different elements.
+ */
+export function getFontSizes() {
+    const fontSizeSelect = document.getElementById('fontSize');
+    const customFontSizeInput = document.getElementById('customFontSize');
+    
+    let baseFontSize = 14; // Default medium size
+    
+    if (fontSizeSelect) {
+        const selectedSize = fontSizeSelect.value;
+        switch (selectedSize) {
+            case 'small':
+                baseFontSize = 10;
+                break;
+            case 'medium':
+                baseFontSize = 14;
+                break;
+            case 'large':
+                baseFontSize = 18;
+                break;
+            case 'custom':
+                baseFontSize = customFontSizeInput ? safeParseFloat(customFontSizeInput.value, 14) : 14;
+                break;
+        }
+    }
+    
+    return {
+        base: baseFontSize,
+        axisNumbers: baseFontSize,
+        axisTitles: Math.round(baseFontSize * 1.15),
+        equationLabels: Math.round(baseFontSize * 0.85)
+    };
+}
 
 /**
  * Utility function to parse superscript syntax (handles '^' character).
@@ -217,19 +261,20 @@ export function drawEndpointDot(ctx, x, y, color, size = 3) {
  * @param {number} x2 - X coordinate of the "head" of the arrow (where the arrow will be placed).
  * @param {number} y2 - Y coordinate of the "head" of the arrow.
  * @param {string} color - Color of the arrowhead.
- * @param {number} [size=ARROW_HEAD_SIZE] - Size of the arrowhead (length of the arrow sides).
+ * @param {number} [size] - Size of the arrowhead (length of the arrow sides). If not provided, uses current arrow size setting.
  */
-export function drawArrowhead(ctx, x1, y1, x2, y2, color, size = ARROW_HEAD_SIZE) {
+export function drawArrowhead(ctx, x1, y1, x2, y2, color, size) {
     if (!ctx || !isFinite(x1) || !isFinite(y1) || !isFinite(x2) || !isFinite(y2)) return;
     
+    const arrowSize = size !== undefined ? size : getArrowHeadSize();
     const angle = Math.atan2(y2 - y1, x2 - x1); // Angle of the line segment
     ctx.save();
     ctx.beginPath();
     ctx.translate(x2, y2); // Move to the arrowhead point
     ctx.rotate(angle);     // Rotate to align with the line
     ctx.moveTo(0, 0);      // Tip of the arrow
-    ctx.lineTo(-size, size / 2); // Bottom side of the arrow
-    ctx.lineTo(-size, -size / 2); // Top side of the arrow
+    ctx.lineTo(-arrowSize, arrowSize / 2); // Bottom side of the arrow
+    ctx.lineTo(-arrowSize, -arrowSize / 2); // Top side of the arrow
     ctx.closePath();
     ctx.fillStyle = color;
     ctx.fill();

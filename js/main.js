@@ -9,7 +9,7 @@ import {
     toggleCustomLabelInput,
     equationSettings
 } from './equations.js'; // Import equationSettings object
-import { calculateDynamicMargins, toggleXAxisSettings } from './labels.js';
+import { calculateDynamicMargins, toggleXAxisSettings, toggleCustomFontSizeInput } from './labels.js';
 import { drawGrid, downloadSVG } from './plotter.js';
 import { exportSVGtoPNG, exportSVGtoPDF } from './plotter.js';
 import { debounce } from './utils.js';
@@ -178,6 +178,7 @@ function setupInputListeners() {
         '.controls-group input[type="text"], ' +
         '.controls-group input[type="color"], ' +
         '.controls-group input[type="checkbox"]:not(#showLineArrows), ' +
+        '.controls-group select:not(#fontSize), ' +
         '#equationLineStyle, ' +
         '#inequalityType'
     );
@@ -267,6 +268,32 @@ document.addEventListener('DOMContentLoaded', () => {
         // Setup input listeners
         setupInputListeners();
 
+        // Font size dropdown
+        const fontSizeSelect = safeGetElement('fontSize');
+        safeAddEventListener(fontSizeSelect, 'change', () => {
+            toggleCustomFontSizeInput();
+            const gridPresetSelect = safeGetElement('gridPreset');
+            if (gridPresetSelect) gridPresetSelect.value = 'custom';
+            calculateDynamicMargins();
+            drawGrid();
+        });
+
+        // Custom font size input
+        const customFontSizeInput = safeGetElement('customFontSize');
+        safeAddEventListener(customFontSizeInput, 'input', () => {
+            const gridPresetSelect = safeGetElement('gridPreset');
+            if (gridPresetSelect) gridPresetSelect.value = 'custom';
+            debouncedCalculateAndDraw();
+        });
+
+        // Arrow size input
+        const arrowSizeInput = safeGetElement('arrowSize');
+        safeAddEventListener(arrowSizeInput, 'input', () => {
+            const gridPresetSelect = safeGetElement('gridPreset');
+            if (gridPresetSelect) gridPresetSelect.value = 'custom';
+            debouncedCalculateAndDraw();
+        });
+
         // Show Axis Arrows checkbox
         const showAxisArrowsCheckbox = safeGetElement('showAxisArrows');
         safeAddEventListener(showAxisArrowsCheckbox, 'change', () => {
@@ -326,6 +353,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Initial setup calls
         toggleXAxisSettings();
         toggleCustomLabelInput();
+        toggleCustomFontSizeInput();
         togglePaperStyleSettings();
         calculateDynamicMargins();
         

@@ -8,7 +8,8 @@ import {
     EPSILON, 
     ZERO_LINE_EXTENSION, 
     AXIS_TITLE_SPACING, 
-    ARROW_HEAD_SIZE,
+    getArrowHeadSize,
+    getFontSizes,
     getLineRectIntersection,
     drawEndpointDot,
     drawArrowhead,
@@ -233,6 +234,10 @@ function drawCartesianGrid(svg, isPDFExport = false) {
     const majorGridColor = getElementValue('majorGridColor', 'string', '#555555');
     const paperStyle = getElementValue('paperStyle', 'string', 'grid');
 
+    // Get current font sizes and arrow size
+    const fontSizes = getFontSizes();
+    const arrowHeadSize = getArrowHeadSize();
+
     // Calculate grid dimensions
     const xRange = xMax - xMin;
     const yRange = yMax - yMin;
@@ -320,8 +325,8 @@ function drawCartesianGrid(svg, isPDFExport = false) {
                 const arrow = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
                 const points = [
                     [zeroX, arrowY],
-                    [zeroX - ARROW_HEAD_SIZE/2, arrowY + ARROW_HEAD_SIZE],
-                    [zeroX + ARROW_HEAD_SIZE/2, arrowY + ARROW_HEAD_SIZE]
+                    [zeroX - arrowHeadSize/2, arrowY + arrowHeadSize],
+                    [zeroX + arrowHeadSize/2, arrowY + arrowHeadSize]
                 ].map(p => p.join(',')).join(' ');
                 arrow.setAttribute('points', points);
                 arrow.setAttribute('fill', majorGridColor);
@@ -349,8 +354,8 @@ function drawCartesianGrid(svg, isPDFExport = false) {
                 const arrow = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
                 const points = [
                     [arrowX, zeroY],
-                    [arrowX - ARROW_HEAD_SIZE, zeroY - ARROW_HEAD_SIZE/2],
-                    [arrowX - ARROW_HEAD_SIZE, zeroY + ARROW_HEAD_SIZE/2]
+                    [arrowX - arrowHeadSize, zeroY - arrowHeadSize/2],
+                    [arrowX - arrowHeadSize, zeroY + arrowHeadSize/2]
                 ].map(p => p.join(',')).join(' ');
                 arrow.setAttribute('points', points);
                 arrow.setAttribute('fill', majorGridColor);
@@ -374,7 +379,7 @@ function drawCartesianGrid(svg, isPDFExport = false) {
                 
                 const text = createSVGTextWithPDFCompat(labelText, x, y, {
                     'text-anchor': 'end',
-                    'font-size': '14px'
+                    'font-size': `${fontSizes.axisNumbers}px`
                 }, isPDFExport);
                 svg.appendChild(text);
             }
@@ -431,7 +436,7 @@ function drawCartesianGrid(svg, isPDFExport = false) {
                 
                 const text = createSVGTextWithPDFCompat(labelText, x, y, {
                     'text-anchor': 'middle',
-                    'font-size': '14px'
+                    'font-size': `${fontSizes.axisNumbers}px`
                 }, isPDFExport);
                 svg.appendChild(text);
             }
@@ -446,7 +451,7 @@ function drawCartesianGrid(svg, isPDFExport = false) {
                 const titleY = dynamicMarginTop - AXIS_TITLE_SPACING;
                 const text = createSVGTextWithPDFCompat(yAxisLabel, zeroX, titleY, {
                     'text-anchor': 'middle',
-                    'font-size': '16px',
+                    'font-size': `${fontSizes.axisTitles}px`,
                     'font-weight': 'bold'
                 }, isPDFExport);
                 svg.appendChild(text);
@@ -456,7 +461,7 @@ function drawCartesianGrid(svg, isPDFExport = false) {
             const titleY = dynamicMarginTop + gridHeight / 2;
             const text = createSVGTextWithPDFCompat(yAxisLabel, titleX, titleY, {
                 'text-anchor': 'middle',
-                'font-size': '16px',
+                'font-size': `${fontSizes.axisTitles}px`,
                 'font-weight': 'bold',
                 'transform': `rotate(-90 ${titleX} ${titleY})`
             }, isPDFExport);
@@ -468,10 +473,10 @@ function drawCartesianGrid(svg, isPDFExport = false) {
         if (xAxisLabelOnRight) {
             const zeroY = yToSVG(0);
             if (zeroY >= dynamicMarginTop && zeroY <= dynamicMarginTop + gridHeight) {
-                const titleX = dynamicMarginLeft + gridWidth + AXIS_TITLE_SPACING + (showAxisArrows ? ZERO_LINE_EXTENSION + ARROW_HEAD_SIZE : 0);
+                const titleX = dynamicMarginLeft + gridWidth + AXIS_TITLE_SPACING + (showAxisArrows ? ZERO_LINE_EXTENSION + arrowHeadSize : 0);
                 const text = createSVGTextWithPDFCompat(xAxisLabel, titleX, zeroY, {
                     'text-anchor': 'start',
-                    'font-size': '16px',
+                    'font-size': `${fontSizes.axisTitles}px`,
                     'font-weight': 'bold'
                 }, isPDFExport);
                 svg.appendChild(text);
@@ -481,7 +486,7 @@ function drawCartesianGrid(svg, isPDFExport = false) {
             const titleY = dynamicMarginTop + gridHeight + dynamicMarginBottom - 10;
             const text = createSVGTextWithPDFCompat(xAxisLabel, titleX, titleY, {
                 'text-anchor': 'middle',
-                'font-size': '16px',
+                'font-size': `${fontSizes.axisTitles}px`,
                 'font-weight': 'bold'
             }, isPDFExport);
             svg.appendChild(text);
@@ -576,6 +581,8 @@ function drawSingleEquation(svg, equation, xToSVG, yToSVG, xMin, xMax, yMin, yMa
     
     // Draw arrows if enabled
     if (showLineArrows && points.length >= 2) {
+        const arrowHeadSize = getArrowHeadSize();
+        
         // Arrow at start
         if (points.length >= 2) {
             const start = points[0];
@@ -587,8 +594,8 @@ function drawSingleEquation(svg, equation, xToSVG, yToSVG, xMin, xMax, yMin, yMa
             const angle1 = Math.atan2(secondSVG.y - startSVG.y, secondSVG.x - startSVG.x) + Math.PI;
             const points1 = [
                 [startSVG.x, startSVG.y],
-                [startSVG.x + ARROW_HEAD_SIZE * Math.cos(angle1 + 0.5), startSVG.y + ARROW_HEAD_SIZE * Math.sin(angle1 + 0.5)],
-                [startSVG.x + ARROW_HEAD_SIZE * Math.cos(angle1 - 0.5), startSVG.y + ARROW_HEAD_SIZE * Math.sin(angle1 - 0.5)]
+                [startSVG.x + arrowHeadSize * Math.cos(angle1 + 0.5), startSVG.y + arrowHeadSize * Math.sin(angle1 + 0.5)],
+                [startSVG.x + arrowHeadSize * Math.cos(angle1 - 0.5), startSVG.y + arrowHeadSize * Math.sin(angle1 - 0.5)]
             ].map(p => p.join(',')).join(' ');
             arrow1.setAttribute('points', points1);
             arrow1.setAttribute('fill', color);
@@ -606,8 +613,8 @@ function drawSingleEquation(svg, equation, xToSVG, yToSVG, xMin, xMax, yMin, yMa
             const angle2 = Math.atan2(endSVG.y - secondLastSVG.y, endSVG.x - secondLastSVG.x);
             const points2 = [
                 [endSVG.x, endSVG.y],
-                [endSVG.x - ARROW_HEAD_SIZE * Math.cos(angle2 + 0.5), endSVG.y - ARROW_HEAD_SIZE * Math.sin(angle2 + 0.5)],
-                [endSVG.x - ARROW_HEAD_SIZE * Math.cos(angle2 - 0.5), endSVG.y - ARROW_HEAD_SIZE * Math.sin(angle2 - 0.5)]
+                [endSVG.x - arrowHeadSize * Math.cos(angle2 + 0.5), endSVG.y - arrowHeadSize * Math.sin(angle2 + 0.5)],
+                [endSVG.x - arrowHeadSize * Math.cos(angle2 - 0.5), endSVG.y - arrowHeadSize * Math.sin(angle2 - 0.5)]
             ].map(p => p.join(',')).join(' ');
             arrow2.setAttribute('points', points2);
             arrow2.setAttribute('fill', color);
@@ -625,12 +632,13 @@ function drawSingleEquation(svg, equation, xToSVG, yToSVG, xMin, xMax, yMin, yMa
         }
         
         if (labelText) {
+            const fontSizes = getFontSizes();
             const labelX = dynamicMarginLeft + gridWidth + 10;
             const labelY = dynamicMarginTop + 20 + (index * 20);
             
             const text = createSVGTextWithPDFCompat(labelText, labelX, labelY, {
                 'text-anchor': 'start',
-                'font-size': '12px',
+                'font-size': `${fontSizes.equationLabels}px`,
                 'fill': color
             }, isPDFExport);
             svg.appendChild(text);

@@ -1,5 +1,5 @@
 // This module handles calculations for dynamic margins and axis label visibility.
-import { parseSuperscript, formatRadianLabel, formatEquationTextForDisplay, EPSILON, ZERO_LINE_EXTENSION, AXIS_TITLE_SPACING, ARROW_HEAD_SIZE, safeParseFloat, safeParseInt } from './utils.js';
+import { parseSuperscript, formatRadianLabel, formatEquationTextForDisplay, EPSILON, ZERO_LINE_EXTENSION, AXIS_TITLE_SPACING, getArrowHeadSize, getFontSizes, safeParseFloat, safeParseInt } from './utils.js';
 import { equationsToDraw } from './equations.js'; // Import equationsToDraw
 
 export let dynamicMarginLeft = 60;
@@ -87,9 +87,12 @@ function getElementValue(id, type, fallback) {
  */
 export function calculateDynamicMargins() {
     
-    const generalLabelFontSize = '14px';
+    const fontSizes = getFontSizes();
+    const arrowHeadSize = getArrowHeadSize();
+    
+    const generalLabelFontSize = `${fontSizes.axisNumbers}px`;
     const generalLabelFontFamily = 'Inter, sans-serif'; // Font for axis numbers
-    const axisTitleFontSize = '16px';
+    const axisTitleFontSize = `${fontSizes.axisTitles}px`;
     const axisTitleFontFamily = 'Inter, sans-serif'; // Font for axis titles
 
     const paddingBuffer = 25; // General padding from edge of labels to grid lines
@@ -126,10 +129,10 @@ export function calculateDynamicMargins() {
 
     // --- Calculate space required for Top/Right axis arrows even if no title is present ---
     if (showAxisArrows && yMax > EPSILON) { // Arrow at the top of Y-axis
-        dynamicMarginTop = Math.max(dynamicMarginTop, ZERO_LINE_EXTENSION + ARROW_HEAD_SIZE + 5); // 5 is a small buffer
+        dynamicMarginTop = Math.max(dynamicMarginTop, ZERO_LINE_EXTENSION + arrowHeadSize + 5); // 5 is a small buffer
     }
     if (showAxisArrows && xMax > EPSILON) { // Arrow at the right of X-axis
-        dynamicMarginRight = Math.max(dynamicMarginRight, ZERO_LINE_EXTENSION + ARROW_HEAD_SIZE + 5); // 5 is a small buffer
+        dynamicMarginRight = Math.max(dynamicMarginRight, ZERO_LINE_EXTENSION + arrowHeadSize + 5); // 5 is a small buffer
     }
 
     // --- Y-axis Left Margin Calculation (Numbers & Rotated Label) ---
@@ -170,7 +173,7 @@ export function calculateDynamicMargins() {
     if (yAxisLabelOnTop && yAxisLabel) {
         const metrics = measureSVGText(yAxisLabel, axisTitleFontSize, axisTitleFontFamily);
         // The top margin needs to accommodate the zero line extension, arrow, spacing, and the label's ascent.
-        calculatedTopAxisTitleHeight = ZERO_LINE_EXTENSION + ARROW_HEAD_SIZE + AXIS_TITLE_SPACING + metrics.actualBoundingBoxAscent;
+        calculatedTopAxisTitleHeight = ZERO_LINE_EXTENSION + arrowHeadSize + AXIS_TITLE_SPACING + metrics.actualBoundingBoxAscent;
         dynamicMarginTop = Math.max(dynamicMarginTop, calculatedTopAxisTitleHeight);
     }
 
@@ -243,7 +246,7 @@ export function calculateDynamicMargins() {
     }
 
     // --- Right Margin Calculation (Equation Labels & X-axis Label on Right) ---
-    const equationLabelFontSize = '12px';
+    const equationLabelFontSize = `${fontSizes.equationLabels}px`;
     const equationLabelFontFamily = 'Inter, sans-serif';
 
     equationsToDraw.forEach(eq => {
@@ -263,7 +266,7 @@ export function calculateDynamicMargins() {
     if (xAxisLabelOnRight && xAxisLabel) {
         const metrics = measureSVGText(xAxisLabel, axisTitleFontSize, axisTitleFontFamily);
         // The right margin needs to accommodate the zero line extension, arrow, spacing, and the label's width.
-        calculatedRightAxisTitleWidth = ZERO_LINE_EXTENSION + ARROW_HEAD_SIZE + AXIS_TITLE_SPACING + metrics.width;
+        calculatedRightAxisTitleWidth = ZERO_LINE_EXTENSION + arrowHeadSize + AXIS_TITLE_SPACING + metrics.width;
         dynamicMarginRight = Math.max(dynamicMarginRight, calculatedRightAxisTitleWidth);
     }
 }
@@ -285,6 +288,22 @@ export function toggleXAxisSettings() {
         radianSettings.classList.remove('hidden');
     } else {
         numericalSettings.classList.remove('hidden');
+    }
+}
+
+/**
+ * Toggles the visibility of the custom font size input field based on the selected font size.
+ */
+export function toggleCustomFontSizeInput() {
+    const fontSize = getElementValue('fontSize', 'string', 'medium');
+    const customFontSizeContainer = document.getElementById('customFontSizeContainer');
+    
+    if (!customFontSizeContainer) return;
+    
+    if (fontSize === 'custom') {
+        customFontSizeContainer.classList.remove('hidden');
+    } else {
+        customFontSizeContainer.classList.add('hidden');
     }
 }
 
