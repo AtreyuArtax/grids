@@ -1,5 +1,5 @@
 // This module manages the collection of equations, their state, and rendering.
-import { showMessageBox, formatEquationTextForDisplay } from './utils.js';
+import { showMessageBox, formatEquationTextForDisplay, safeParseFloat, safeParseInt } from './utils.js';
 import { calculateDynamicMargins } from './labels.js';
 import { drawGrid } from './plotter.js'; // Assuming drawGrid needs to be called after equation changes
 
@@ -11,6 +11,52 @@ export let editingEquationId = null; // Stores the ID of the equation being edit
 export const equationSettings = {
     lastShowLineArrowsValue: true // Default to true on page load for new equations
 };
+
+/**
+ * Validates equation input parameters.
+ * @param {string} expression - The equation expression.
+ * @param {number|null} domainStart - The domain start value.
+ * @param {number|null} domainEnd - The domain end value.
+ * @returns {Object} Validation result with isValid boolean and error message.
+ */
+function validateEquationInput(expression, domainStart, domainEnd) {
+    if (!expression || expression.trim() === '') {
+        return { isValid: false, error: "Please enter an equation expression." };
+    }
+
+    if (domainStart !== null && !isFinite(domainStart)) {
+        return { isValid: false, error: "Invalid Domain Start value. Please enter a number or leave it blank." };
+    }
+    
+    if (domainEnd !== null && !isFinite(domainEnd)) {
+        return { isValid: false, error: "Invalid Domain End value. Please enter a number or leave it blank." };
+    }
+    
+    if (domainStart !== null && domainEnd !== null && domainStart >= domainEnd) {
+        return { isValid: false, error: "Domain Start must be less than Domain End." };
+    }
+
+    return { isValid: true };
+}
+
+/**
+ * Compiles and tests an equation expression.
+ * @param {string} expression - The equation expression to compile.
+ * @returns {Object} Result with compiled function or error.
+ */
+function compileEquation(expression) {
+    try {
+        const compiledFunc = math.compile(expression);
+        compiledFunc.evaluate({ x: 1 }); // Test with a sample x value
+        return { success: true, compiledFunc };
+    } catch (e) {
+        return { 
+            success: false, 
+            error: `Invalid equation expression: ${e.message}\n` +
+                   `Please use math.js syntax (e.g., sin(x), x^2, sqrt(x), log(x), pi, e). Implied multiplication like '2x' is supported.`
+        };
+    }
+}
 
 /**
  * Handles the submission of a new or updated equation.
@@ -25,42 +71,28 @@ export function handleEquationSubmit() {
     const lineStyle = document.getElementById('equationLineStyle').value;
     const labelType = document.getElementById('equationLabelType').value;
     const customLabel = document.getElementById('equationCustomLabel').value.trim();
-    const showLineArrows = document.getElementById('showLineArrows').checked; // Read from equation section
+    const showLineArrows = document.getElementById('showLineArrows').checked;
 
-    if (!expression) {
-        showMessageBox("Please enter an equation expression.");
+    const domainStart = domainStartInput === '' ? null : safeParseFloat(domainStartInput);
+    const domainEnd = domainEndInput === '' ? null : safeParseFloat(domainEndInput);
+
+    // Validate input
+    const validation = validateEquationInput(expression, domainStart, domainEnd);
+    if (!validation.isValid) {
+        showMessageBox(validation.error);
         return;
     }
 
-    const domainStart = domainStartInput === '' ? null : parseFloat(domainStartInput);
-    const domainEnd = domainEndInput === '' ? null : parseFloat(domainEndInput);
-
-    if (domainStart !== null && isNaN(domainStart)) {
-        showMessageBox("Invalid Domain Start value. Please enter a number or leave it blank.");
-        return;
-    }
-    if (domainEnd !== null && isNaN(domainEnd)) {
-        showMessageBox("Invalid Domain End value. Please enter a number or leave it blank.");
-        return;
-    }
-    if (domainStart !== null && domainEnd !== null && domainStart >= domainEnd) {
-        showMessageBox("Domain Start must be less than Domain End.");
-        return;
-    }
-
-    let compiledFunc;
-    try {
-        compiledFunc = math.compile(expression);
-        compiledFunc.evaluate({ x: 1 }); // Test with a sample x value
-    } catch (e) {
-        showMessageBox(`Invalid equation expression: ${e.message}\n` +
-                       `Please use math.js syntax (e.g., sin(x), x^2, sqrt(x), log(x), pi, e). Implied multiplication like '2x' is supported.`);
+    // Compile equation
+    const compilation = compileEquation(expression);
+    if (!compilation.success) {
+        showMessageBox(compilation.error);
         return;
     }
 
     const newOrUpdatedEquation = {
         rawExpression: expression,
-        compiledExpression: compiledFunc,
+        compiledExpression: compilation.compiledFunc,
         domainStart: domainStart,
         domainEnd: domainEnd,
         inequalityType: inequalityType,
@@ -92,11 +124,15 @@ export function handleEquationSubmit() {
  * @param {number} id - The ID of the equation to remove.
  */
 export function removeEquation(id) {
+    const initialLength = equationsToDraw.length;
     equationsToDraw = equationsToDraw.filter(eq => eq.id !== id);
-    resetEquationInputsAndButtons(); // Clear inputs if the deleted equation was being edited
-    renderEquationsList();
-    calculateDynamicMargins(); // Recalculate all margins after removing
-    drawGrid();
+    
+    if (equationsToDraw.length < initialLength) {
+        resetEquationInputsAndButtons(); // Clear inputs if the deleted equation was being edited
+        renderEquationsList();
+        calculateDynamicMargins(); // Recalculate all margins after removing
+        drawGrid();
+    }
 }
 
 /**
@@ -121,8 +157,9 @@ export function startEditEquation(id) {
 
     toggleCustomLabelInput(); // Update custom label visibility
 
-    document.getElementById('addOrUpdateEquationButton').textContent = 'Update Equation';
-    document.getElementById('addOrUpdateEquationButton').style.backgroundColor = '#28a745';
+    const button = document.getElementById('addOrUpdateEquationButton');
+    button.textContent = 'Update Equation';
+    button.style.backgroundColor = '#28a745';
     document.getElementById('cancelEditButton').classList.remove('hidden');
 }
 
@@ -139,11 +176,13 @@ export function resetEquationInputsAndButtons() {
     document.getElementById('equationLineStyle').value = 'solid';
 
     document.getElementById('equationCustomLabel').value = '';
-    document.getElementById('showLineArrows').checked = equationSettings.lastShowLineArrowsValue; // Use from object
+    document.getElementById('showLineArrows').checked = equationSettings.lastShowLineArrowsValue;
 
     toggleCustomLabelInput(); // Ensure custom label input is hidden
-    document.getElementById('addOrUpdateEquationButton').textContent = 'Add Equation';
-    document.getElementById('addOrUpdateEquationButton').style.backgroundColor = '#007bff';
+    
+    const button = document.getElementById('addOrUpdateEquationButton');
+    button.textContent = 'Add Equation';
+    button.style.backgroundColor = '#007bff';
     document.getElementById('cancelEditButton').classList.add('hidden');
 }
 
@@ -152,6 +191,8 @@ export function resetEquationInputsAndButtons() {
  */
 export function renderEquationsList() {
     const equationsListDiv = document.getElementById('equationsList');
+    if (!equationsListDiv) return;
+    
     equationsListDiv.innerHTML = ''; // Clear existing list
 
     if (equationsToDraw.length === 0) {
@@ -161,14 +202,10 @@ export function renderEquationsList() {
 
     equationsToDraw.forEach(eq => {
         const eqDiv = document.createElement('div');
-        eqDiv.style.display = 'flex';
-        eqDiv.style.justifyContent = 'space-between';
-        eqDiv.style.alignItems = 'center';
-        eqDiv.style.gap = '10px';
-        eqDiv.style.marginBottom = '5px';
-        eqDiv.style.padding = '5px 0';
-        eqDiv.style.borderBottom = '1px dashed #eee';
-        eqDiv.style.fontSize = '0.9em';
+        eqDiv.style.cssText = `
+            display: flex; justify-content: space-between; align-items: center; gap: 10px;
+            margin-bottom: 5px; padding: 5px 0; border-bottom: 1px dashed #eee; font-size: 0.9em;
+        `;
 
         const eqLabel = document.createElement('span');
 
@@ -195,14 +232,12 @@ export function renderEquationsList() {
         eqDiv.appendChild(eqLabel);
 
         const buttonGroup = document.createElement('div');
-        buttonGroup.style.display = 'flex';
-        buttonGroup.style.gap = '5px';
+        buttonGroup.style.cssText = 'display: flex; gap: 5px;';
 
         const editBtn = document.createElement('button');
         editBtn.textContent = 'Edit';
         editBtn.classList.add('small-button');
-        editBtn.style.backgroundColor = '#ffc107';
-        editBtn.style.color = '#333';
+        editBtn.style.cssText = 'background-color: #ffc107; color: #333;';
         editBtn.onclick = () => startEditEquation(eq.id);
         buttonGroup.appendChild(editBtn);
 
@@ -224,6 +259,9 @@ export function renderEquationsList() {
 export function toggleCustomLabelInput() {
     const labelType = document.getElementById('equationLabelType').value;
     const customLabelContainer = document.getElementById('customLabelContainer');
+    
+    if (!customLabelContainer) return;
+    
     if (labelType === 'custom') {
         customLabelContainer.classList.remove('hidden');
     } else {

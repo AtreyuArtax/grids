@@ -23,6 +23,8 @@ export const SHADE_ALPHA = 0.2;
  * @returns {string} The text with '^' notation converted to unicode superscripts.
  */
 export function parseSuperscript(text) {
+    if (!text || typeof text !== 'string') return '';
+    
     const superscriptMap = {
         '0': '⁰', '1': '¹', '2': '²', '3': '³',
         '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷',
@@ -41,10 +43,12 @@ export function parseSuperscript(text) {
  * @returns {number[]} An array containing the simplified numerator and denominator.
  */
 export function simplifyFraction(numerator, denominator) {
+    if (denominator === 0) throw new Error('Denominator cannot be zero');
+    
     function gcd(a, b) {
         return b ? gcd(b, a % b) : a;
     }
-    const common = gcd(numerator, denominator);
+    const common = gcd(Math.abs(numerator), Math.abs(denominator));
     return [numerator / common, denominator / common];
 }
 
@@ -54,6 +58,7 @@ export function simplifyFraction(numerator, denominator) {
  * @returns {string} The formatted radian label.
  */
 export function formatRadianLabel(rawValue) {
+    if (!isFinite(rawValue)) return '∞';
     if (rawValue === 0) return '0';
 
     const tol = 1e-9; // Tolerance for floating point comparisons
@@ -94,6 +99,8 @@ export function formatRadianLabel(rawValue) {
  * @returns {string} The formatted string (e.g., "sin(x), x², ½x").
  */
 export function formatEquationTextForDisplay(expression) {
+    if (!expression || typeof expression !== 'string') return '';
+    
     let formattedText = expression;
 
     // Convert inequality symbols for display
@@ -138,6 +145,8 @@ export function formatEquationTextForDisplay(expression) {
  * @param {number} [r=4] - Radius of the dot.
  */
 export function drawDot(ctx, x, y, colour, r = 4) {
+    if (!ctx || !isFinite(x) || !isFinite(y)) return;
+    
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fillStyle = colour;
@@ -153,6 +162,10 @@ export function drawDot(ctx, x, y, colour, r = 4) {
  * @returns {Object} The intersection point {x, y} on the rectangle boundary.
  */
 export function getLineRectIntersection(pInside, pOutside, rect) {
+    if (!pInside || !pOutside || !rect) {
+        throw new Error('Invalid parameters for line-rectangle intersection');
+    }
+    
     const dx = pOutside.x - pInside.x;
     const dy = pOutside.y - pInside.y;
     let tBest = 1; // Parametric t-value, 0 = pInside, 1 = pOutside
@@ -186,6 +199,8 @@ export function getLineRectIntersection(pInside, pOutside, rect) {
  * @param {number} [size=3] - Radius of the dot.
  */
 export function drawEndpointDot(ctx, x, y, color, size = 3) {
+    if (!ctx || !isFinite(x) || !isFinite(y)) return;
+    
     ctx.save();
     ctx.beginPath();
     ctx.arc(x, y, size, 0, Math.PI * 2);
@@ -204,7 +219,9 @@ export function drawEndpointDot(ctx, x, y, color, size = 3) {
  * @param {string} color - Color of the arrowhead.
  * @param {number} [size=ARROW_HEAD_SIZE] - Size of the arrowhead (length of the arrow sides).
  */
-export function drawArrowhead(ctx, x1, y1, x2, y2, color, size = ARROW_HEAD_SIZE) { // Use ARROW_HEAD_SIZE constant
+export function drawArrowhead(ctx, x1, y1, x2, y2, color, size = ARROW_HEAD_SIZE) {
+    if (!ctx || !isFinite(x1) || !isFinite(y1) || !isFinite(x2) || !isFinite(y2)) return;
+    
     const angle = Math.atan2(y2 - y1, x2 - x1); // Angle of the line segment
     ctx.save();
     ctx.beginPath();
@@ -224,7 +241,14 @@ export function drawArrowhead(ctx, x1, y1, x2, y2, color, size = ARROW_HEAD_SIZE
  * @param {string} message - The message to display.
  */
 export function showMessageBox(message) {
+    if (!message) return;
+    
+    // Remove any existing message boxes
+    const existingBoxes = document.querySelectorAll('.custom-message-box');
+    existingBoxes.forEach(box => box.remove());
+    
     const messageBox = document.createElement('div');
+    messageBox.className = 'custom-message-box';
     messageBox.style.cssText = `
         position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
         background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
@@ -237,9 +261,17 @@ export function showMessageBox(message) {
     `;
     document.body.appendChild(messageBox);
 
-    document.getElementById('messageBoxClose').onclick = () => {
-        document.body.removeChild(messageBox);
+    const closeButton = document.getElementById('messageBoxClose');
+    const closeHandler = () => {
+        if (document.body.contains(messageBox)) {
+            document.body.removeChild(messageBox);
+        }
     };
+    
+    closeButton.onclick = closeHandler;
+    
+    // Auto-close after 10 seconds
+    setTimeout(closeHandler, 10000);
 }
 
 /**
@@ -247,6 +279,11 @@ export function showMessageBox(message) {
  */
 export function downloadPNG() {
     const canvas = document.getElementById('gridCanvas');
+    if (!canvas) {
+        console.error('Canvas element not found');
+        return;
+    }
+    
     // Create a timestamp string:YYYY-MM-DD_HH-MM-SS
     const now = new Date();
     const pad = n => n.toString().padStart(2, '0');
@@ -255,4 +292,44 @@ export function downloadPNG() {
     link.download = `grid_${timestamp}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
+}
+
+/**
+ * Safely parses a numeric input value with fallback.
+ * @param {string|number} value - The value to parse.
+ * @param {number} fallback - The fallback value if parsing fails.
+ * @returns {number} The parsed number or fallback.
+ */
+export function safeParseFloat(value, fallback = 0) {
+    const parsed = parseFloat(value);
+    return isFinite(parsed) ? parsed : fallback;
+}
+
+/**
+ * Safely parses an integer input value with fallback.
+ * @param {string|number} value - The value to parse.
+ * @param {number} fallback - The fallback value if parsing fails.
+ * @returns {number} The parsed integer or fallback.
+ */
+export function safeParseInt(value, fallback = 0) {
+    const parsed = parseInt(value, 10);
+    return isFinite(parsed) ? parsed : fallback;
+}
+
+/**
+ * Debounces a function call.
+ * @param {Function} func - The function to debounce.
+ * @param {number} wait - The number of milliseconds to delay.
+ * @returns {Function} The debounced function.
+ */
+export function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
 }

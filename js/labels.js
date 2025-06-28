@@ -1,5 +1,5 @@
 // This module handles calculations for dynamic margins and axis label visibility.
-import { parseSuperscript, formatRadianLabel, formatEquationTextForDisplay, EPSILON, ZERO_LINE_EXTENSION, AXIS_TITLE_SPACING, ARROW_HEAD_SIZE } from './utils.js';
+import { parseSuperscript, formatRadianLabel, formatEquationTextForDisplay, EPSILON, ZERO_LINE_EXTENSION, AXIS_TITLE_SPACING, ARROW_HEAD_SIZE, safeParseFloat, safeParseInt } from './utils.js';
 import { equationsToDraw } from './equations.js'; // Import equationsToDraw
 
 export let dynamicMarginLeft = 60;
@@ -57,6 +57,29 @@ function measureSVGText(textContent, fontSize, fontFamily) {
     };
 }
 
+/**
+ * Safely gets element value with fallback.
+ * @param {string} id - Element ID.
+ * @param {string} type - Type of value to get ('float', 'int', 'boolean', 'string').
+ * @param {*} fallback - Fallback value.
+ * @returns {*} The element value or fallback.
+ */
+function getElementValue(id, type, fallback) {
+    const element = document.getElementById(id);
+    if (!element) return fallback;
+    
+    switch (type) {
+        case 'float':
+            return safeParseFloat(element.value, fallback);
+        case 'int':
+            return safeParseInt(element.value, fallback);
+        case 'boolean':
+            return element.checked;
+        case 'string':
+        default:
+            return element.value || fallback;
+    }
+}
 
 /**
  * Calculates the dynamic margins needed to prevent labels and axis titles from being cut off.
@@ -81,21 +104,19 @@ export function calculateDynamicMargins() {
     let maxBottomAxisTitleHeight = 0;
     let maxLeftAxisTitleWidth = 0; // for rotated y-axis label
 
-
-    // Retrieve settings (using defaults for robustness against NaN from empty inputs)
-    const yMin = parseFloat(document.getElementById('yMin').value) || 0;
-    const yMax = parseFloat(document.getElementById('yMax').value) || 10;
-    const yIncrement = parseFloat(document.getElementById('yIncrement').value) || 1;
-    const yLabelEvery = parseInt(document.getElementById('yLabelEvery').value) || 1;
-    const yLabelOnZero = document.getElementById('yLabelOnZero').checked;
-    const suppressZeroLabel = document.getElementById('suppressZeroLabel').checked;
-    const xMin = parseFloat(document.getElementById('xMin').value) || 0;
-    const xMax = parseFloat(document.getElementById('xMax').value) || 10;
-    const xIncrement = parseFloat(document.getElementById('xIncrement').value) || 1;
-    const xAxisLabelType = document.getElementById('xAxisLabelType').value;
-    const xLabelEvery = parseInt(document.getElementById('xLabelEvery').value) || 1;
-
-    const showAxisArrows = document.getElementById('showAxisArrows').checked;
+    // Retrieve settings using safe getters
+    const yMin = getElementValue('yMin', 'float', 0);
+    const yMax = getElementValue('yMax', 'float', 10);
+    const yIncrement = getElementValue('yIncrement', 'float', 1);
+    const yLabelEvery = getElementValue('yLabelEvery', 'int', 1);
+    const yLabelOnZero = getElementValue('yLabelOnZero', 'boolean', false);
+    const suppressZeroLabel = getElementValue('suppressZeroLabel', 'boolean', false);
+    const xMin = getElementValue('xMin', 'float', 0);
+    const xMax = getElementValue('xMax', 'float', 10);
+    const xIncrement = getElementValue('xIncrement', 'float', 1);
+    const xAxisLabelType = getElementValue('xAxisLabelType', 'string', 'numbers');
+    const xLabelEvery = getElementValue('xLabelEvery', 'int', 1);
+    const showAxisArrows = getElementValue('showAxisArrows', 'boolean', false);
 
     // Initialize dynamic margins with minimums (e.g., for arrows only or just some padding)
     dynamicMarginLeft = 20; 
@@ -110,7 +131,6 @@ export function calculateDynamicMargins() {
     if (showAxisArrows && xMax > EPSILON) { // Arrow at the right of X-axis
         dynamicMarginRight = Math.max(dynamicMarginRight, ZERO_LINE_EXTENSION + ARROW_HEAD_SIZE + 5); // 5 is a small buffer
     }
-
 
     // --- Y-axis Left Margin Calculation (Numbers & Rotated Label) ---
     if (yIncrement > 0 && isFinite(yIncrement)) {
@@ -128,8 +148,8 @@ export function calculateDynamicMargins() {
         }
     }
 
-    const yAxisLabel = parseSuperscript(document.getElementById('yAxisLabel').value);
-    const yAxisLabelOnTop = document.getElementById('yAxisLabelOnTop').checked;
+    const yAxisLabel = parseSuperscript(getElementValue('yAxisLabel', 'string', ''));
+    const yAxisLabelOnTop = getElementValue('yAxisLabelOnTop', 'boolean', false);
 
     if (!yAxisLabelOnTop && yAxisLabel) { // If Y-axis label is on the left (rotated)
         const metrics = measureSVGText(yAxisLabel, axisTitleFontSize, axisTitleFontFamily);
@@ -146,7 +166,6 @@ export function calculateDynamicMargins() {
         dynamicMarginLeft = Math.max(dynamicMarginLeft, metrics.width / 2 + paddingBuffer); // Half width of label + buffer
     }
 
-
     // --- Top Margin Calculation (Y-axis Label on Top) ---
     if (yAxisLabelOnTop && yAxisLabel) {
         const metrics = measureSVGText(yAxisLabel, axisTitleFontSize, axisTitleFontFamily);
@@ -155,12 +174,11 @@ export function calculateDynamicMargins() {
         dynamicMarginTop = Math.max(dynamicMarginTop, calculatedTopAxisTitleHeight);
     }
 
-
     // --- Bottom Margin Calculation (X-axis Labels & Label below) ---
     let xValuePerMinorSquare = xIncrement;
     if (xAxisLabelType === 'radians') {
-        const radianStepMultiplier = parseFloat(document.getElementById('radianStepMultiplier').value) || 0.5;
-        const xGridUnitsPerRadianStep = parseInt(document.getElementById('xGridUnitsPerRadianStep').value) || 6;
+        const radianStepMultiplier = getElementValue('radianStepMultiplier', 'float', 0.5);
+        const xGridUnitsPerRadianStep = getElementValue('xGridUnitsPerRadianStep', 'int', 6);
         if (xGridUnitsPerRadianStep > 0) {
             xValuePerMinorSquare = radianStepMultiplier * Math.PI / xGridUnitsPerRadianStep;
         }
@@ -172,8 +190,8 @@ export function calculateDynamicMargins() {
             const isZeroLine = Math.abs(value) < xValuePerMinorSquare / 2;
             let shouldLabel = false;
             if (xAxisLabelType === 'radians') {
-                const xGridUnitsPerRadianStep = parseInt(document.getElementById('xGridUnitsPerRadianStep').value) || 6;
-                const radianStepMultiplier = parseFloat(document.getElementById('radianStepMultiplier').value) || 0.5;
+                const xGridUnitsPerRadianStep = getElementValue('xGridUnitsPerRadianStep', 'int', 6);
+                const radianStepMultiplier = getElementValue('radianStepMultiplier', 'float', 0.5);
                 const majorStepIndex = Math.round((value - xMin) / (radianStepMultiplier * Math.PI));
                 if (xGridUnitsPerRadianStep > 0 && (Math.round(value / xValuePerMinorSquare) % xGridUnitsPerRadianStep === 0) && (majorStepIndex % xLabelEvery === 0)) {
                     shouldLabel = true;
@@ -184,7 +202,7 @@ export function calculateDynamicMargins() {
                 }
             }
 
-            if (xLabelOnZero && isZeroLine) {
+            if (yLabelOnZero && isZeroLine) {
                 shouldLabel = true;
             }
 
@@ -206,8 +224,8 @@ export function calculateDynamicMargins() {
         }
     }
 
-    const xAxisLabel = parseSuperscript(document.getElementById('xAxisLabel').value);
-    const xAxisLabelOnRight = document.getElementById('xAxisLabelOnRight').checked;
+    const xAxisLabel = parseSuperscript(getElementValue('xAxisLabel', 'string', ''));
+    const xAxisLabelOnRight = getElementValue('xAxisLabelOnRight', 'boolean', false);
 
     if (!xAxisLabelOnRight && xAxisLabel) { // If X-axis label is below
         const metrics = measureSVGText(xAxisLabel, axisTitleFontSize, axisTitleFontFamily);
@@ -223,7 +241,6 @@ export function calculateDynamicMargins() {
         const metrics = measureSVGText(xAxisLabel, axisTitleFontSize, axisTitleFontFamily);
         dynamicMarginBottom = Math.max(dynamicMarginBottom, (metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent) / 2 + paddingBuffer);
     }
-
 
     // --- Right Margin Calculation (Equation Labels & X-axis Label on Right) ---
     const equationLabelFontSize = '12px';
@@ -255,9 +272,11 @@ export function calculateDynamicMargins() {
  * Toggles the visibility of X-axis settings based on the selected label type (numbers, radians, degrees).
  */
 export function toggleXAxisSettings() {
-    const xAxisLabelType = document.getElementById('xAxisLabelType').value;
+    const xAxisLabelType = getElementValue('xAxisLabelType', 'string', 'numbers');
     const numericalSettings = document.getElementById('numericalXAxisSettings');
     const radianSettings = document.getElementById('radianXAxisSettings');
+
+    if (!numericalSettings || !radianSettings) return;
 
     numericalSettings.classList.add('hidden');
     radianSettings.classList.add('hidden');
@@ -276,6 +295,8 @@ export function toggleXAxisSettings() {
  * @returns {boolean} True if the rectangles overlap, false otherwise.
  */
 export function doesOverlap(rect1, rect2) {
+    if (!rect1 || !rect2) return false;
+    
     const buffer = 2; // Small buffer for spacing between labels
     return rect1.left < rect2.right + buffer &&
            rect1.right > rect2.left - buffer &&

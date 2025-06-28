@@ -1,4 +1,4 @@
-/********  GLOBAL RESET & BASE  ********/
+/********  GLOBAL RESET & BASE  ********/
 html {
     height: 100%;
     margin: 0;
@@ -20,7 +20,7 @@ body {
     box-sizing: inherit;
 }
 
-/********  FLEX LAYOUT  ********/
+/********  FLEX LAYOUT  ********/
 .main-flex-layout {
     display: flex;
     gap: 24px;                         /* space between control & canvas */
@@ -30,7 +30,7 @@ body {
     /* Max width for the main content block, allowing it to center */
 }
 
-/********  CARD STYLING  ********/
+/********  CARD STYLING  ********/
 .card {
     background-color: #ffffff;
     border-radius: 8px;
@@ -39,9 +39,7 @@ body {
     margin-bottom: 20px;
 }
 
-
-
-/********  CONTROL-PANEL CARD  ********/
+/********  CONTROL-PANEL CARD  ********/
 .controls-card {
     flex: 0 0 350px;
     max-width: 100%;
@@ -50,7 +48,7 @@ body {
     gap: 20px;
 }
 
-/********  CANVAS CARD (sticky)  ********/
+/********  CANVAS CARD (sticky)  ********/
 .canvas-card.sticky-canvas {
     flex: 1;
     min-width: 400px;
@@ -71,7 +69,7 @@ body {
     box-sizing: border-box; /* Crucial for calc to work with padding */
 }
 
-/********  CANVAS ELEMENT  ********/
+/********  CANVAS ELEMENT  ********/
 #gridSVG { /* Target the SVG element */
     background-color: #ffffff;
     display: block;
@@ -83,14 +81,20 @@ body {
     box-sizing: border-box; /* Ensure padding/border are included in size */
 }
 
-/********  FORM & FIELDSETS  ********/
+/********  FORM & FIELDSETS  ********/
 fieldset {
     border: 1px solid #e0e0e0;
     border-radius: 6px;
     padding: 15px;
     margin: 0;
     background-color: #fdfdfd;
+    transition: border-color 0.2s ease;
 }
+
+fieldset:hover {
+    border-color: #d0d0d0;
+}
+
 legend {
     font-weight: bold;
     color: #333;
@@ -101,10 +105,27 @@ legend {
     justify-content: space-between;
     user-select: none;
     gap: 8px;
+    cursor: pointer;
+    transition: color 0.2s ease;
 }
-legend .toggle-icon         { font-size: 1.2em; margin-left: 10px; transition: transform 0.2s; }
-fieldset.collapsed .toggle-icon { transform: rotate(-90deg); }
-fieldset.collapsed .fieldset-content { display: none; }
+
+legend:hover {
+    color: #007bff;
+}
+
+legend .toggle-icon {
+    font-size: 1.2em;
+    margin-left: 10px;
+    transition: transform 0.2s ease;
+}
+
+fieldset.collapsed .toggle-icon {
+    transform: rotate(-90deg);
+}
+
+fieldset.collapsed .fieldset-content {
+    display: none;
+}
 
 label {
     display: flex; /* Changed from 'block' to 'flex' for consistent alignment inside fields */
@@ -115,6 +136,7 @@ label {
     color: #555;
     /* Removed width: 100%; here to allow labels to shrink-wrap their content */
 }
+
 label input[type="number"],
 label input[type="text"],
 label select {
@@ -124,7 +146,17 @@ label select {
     border-radius: 4px;
     font-size: 0.9em;
     margin-left: auto;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
+
+label input[type="number"]:focus,
+label input[type="text"]:focus,
+label select:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
 /* Styling for the native color input element */
 label input[type="color"] {
     width: 32px; /* Fixed width */
@@ -134,9 +166,17 @@ label input[type="color"] {
     padding: 0; /* Remove default padding from color input */
     flex-shrink: 0; /* Prevent it from shrinking */
     cursor: pointer;
+    transition: border-color 0.2s ease;
 }
 
-label input[type="checkbox"] { margin-left: 0; }
+label input[type="color"]:hover {
+    border-color: #007bff;
+}
+
+label input[type="checkbox"] {
+    margin-left: 0;
+    cursor: pointer;
+}
 
 .checkbox-label {
     display: flex;
@@ -145,9 +185,10 @@ label input[type="checkbox"] { margin-left: 0; }
     margin-bottom: 8px;
     /* This label specific class will now also shrink-wrap */
     width: fit-content; /* Ensure the label only takes up space needed for its content */
+    cursor: pointer;
 }
 
-/********  BUTTONS  ********/
+/********  BUTTONS  ********/
 button {
     background-color: #007bff;
     color: #fff;
@@ -156,12 +197,32 @@ button {
     border-radius: 5px;
     cursor: pointer;
     font-size: 1em;
-    transition: background-color 0.2s;
+    transition: background-color 0.2s ease, transform 0.1s ease;
 }
-button:hover { background-color: #0056b3; }
-.button-group { display: flex; gap: 10px; margin-top: 15px; flex-wrap: nowrap; }
 
-/********  EQUATIONS LIST  ********/
+button:hover {
+    background-color: #0056b3;
+    transform: translateY(-1px);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+button:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.button-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+    flex-wrap: nowrap;
+}
+
+/********  EQUATIONS LIST  ********/
 #equationsList {
     margin-top: 15px;
     border-top: 1px solid #eee;
@@ -169,17 +230,33 @@ button:hover { background-color: #0056b3; }
     max-height: 200px;
     overflow-y: auto;
 }
+
 #equationsList div {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 5px 0;
     border-bottom: 1px dotted #eee;
+    transition: background-color 0.2s ease;
 }
-#equationsList div:last-child { border-bottom: none; }
 
-/********  SVG & EXPORT ROW  ********/
-.button-row  { display: flex; gap: 12px; margin-bottom: 16px; }
+#equationsList div:hover {
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    padding: 5px 8px;
+}
+
+#equationsList div:last-child {
+    border-bottom: none;
+}
+
+/********  SVG & EXPORT ROW  ********/
+.button-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
 
 /********  INFO ICON + TOOLTIP  ********/
 .info-icon {
@@ -196,13 +273,15 @@ button:hover { background-color: #0056b3; }
     border: 1px solid #b6defd;
     cursor: pointer;
     margin-right: 7px;
-    transition: background 0.15s;
+    transition: background 0.15s ease, transform 0.1s ease;
     position: relative;
     outline: none;
 }
+
 .info-icon:hover,
 .info-icon:focus {
     background: #b6defd;
+    transform: scale(1.1);
 }
 
 .info-tooltip {
@@ -226,21 +305,27 @@ button:hover { background-color: #0056b3; }
     z-index: 100;            /* On top of all content */
     text-align: left;
     pointer-events: auto;
+    animation: fadeIn 0.2s ease;
 }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-50%) scale(0.95); }
+    to { opacity: 1; transform: translateY(-50%) scale(1); }
+}
+
 .info-icon:hover + .info-tooltip,
 .info-icon:focus + .info-tooltip {
     display: block;
 }
 
-
-
-/********  COLOR SWATCHES  ********/
+/********  COLOR SWATCHES  ********/
 .color-label-container {
     display: flex;
     align-items: center;
     gap: 10px;
     margin-bottom: 8px;
 }
+
 .color-input-wrapper {
     display: flex;
     align-items: center;
@@ -256,8 +341,8 @@ button:hover { background-color: #0056b3; }
     flex-shrink: 1; /* Allow swatches container to shrink */
     overflow-x: visible; /* Add horizontal scroll for swatches if needed */
     padding-bottom: 2px; /* prevent cut-off scrollbar */
-    
 }
+
 .color-swatch {
     width: 18px;
     height: 18px;
@@ -265,10 +350,15 @@ button:hover { background-color: #0056b3; }
     border: 1px solid #ccc;
     cursor: pointer;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    transition: transform 0.2s;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     flex-shrink: 0; /* Prevents individual swatches from shrinking */
 }
-.color-swatch:hover { transform: scale(1.1); border-color: #007bff; }
+
+.color-swatch:hover {
+    transform: scale(1.1);
+    border-color: #007bff;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
 
 .color-input-wrapper input[type="color"] {
     width: 28px;
@@ -286,7 +376,7 @@ button:hover { background-color: #0056b3; }
     cursor: pointer;
 }
 
-/********  FOOTER PRIVACY LINK (Fixed to bottom right - Restored from your provided CSS)  ********/
+/********  FOOTER PRIVACY LINK (Fixed to bottom right - Restored from your provided CSS)  ********/
 .footer-privacy {
     position: fixed;
     right: 18px; /* Offset from right edge */
@@ -311,94 +401,183 @@ button:hover { background-color: #0056b3; }
     box-shadow: none;
     opacity: 0.85; /* Slightly transparent */
     pointer-events: auto; /* Allows the link itself to be clickable */
-    transition: color 0.2s, opacity 0.2s;
+    transition: color 0.2s ease, opacity 0.2s ease;
     line-height: 1.7; /* Line height for better spacing */
     display: inline-block; /* Essential for padding and width properties */
 }
 
 .privacy-link:hover,
 .privacy-link:focus {
-  color: #555;
-  text-decoration: underline;
+    color: #555;
+    text-decoration: underline;
 }
 
 /* Media query for mobile responsiveness of the fixed footer */
 @media (max-width: 700px) {
-  .footer-privacy {
-    position: static !important; /* Revert to static position on small screens */
-    width: 100%;
-    right: auto;
-    bottom: auto;
-    text-align: center;
-    margin-top: 28px; /* Space above when static */
-    margin-bottom: 8px; /* Space below when static */
-    pointer-events: auto; /* All clicks active */
-    background: none;
-  }
-  .privacy-link {
-    display: inline-block;
-    width: auto;
-    padding: 6px 18px; /* Larger clickable area on mobile */
-    margin: 0 auto; /* Center the link */
-    box-shadow: none;
-    background: none;
-    border: none;
-    opacity: 0.75;
-    color: #666;
-  }
+    .footer-privacy {
+        position: static !important; /* Revert to static position on small screens */
+        width: 100%;
+        right: auto;
+        bottom: auto;
+        text-align: center;
+        margin-top: 28px; /* Space above when static */
+        margin-bottom: 8px; /* Space below when static */
+        pointer-events: auto; /* All clicks active */
+        background: none;
+    }
+    .privacy-link {
+        display: inline-block;
+        width: auto;
+        padding: 6px 18px; /* Larger clickable area on mobile */
+        margin: 0 auto; /* Center the link */
+        box-shadow: none;
+        background: none;
+        border: none;
+        opacity: 0.75;
+        color: #666;
+    }
 }
 
-/********  PRIVACY MODAL  ********/
+/********  PRIVACY MODAL  ********/
 .privacy-modal {
-  display: none;
-  position: fixed;
-  top: 0; left: 0;
-  width: 100vw; height: 100vh;
-  background: rgba(0,0,0,0.26);
-  z-index: 2000;
-  align-items: center;
-  justify-content: center;
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.26);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
 }
 
 .privacy-modal-content {
-  background: #fff;
-  color: #333;
-  border-radius: 12px;
-  max-width: 360px;
-  margin: 40px auto;
-  padding: 28px 20px 16px 20px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-  position: relative;
+    background: #fff;
+    color: #333;
+    border-radius: 12px;
+    max-width: 360px;
+    margin: 40px auto;
+    padding: 28px 20px 16px 20px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    position: relative;
+    animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes modalSlideIn {
+    from { transform: scale(0.9); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
 }
 
 .privacy-modal-content h2 {
-  font-size: 1.1rem;
-  margin-top: 0;
-  color: #333;
+    font-size: 1.1rem;
+    margin-top: 0;
+    color: #333;
 }
 
 .privacy-modal-content p {
-  font-size: 0.98rem;
-  margin-bottom: 0;
-  line-height: 1.6;
+    font-size: 0.98rem;
+    margin-bottom: 0;
+    line-height: 1.6;
 }
 
 .privacy-close-btn {
-  margin-top: 16px;
-  float: right;
-  color: #888;
-  background: none;
-  border: none;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: color 0.2s;
+    margin-top: 16px;
+    float: right;
+    color: #888;
+    background: none;
+    border: none;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: color 0.2s ease;
 }
 
 .privacy-close-btn:hover,
 .privacy-close-btn:focus {
-  color: #555;
-  text-decoration: underline;
+    color: #555;
+    text-decoration: underline;
 }
+
 .hidden {
     display: none !important; /* Ensures the hidden element is not displayed */
+}
+
+/********  LOADING STATES  ********/
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/********  RESPONSIVE IMPROVEMENTS  ********/
+@media (max-width: 768px) {
+    .main-flex-layout {
+        flex-direction: column;
+        gap: 16px;
+    }
+    
+    .controls-card {
+        flex: none;
+        max-width: none;
+    }
+    
+    .canvas-card.sticky-canvas {
+        position: static;
+        min-width: auto;
+        max-width: none;
+        height: auto;
+        max-height: 70vh;
+    }
+    
+    .button-row {
+        justify-content: center;
+    }
+}
+
+/********  ACCESSIBILITY IMPROVEMENTS  ********/
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Focus indicators for better accessibility */
+button:focus,
+input:focus,
+select:focus {
+    outline: 2px solid #007bff;
+    outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .card {
+        border: 2px solid #000;
+    }
+    
+    fieldset {
+        border-color: #000;
+    }
+    
+    button {
+        border: 2px solid #000;
+    }
 }

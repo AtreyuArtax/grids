@@ -12,18 +12,47 @@ import {
 import { calculateDynamicMargins, toggleXAxisSettings } from './labels.js';
 import { drawGrid, downloadSVG } from './plotter.js';
 import { exportSVGtoPNG, exportSVGtoPDF } from './plotter.js';
+import { debounce } from './utils.js';
 
-document.getElementById('downloadSVG').addEventListener('click', downloadSVG);
-document.getElementById('exportPNG').addEventListener('click', exportSVGtoPNG);
-document.getElementById('exportPDF').addEventListener('click', () => exportSVGtoPDF());
+// Create debounced versions of expensive operations
+const debouncedCalculateAndDraw = debounce(() => {
+    calculateDynamicMargins();
+    drawGrid();
+}, 150);
+
+/**
+ * Safely gets an element by ID with error handling.
+ * @param {string} id - The element ID.
+ * @returns {Element|null} The element or null if not found.
+ */
+function safeGetElement(id) {
+    const element = document.getElementById(id);
+    if (!element) {
+        console.warn(`Element with ID '${id}' not found`);
+    }
+    return element;
+}
+
+/**
+ * Adds event listener with error handling.
+ * @param {Element} element - The element to add listener to.
+ * @param {string} event - The event type.
+ * @param {Function} handler - The event handler.
+ */
+function safeAddEventListener(element, event, handler) {
+    if (element && typeof handler === 'function') {
+        element.addEventListener(event, handler);
+    }
+}
 
 /**
  * Toggles the visibility of paper-style specific settings (e.g., Cartesian vs. Polar).
  */
 function togglePaperStyleSettings() {
-    const paperStyle = document.getElementById('paperStyle').value;
-    const polarControls = document.getElementById('polarControls');
-    const cartesianAxisSettings = document.getElementById('cartesianAxisSettings');
+    const paperStyleElement = safeGetElement('paperStyle');
+    const paperStyle = paperStyleElement ? paperStyleElement.value : 'grid';
+    const polarControls = safeGetElement('polarControls');
+    const cartesianAxisSettings = safeGetElement('cartesianAxisSettings');
 
     if (paperStyle === 'polar') {
         if (polarControls) polarControls.style.display = 'block';
@@ -46,226 +75,267 @@ function applyPreset(presetName) {
     }
 
     const preset = gridPresets[presetName];
-    if (preset) {
-        document.getElementById('squareSizeInput').value = preset.squareSizeInput;
-        document.getElementById('yMin').value = preset.yMin;
-        document.getElementById('yMax').value = preset.yMax;
-        document.getElementById('yIncrement').value = preset.yIncrement;
-        document.getElementById('yLabelEvery').value = preset.yLabelEvery;
-        document.getElementById('yAxisLabel').value = preset.yAxisLabel;
-        document.getElementById('yLabelOnZero').checked = preset.yLabelOnZero;
-        document.getElementById('yAxisLabelOnTop').checked = preset.yAxisLabelOnTop;
-
-        // X-Axis specific settings
-        document.getElementById('xAxisLabelType').value = preset.xAxisLabelType;
-        toggleXAxisSettings(); // Update visibility based on type
-
-        if (preset.xAxisLabelType === 'numbers' || preset.xAxisLabelType === 'degrees') {
-            document.getElementById('xMin').value = preset.xMin;
-            document.getElementById('xMax').value = preset.xMax;
-            document.getElementById('xIncrement').value = preset.xIncrement;
-        } else { // radians
-            document.getElementById('xMinRadians').value = preset.xMinRadians;
-            document.getElementById('xMaxRadians').value = preset.xMaxRadians;
-            document.getElementById('radianStepMultiplier').value = preset.radianStepMultiplier;
-            document.getElementById('xGridUnitsPerRadianStep').value = preset.xGridUnitsPerRadianStep;
-        }
-
-        document.getElementById('xLabelEvery').value = preset.xLabelEvery;
-        document.getElementById('xAxisLabel').value = preset.xAxisLabel;
-        document.getElementById('xLabelOnZero').checked = preset.xLabelOnZero;
-        document.getElementById('xAxisLabelOnRight').checked = preset.xAxisLabelOnRight;
-
-        // Global options
-        document.getElementById('suppressZeroLabel').checked = preset.suppressZeroLabel;
-        document.getElementById('showAxisArrows').checked = preset.showAxisArrows;
-
-        // Set grid line colours and update their visible displays if present in the preset
-        if (preset.minorGridColor) {
-            document.getElementById('minorGridColor').value = preset.minorGridColor;
-        }
-        if (preset.majorGridColor) {
-            document.getElementById('majorGridColor').value = preset.majorGridColor;
-        }
-        if (preset.equationColor) { // Assuming presets might have equationColor
-            document.getElementById('equationColor').value = preset.equationColor;
-        }
-
-
-        // When applying a preset, set the default state for the *current* equation input form's line arrows
-        document.getElementById('showLineArrows').checked = preset.showLineArrows;
-        equationSettings.lastShowLineArrowsValue = preset.showLineArrows;
-
-        // --- Add this for Show Axes ---
-        if (document.getElementById('showAxes')) {
-            document.getElementById('showAxes').checked = preset.showAxes;
-        }
-
-        // --- NEW: Paper Style (if present in the preset) ---
-        if (preset.paperStyle && document.getElementById('paperStyle')) {
-            document.getElementById('paperStyle').value = preset.paperStyle;
-        }
-
-        // --- NEW: Polar settings (if present in the preset) ---
-        if (preset.polarNumCircles !== undefined) {
-            document.getElementById('polarNumCircles').value = preset.polarNumCircles;
-        }
-        if (preset.polarNumRadials !== undefined) {
-            document.getElementById('polarNumRadials').value = preset.polarNumRadials;
-        }
-        if (preset.polarDegrees !== undefined) {
-            document.getElementById('polarDegrees').value = preset.polarDegrees;
-        }
-        
-        // Call togglePaperStyleSettings after setting paperStyle and polar values
-        togglePaperStyleSettings();
-
-        calculateDynamicMargins();
-        drawGrid();
+    if (!preset) {
+        console.warn(`Preset '${presetName}' not found`);
+        return;
     }
+
+    // Helper function to safely set element values
+    const safeSetValue = (id, value) => {
+        const element = safeGetElement(id);
+        if (element) {
+            if (element.type === 'checkbox') {
+                element.checked = value;
+            } else {
+                element.value = value;
+            }
+        }
+    };
+
+    // Apply preset values
+    safeSetValue('squareSizeInput', preset.squareSizeInput);
+    safeSetValue('yMin', preset.yMin);
+    safeSetValue('yMax', preset.yMax);
+    safeSetValue('yIncrement', preset.yIncrement);
+    safeSetValue('yLabelEvery', preset.yLabelEvery);
+    safeSetValue('yAxisLabel', preset.yAxisLabel);
+    safeSetValue('yLabelOnZero', preset.yLabelOnZero);
+    safeSetValue('yAxisLabelOnTop', preset.yAxisLabelOnTop);
+
+    // X-Axis specific settings
+    safeSetValue('xAxisLabelType', preset.xAxisLabelType);
+    toggleXAxisSettings(); // Update visibility based on type
+
+    if (preset.xAxisLabelType === 'numbers' || preset.xAxisLabelType === 'degrees') {
+        safeSetValue('xMin', preset.xMin);
+        safeSetValue('xMax', preset.xMax);
+        safeSetValue('xIncrement', preset.xIncrement);
+    } else { // radians
+        safeSetValue('xMinRadians', preset.xMinRadians);
+        safeSetValue('xMaxRadians', preset.xMaxRadians);
+        safeSetValue('radianStepMultiplier', preset.radianStepMultiplier);
+        safeSetValue('xGridUnitsPerRadianStep', preset.xGridUnitsPerRadianStep);
+    }
+
+    safeSetValue('xLabelEvery', preset.xLabelEvery);
+    safeSetValue('xAxisLabel', preset.xAxisLabel);
+    safeSetValue('xLabelOnZero', preset.xLabelOnZero);
+    safeSetValue('xAxisLabelOnRight', preset.xAxisLabelOnRight);
+
+    // Global options
+    safeSetValue('suppressZeroLabel', preset.suppressZeroLabel);
+    safeSetValue('showAxisArrows', preset.showAxisArrows);
+
+    // Set grid line colours
+    if (preset.minorGridColor) safeSetValue('minorGridColor', preset.minorGridColor);
+    if (preset.majorGridColor) safeSetValue('majorGridColor', preset.majorGridColor);
+    if (preset.equationColor) safeSetValue('equationColor', preset.equationColor);
+
+    // Line arrows and axes
+    safeSetValue('showLineArrows', preset.showLineArrows);
+    equationSettings.lastShowLineArrowsValue = preset.showLineArrows;
+    safeSetValue('showAxes', preset.showAxes);
+
+    // Paper style and polar settings
+    if (preset.paperStyle) safeSetValue('paperStyle', preset.paperStyle);
+    if (preset.polarNumCircles !== undefined) safeSetValue('polarNumCircles', preset.polarNumCircles);
+    if (preset.polarNumRadials !== undefined) safeSetValue('polarNumRadials', preset.polarNumRadials);
+    if (preset.polarDegrees !== undefined) safeSetValue('polarDegrees', preset.polarDegrees);
+    
+    togglePaperStyleSettings();
+    calculateDynamicMargins();
+    drawGrid();
 }
 
-// Event listeners for the DOMContentLoaded event to initialize the application.
-document.addEventListener('DOMContentLoaded', () => {
-    // Control declarations
-    const downloadButton = document.getElementById('downloadSVG');
-    const gridPresetSelect = document.getElementById('gridPreset');
-    const xAxisLabelTypeSelect = document.getElementById('xAxisLabelType');
-    const addOrUpdateEquationButton = document.getElementById('addOrUpdateEquationButton');
-    const cancelEditButton = document.getElementById('cancelEditButton');
-    const equationLabelTypeSelect = document.getElementById('equationLabelType');
-    const inequalityTypeSelect = document.getElementById('inequalityType');
-    const showAxisArrowsCheckbox = document.getElementById('showAxisArrows');
-    const showLineArrowsCheckbox = document.getElementById('showLineArrows');
-    const allColorSwatches = document.querySelectorAll('.color-swatch');
-    const paperStyleSelect = document.getElementById('paperStyle');
-
-    // --- Color swatch logic ---
+/**
+ * Sets up color swatch functionality.
+ */
+function setupColorSwatches() {
     document.querySelectorAll('.color-input-wrapper').forEach(wrapper => {
         const colorInput = wrapper.querySelector('input[type="color"]');
+        if (!colorInput) return;
+        
         wrapper.querySelectorAll('.color-swatch').forEach(swatch => {
-            swatch.addEventListener('click', function(e) {
+            safeAddEventListener(swatch, 'click', function(e) {
                 const color = this.getAttribute('data-color');
-                colorInput.value = color;
-                // Trigger input event so any listeners update
-                colorInput.dispatchEvent(new Event('input', { bubbles: true }));
-                // Prevent color picker from opening
+                if (color) {
+                    colorInput.value = color;
+                    // Trigger input event so any listeners update
+                    colorInput.dispatchEvent(new Event('input', { bubbles: true }));
+                }
                 e.preventDefault();
             });
         });
     });
+}
 
-
-    // Universal input listeners - This covers all input types including input[type="color"]
-    // when changes occur from native picker or via script (like from swatches)
+/**
+ * Sets up universal input listeners for grid updates.
+ */
+function setupInputListeners() {
     const inputs = document.querySelectorAll(
         '.controls-group input[type="number"], ' +
         '.controls-group input[type="text"], ' +
-        '.controls-group input[type="color"], ' + /* Now explicitly include color inputs here */
+        '.controls-group input[type="color"], ' +
         '.controls-group input[type="checkbox"]:not(#showLineArrows), ' +
         '#equationLineStyle, ' +
         '#inequalityType'
     );
+    
     inputs.forEach(input => {
-        input.addEventListener('input', () => {
-            gridPresetSelect.value = 'custom';
-            calculateDynamicMargins();
-            drawGrid();
+        safeAddEventListener(input, 'input', () => {
+            const gridPresetSelect = safeGetElement('gridPreset');
+            if (gridPresetSelect) gridPresetSelect.value = 'custom';
+            debouncedCalculateAndDraw();
         });
-        input.addEventListener('change', () => {
-            gridPresetSelect.value = 'custom';
-            calculateDynamicMargins();
-            drawGrid();
+        
+        safeAddEventListener(input, 'change', () => {
+            const gridPresetSelect = safeGetElement('gridPreset');
+            if (gridPresetSelect) gridPresetSelect.value = 'custom';
+            debouncedCalculateAndDraw();
         });
     });
+}
 
-
-    // Show Axis Arrows checkbox
-    showAxisArrowsCheckbox.addEventListener('change', () => {
-        gridPresetSelect.value = 'custom';
-        calculateDynamicMargins();
-        drawGrid();
-    });
-
-    // Grid preset dropdown
-    gridPresetSelect.addEventListener('change', (event) => {
-        applyPreset(event.target.value);
-    });
-
-    // X-axis label type dropdown
-    xAxisLabelTypeSelect.addEventListener('change', () => {
-        toggleXAxisSettings();
-        document.getElementById('gridPreset').value = 'custom';
-        calculateDynamicMargins();
-        drawGrid();
-    });
-
-    // Equation plotting controls
-    addOrUpdateEquationButton.addEventListener('click', handleEquationSubmit);
-    cancelEditButton.addEventListener('click', resetEquationInputsAndButtons);
-    equationLabelTypeSelect.addEventListener('change', toggleCustomLabelInput);
-
-    // --- Paper Style dropdown ---
-    if (paperStyleSelect) {
-        paperStyleSelect.addEventListener('change', () => {
-            gridPresetSelect.value = 'custom'; // Set preset to custom when user changes paper style
-            togglePaperStyleSettings(); // Toggle visibility
-            drawGrid(); // Redraw with new paper style
-        });
-    }
-
-    // --- Polar input listeners ---
-    ['polarNumCircles', 'polarNumRadials', 'polarDegrees'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) { // Ensure element exists before adding listener
-            el.addEventListener('input', () => {
-                document.getElementById('gridPreset').value = 'custom';
-                drawGrid();
-            });
-        }
-    });
-
-
-    // Collapse fieldsets (collapsible menus)
+/**
+ * Sets up collapsible fieldsets.
+ */
+function setupCollapsibleFieldsets() {
     const collapsibleFieldsets = document.querySelectorAll('.controls-card fieldset.collapsible');
     collapsibleFieldsets.forEach(fieldset => {
         const legend = fieldset.querySelector('legend');
         // Exclude the 'Grid Presets' fieldset from collapsing behavior
-        if (legend && fieldset.id !== 'gridPresetsFieldset') { // Added an ID for Grid Presets fieldset in HTML
-            legend.addEventListener('click', () => {
+        if (legend && fieldset.id !== 'gridPresetsFieldset') {
+            safeAddEventListener(legend, 'click', () => {
                 fieldset.classList.toggle('collapsed');
             });
         }
     });
-    // Show axes check box
-    const showAxesCheckbox = document.getElementById('showAxes');
-    if (showAxesCheckbox) {
-        showAxesCheckbox.addEventListener('change', () => {
-            document.getElementById('gridPreset').value = 'custom';
+}
+
+/**
+ * Sets up polar input listeners.
+ */
+function setupPolarListeners() {
+    ['polarNumCircles', 'polarNumRadials', 'polarDegrees'].forEach(id => {
+        const element = safeGetElement(id);
+        if (element) {
+            safeAddEventListener(element, 'input', () => {
+                const gridPresetSelect = safeGetElement('gridPreset');
+                if (gridPresetSelect) gridPresetSelect.value = 'custom';
+                drawGrid();
+            });
+        }
+    });
+}
+
+/**
+ * Initializes default fieldset states.
+ */
+function initializeFieldsetStates() {
+    // Ensure 'Grid Presets' is not collapsed on load
+    const gridPresetsFieldset = safeGetElement('gridPresetsFieldset');
+    if (gridPresetsFieldset) {
+        gridPresetsFieldset.classList.remove('collapsed');
+    }
+    
+    // Collapse other fieldsets by default
+    const fieldsetsToCollapse = [
+        'generalSettings',
+        'yAxisSettings', 
+        'xAxisSettings',
+        'equationPlotting'
+    ];
+    
+    fieldsetsToCollapse.forEach(id => {
+        const fieldset = safeGetElement(id);
+        if (fieldset) fieldset.classList.add('collapsed');
+    });
+}
+
+// Event listeners for the DOMContentLoaded event to initialize the application.
+document.addEventListener('DOMContentLoaded', () => {
+    try {
+        // Export button listeners
+        safeAddEventListener(safeGetElement('downloadSVG'), 'click', downloadSVG);
+        safeAddEventListener(safeGetElement('exportPNG'), 'click', exportSVGtoPNG);
+        safeAddEventListener(safeGetElement('exportPDF'), 'click', () => exportSVGtoPDF());
+
+        // Setup color swatches
+        setupColorSwatches();
+
+        // Setup input listeners
+        setupInputListeners();
+
+        // Show Axis Arrows checkbox
+        const showAxisArrowsCheckbox = safeGetElement('showAxisArrows');
+        safeAddEventListener(showAxisArrowsCheckbox, 'change', () => {
+            const gridPresetSelect = safeGetElement('gridPreset');
+            if (gridPresetSelect) gridPresetSelect.value = 'custom';
+            calculateDynamicMargins();
             drawGrid();
         });
-    }
 
-    // Collapse all fieldsets by default except Grid Presets
-    // Ensure 'Grid Presets' is not collapsed on load
-    const gridPresetsFieldset = document.getElementById('gridPresetsFieldset'); // Get reference to grid presets fieldset
-    if (gridPresetsFieldset) {
-        gridPresetsFieldset.classList.remove('collapsed'); // Ensure it starts expanded
-    }
-    const generalSettingsFieldset = document.getElementById('generalSettings');
-    if (generalSettingsFieldset) generalSettingsFieldset.classList.add('collapsed');
-    const yAxisSettingsFieldset = document.getElementById('yAxisSettings');
-    if (yAxisSettingsFieldset) yAxisSettingsFieldset.classList.add('collapsed');
-    const xAxisSettingsFieldset = document.getElementById('xAxisSettings');
-    if (xAxisSettingsFieldset) xAxisSettingsFieldset.classList.add('collapsed');
-    const equationPlottingFieldset = document.getElementById('equationPlotting');
-    if (equationPlottingFieldset) equationPlottingFieldset.classList.add('collapsed');
+        // Grid preset dropdown
+        const gridPresetSelect = safeGetElement('gridPreset');
+        safeAddEventListener(gridPresetSelect, 'change', (event) => {
+            applyPreset(event.target.value);
+        });
 
-    // Initial setup calls
-    toggleXAxisSettings();
-    toggleCustomLabelInput();
-    togglePaperStyleSettings(); // Call this on initial load to set correct visibility
-    calculateDynamicMargins(); // Initial calculation of all margins
-    applyPreset(gridPresetSelect.value);
-    renderEquationsList();
+        // X-axis label type dropdown
+        const xAxisLabelTypeSelect = safeGetElement('xAxisLabelType');
+        safeAddEventListener(xAxisLabelTypeSelect, 'change', () => {
+            toggleXAxisSettings();
+            const gridPresetSelect = safeGetElement('gridPreset');
+            if (gridPresetSelect) gridPresetSelect.value = 'custom';
+            calculateDynamicMargins();
+            drawGrid();
+        });
+
+        // Equation plotting controls
+        safeAddEventListener(safeGetElement('addOrUpdateEquationButton'), 'click', handleEquationSubmit);
+        safeAddEventListener(safeGetElement('cancelEditButton'), 'click', resetEquationInputsAndButtons);
+        safeAddEventListener(safeGetElement('equationLabelType'), 'change', toggleCustomLabelInput);
+
+        // Paper Style dropdown
+        const paperStyleSelect = safeGetElement('paperStyle');
+        safeAddEventListener(paperStyleSelect, 'change', () => {
+            const gridPresetSelect = safeGetElement('gridPreset');
+            if (gridPresetSelect) gridPresetSelect.value = 'custom';
+            togglePaperStyleSettings();
+            drawGrid();
+        });
+
+        // Setup polar listeners
+        setupPolarListeners();
+
+        // Setup collapsible fieldsets
+        setupCollapsibleFieldsets();
+
+        // Show axes checkbox
+        const showAxesCheckbox = safeGetElement('showAxes');
+        safeAddEventListener(showAxesCheckbox, 'change', () => {
+            const gridPresetSelect = safeGetElement('gridPreset');
+            if (gridPresetSelect) gridPresetSelect.value = 'custom';
+            drawGrid();
+        });
+
+        // Initialize fieldset states
+        initializeFieldsetStates();
+
+        // Initial setup calls
+        toggleXAxisSettings();
+        toggleCustomLabelInput();
+        togglePaperStyleSettings();
+        calculateDynamicMargins();
+        
+        // Apply initial preset
+        const initialPreset = gridPresetSelect ? gridPresetSelect.value : 'negativeAndPositive';
+        applyPreset(initialPreset);
+        
+        renderEquationsList();
+        
+    } catch (error) {
+        console.error('Error during initialization:', error);
+    }
 });
