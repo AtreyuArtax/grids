@@ -4,12 +4,69 @@ import { calculateDynamicMargins, dynamicMarginLeft, dynamicMarginRight,
          dynamicMarginTop, dynamicMarginBottom, doesOverlap } from './labels.js';
 import { equationsToDraw } from './equations.js'; // Assuming equationsToDraw is a mutable array where labelPosition can be updated.
 
+// Math.js is needed for compiling expressions for plotting
+// Ensure math.js is loaded in index.html like:
+// <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.0/math.js"></script>
+let math;
+if (typeof window !== 'undefined' && window.math) {
+    math = window.math;
+} else {
+    console.error("math.js library not found. Please ensure it is loaded.");
+    // Fallback or error handling if math.js is not available
+    math = { compile: (expr) => ({ evaluate: (scope) => NaN }) }; // Dummy math object
+}
+
+
 // --- Global variables for drag functionality ---
 let currentDraggedLabel = null;
 let startX = 0; // Initial mouse X coordinate
 let startY = 0; // Initial mouse Y coordinate
 let initialLabelX = 0; // Initial label X coordinate
 let initialLabelY = 0; // Initial label Y coordinate
+
+// --- Global variable for live equation preview ---
+let previewEquation = null;
+
+/**
+ * Sets the equation to be displayed as a live preview.
+ * This function should be called whenever the user types into the equation input field.
+ * @param {Object|null} eqData - An object containing the equation data (rawExpression, color, etc.)
+ * or null to clear the preview.
+ * Must include 'rawExpression' and 'color'.
+ * Optionally includes 'lineStyle', 'inequalityType', 'domainStart', 'domainEnd'.
+ * @returns {void}
+ */
+export function setPreviewEquation(eqData) {
+    if (eqData && eqData.rawExpression) {
+        try {
+            // Compile the expression for efficiency during plotting
+            const compiledExpression = math.compile(eqData.rawExpression);
+            previewEquation = {
+                ...eqData,
+                compiledExpression: compiledExpression,
+                // Assign a temporary unique ID for the preview, if needed for any internal tracking
+                id: 'preview-eq',
+                // Default styles for preview
+                color: eqData.color || '#888888', // Default to a neutral gray if no color is provided
+                lineStyle: 'dashed', // Always dashed line for preview (can be made configurable later)
+                isPreview: true, // Flag to easily identify preview equation in drawGrid
+                labelType: 'none', // No label for preview
+                showLineArrows: false // No arrows for preview
+                // inequalityType is now directly taken from eqData, allowing preview shading
+            };
+        } catch (e) {
+            // If the expression is invalid, clear the preview or show an error
+            previewEquation = null;
+            console.warn("Invalid expression for preview:", eqData.rawExpression, e);
+            // Optionally, update a UI element to show an error message
+        }
+    } else {
+        previewEquation = null;
+    }
+    // Redraw the grid to show/hide the preview
+    drawGrid();
+}
+
 
 /**
  * Creates an SVG element with the specified tag name and attributes.
@@ -308,7 +365,7 @@ export function exportSVGtoPDF(svgId = 'gridSVG') {
     // Calculate the scale factor to fit the SVG entirely within the usable area.
     // This ensures the SVG is scaled down if too large, or scaled up if too small,
     // while maintaining its aspect ratio and fitting within the margins.
-    const scale = Math.min(usableW / svgOriginalWidth, usableH / svgOriginalHeight);
+    const scale = Math.min(usableW / svgOriginalWidth, usableH / usableH);
 
     // Calculate the final dimensions of the SVG content when drawn on the PDF
     const scaledContentW = svgOriginalWidth * scale;
@@ -607,6 +664,7 @@ function drawAxisLabelsAndLines(axisOptions, gridOptions, gridGroup) {
  * @param {Object} gridOptions - General grid drawing options.
  */
 function drawEquationShading(equationGroup, eq, segments, gridOptions) {
+    // Skip shading if inequality type is not defined or is '='
     if (!eq.inequalityType || eq.inequalityType === '=') {
         return;
     }
@@ -691,7 +749,8 @@ function drawEquationShading(equationGroup, eq, segments, gridOptions) {
  * @param {Object} gridOptions - General grid drawing options.
  */
 function drawEquationEndpoints(equationGroup, eq, segments, gridOptions) {
-    if (!eq.showLineArrows || segments.length === 0) {
+    // Skip endpoints for preview equations
+    if (eq.isPreview || !eq.showLineArrows || segments.length === 0) {
         return;
     }
 
@@ -735,7 +794,7 @@ function drawEquationEndpoints(equationGroup, eq, segments, gridOptions) {
         return { x: pInside.x + tBest * dx, y: pInside.y + tBest * dy };
     }
 
-    function createEndpointDot(x, y, color, r = 3) {
+    function createEndpointDot(x, y, color, r = 2) { //this changes the size of the equation end point dot.
         return createSVGElement('circle', {
             cx: x,
             cy: y,
@@ -831,6 +890,11 @@ function drawEquationEndpoints(equationGroup, eq, segments, gridOptions) {
  * @param {Array<Array<Object>>} segments - Array of line segments for the equation, used for auto-positioning.
  */
 function placeEquationLabel(equationGroup, eq, labelText, gridOptions, placedLabelRects, segments) {
+    // Skip labels for preview equations
+    if (eq.isPreview) {
+        return;
+    }
+
     const { offsetX, offsetY, actualGridWidth, actualGridHeight, equationLabelFontSize,
             xMin, yMin, yIncrement, minorSquareSize, xValuePerMinorSquare, currentXAxisLabelType } = gridOptions;
 
@@ -960,7 +1024,9 @@ function placeEquationLabel(equationGroup, eq, labelText, gridOptions, placedLab
                 labelTextEl.setAttribute('text-anchor', chosenAnchor);
                 labelTextEl.setAttribute('alignment-baseline', chosenBaseline);
                 equationGroup.appendChild(labelTextEl);
-                placedLabelRects.push(labelTextEl.getBBox());
+                if (!eq.labelPosition) { // Only add to placed labels if it's auto-positioned
+                     placedLabelRects.push(labelTextEl.getBBox());
+                }
             }
         } else {
             return; // No suitable reference point found
@@ -968,12 +1034,13 @@ function placeEquationLabel(equationGroup, eq, labelText, gridOptions, placedLab
     }
 
     if (!labelTextEl.parentNode) {
+        // If label was not appended during auto-positioning, append it with default or custom position
         labelTextEl.setAttribute('x', proposedLabelX);
         labelTextEl.setAttribute('y', proposedLabelY);
         labelTextEl.setAttribute('text-anchor', chosenAnchor);
         labelTextEl.setAttribute('alignment-baseline', chosenBaseline);
         equationGroup.appendChild(labelTextEl);
-        if (!eq.labelPosition) {
+        if (!eq.labelPosition) { // Only add to placed labels if it's auto-positioned
              placedLabelRects.push(labelTextEl.getBBox());
         }
     }
@@ -1326,9 +1393,14 @@ if (gridOptions.showAxisArrows) {
     // Stores bounding boxes of already placed labels.
     const placedLabelRects = [];
 
+    // Combine actual equations and the preview equation for plotting
+    const allEquationsToPlot = [...equationsToDraw];
+    if (previewEquation) {
+        allEquationsToPlot.push(previewEquation);
+    }
 
     // --- Draw Equations ---
-    equationsToDraw.forEach(eq => {
+    allEquationsToPlot.forEach(eq => {
         const equationGroup = createSVGElement('g');
         svg.appendChild(equationGroup);
 
@@ -1390,6 +1462,8 @@ if (gridOptions.showAxisArrows) {
         }
 
         // Draw shading
+        // The check for eq.isPreview is removed to allow shading for preview equations.
+        // Shading is still skipped if inequalityType is not defined or is '=' within drawEquationShading.
         drawEquationShading(equationGroup, eq, segments, {
             offsetX: gridOptions.offsetX, offsetY: gridOptions.offsetY,
             actualGridWidth: gridOptions.actualGridWidth, actualGridHeight: gridOptions.actualGridHeight,
@@ -1400,10 +1474,14 @@ if (gridOptions.showAxisArrows) {
 
         // Draw line
         const stroke = eq.color;
-        const equationLineThickness = Math.max(1.2, Math.min(gridOptions.minorSquareSize * 0.06, 3.5));
+        // Use a slightly thinner line for preview, or a specific color if desired
+        const equationLineThickness = eq.isPreview ?
+                                     Math.max(0.8, Math.min(gridOptions.minorSquareSize * 0.04, 2)) : // Thinner for preview
+                                     Math.max(1.2, Math.min(gridOptions.minorSquareSize * 0.06, 3.5));
         let strokeDasharray = LINE_STYLES[eq.lineStyle] || "0";
 
-        if (eq.inequalityType === '<' || eq.inequalityType === '>') {
+        // Always dashed for preview inequalities or strict inequalities for non-preview
+        if (eq.isPreview || eq.inequalityType === '<' || eq.inequalityType === '>') {
             strokeDasharray = LINE_STYLES.dashed;
         }
 
@@ -1416,12 +1494,14 @@ if (gridOptions.showAxisArrows) {
                 'stroke-width': equationLineThickness,
                 'stroke-dasharray': strokeDasharray,
                 fill: 'none',
-                'clip-path': 'url(#gridClip)'
+                'clip-path': 'url(#gridClip)',
+                // Add opacity for preview lines (both line and shading)
+                'stroke-opacity': eq.isPreview ? 0.6 : 1
             });
             equationGroup.appendChild(path);
         });
 
-        // Draw line arrows and domain dots
+        // Draw line arrows and domain dots (skipped for preview equations in drawEquationEndpoints)
         drawEquationEndpoints(equationGroup, eq, segments, {
             offsetX: gridOptions.offsetX, offsetY: gridOptions.offsetY,
             actualGridWidth: gridOptions.actualGridWidth, actualGridHeight: gridOptions.actualGridHeight,
@@ -1430,7 +1510,7 @@ if (gridOptions.showAxisArrows) {
             currentXAxisLabelType: gridOptions.xAxisLabelType
         });
 
-        // Label Placement
+        // Label Placement (skipped for preview equations in placeEquationLabel)
         let labelText = '';
         if (eq.labelType === 'custom' && eq.customLabel.trim() !== '') {
             labelText = formatEquationTextForDisplay(eq.customLabel);

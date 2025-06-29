@@ -7,10 +7,10 @@ import {
     resetEquationInputsAndButtons,
     renderEquationsList,
     toggleCustomLabelInput,
-    equationSettings
-} from './equations.js'; // Import equationSettings object
+    equationSettings // Import equationSettings object
+} from './equations.js';
 import { calculateDynamicMargins, toggleXAxisSettings } from './labels.js';
-import { drawGrid, downloadSVG } from './plotter.js';
+import { drawGrid, downloadSVG, setPreviewEquation } from './plotter.js'; // Import setPreviewEquation
 import { exportSVGtoPNG, exportSVGtoPDF } from './plotter.js';
 import { debounce } from './utils.js';
 
@@ -19,6 +19,11 @@ const debouncedCalculateAndDraw = debounce(() => {
     calculateDynamicMargins();
     drawGrid();
 }, 150);
+
+// Debounced function specifically for live equation preview to reduce redraw frequency
+const debouncedSetPreviewEquation = debounce((eqData) => {
+    setPreviewEquation(eqData);
+}, 100); // A shorter debounce for a more "live" feel for equation input
 
 /**
  * Safely gets an element by ID with error handling.
@@ -253,6 +258,74 @@ function initializeFieldsetStates() {
     });
 }
 
+/**
+ * Handles the live preview of the equation as the user types.
+ */
+function setupEquationLivePreview() {
+    const equationInput = safeGetElement('equationInput');
+    const equationColorInput = safeGetElement('equationColor');
+    const equationLineStyleSelect = safeGetElement('equationLineStyle');
+    const inequalityTypeSelect = safeGetElement('inequalityType');
+    const domainStartInput = safeGetElement('domainStart');
+    const domainEndInput = safeGetElement('domainEnd');
+
+    if (equationInput) {
+        safeAddEventListener(equationInput, 'input', () => {
+            const rawExpression = equationInput.value;
+            const color = equationColorInput ? equationColorInput.value : '#000000'; // Default color
+            const lineStyle = equationLineStyleSelect ? equationLineStyleSelect.value : 'solid';
+            const inequalityType = inequalityTypeSelect ? inequalityTypeSelect.value : '=';
+
+            const domainStart = domainStartInput && domainStartInput.value !== '' ? parseFloat(domainStartInput.value) : null;
+            const domainEnd = domainEndInput && domainEndInput.value !== '' ? parseFloat(domainEndInput.value) : null;
+
+            debouncedSetPreviewEquation({
+                rawExpression,
+                color,
+                lineStyle,
+                inequalityType,
+                domainStart,
+                domainEnd
+            });
+        });
+
+        // Also trigger preview when other equation settings change
+        [equationColorInput, equationLineStyleSelect, inequalityTypeSelect, domainStartInput, domainEndInput].forEach(element => {
+            if (element) {
+                safeAddEventListener(element, 'change', () => {
+                     // Trigger the equation input's 'input' event to refresh preview
+                    equationInput.dispatchEvent(new Event('input', { bubbles: true }));
+                });
+            }
+        });
+    }
+}
+
+
+// Override handleEquationSubmit and resetEquationInputsAndButtons to clear preview
+const originalHandleEquationSubmit = handleEquationSubmit;
+Object.defineProperty(window, 'handleEquationSubmit', { // Use window.handleEquationSubmit if it's global
+    value: async function(...args) {
+        await originalHandleEquationSubmit.apply(this, args);
+        setPreviewEquation(null); // Clear preview after submission
+    },
+    writable: true
+});
+
+const originalResetEquationInputsAndButtons = resetEquationInputsAndButtons;
+Object.defineProperty(window, 'resetEquationInputsAndButtons', {
+    value: function(...args) {
+        originalResetEquationInputsAndButtons.apply(this, args);
+        setPreviewEquation(null);
+        // Restore the last used value for "Show arrows"
+        const showLineArrowsCheckbox = safeGetElement('showLineArrows');
+        if (showLineArrowsCheckbox && equationSettings.lastShowLineArrowsValue !== undefined) {
+            showLineArrowsCheckbox.checked = equationSettings.lastShowLineArrowsValue;
+        }
+    },
+    writable: true
+});
+
 // Event listeners for the DOMContentLoaded event to initialize the application.
 document.addEventListener('DOMContentLoaded', () => {
     try {
@@ -293,8 +366,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Equation plotting controls
+        // Removed direct listeners for equation submission here as they are handled by setupEquationLivePreview
+        // and the overrides above.
+        // It's assumed that handleEquationSubmit and resetEquationInputsAndButtons are either imported
+        // and attached elsewhere, or expected to be global functions.
+        // The original listeners are re-added here, but their behavior is now wrapped.
         safeAddEventListener(safeGetElement('addOrUpdateEquationButton'), 'click', handleEquationSubmit);
         safeAddEventListener(safeGetElement('cancelEditButton'), 'click', resetEquationInputsAndButtons);
+
         safeAddEventListener(safeGetElement('equationLabelType'), 'change', toggleCustomLabelInput);
 
         // Paper Style dropdown
@@ -320,8 +399,19 @@ document.addEventListener('DOMContentLoaded', () => {
             drawGrid();
         });
 
+        // Track the last state of the "Show arrows for this equation" checkbox
+        const showLineArrowsCheckbox = safeGetElement('showLineArrows');
+        if (showLineArrowsCheckbox) {
+            safeAddEventListener(showLineArrowsCheckbox, 'change', () => {
+                equationSettings.lastShowLineArrowsValue = showLineArrowsCheckbox.checked;
+            });
+        }
+
         // Initialize fieldset states
         initializeFieldsetStates();
+
+        // Setup equation live preview
+        setupEquationLivePreview();
 
         // Initial setup calls
         toggleXAxisSettings();
