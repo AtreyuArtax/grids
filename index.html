@@ -320,12 +320,25 @@ The label positions <b>will reset</b> if any grid settings are changed (min/max 
     </div>
 
     <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js');
-      });
-    }
-    </script>
+if ('serviceWorker' in navigator) {
+  (async () => {
+    // Keep this in sync with VERSION above (or compute from build tools)
+    const versionTag = '2025-08-18-1';
+    const reg = await navigator.serviceWorker.register(`/sw.js?v=${versionTag}`);
+
+    // Check for update right now (i.e., on app open)
+    reg.update().catch(() => {});
+
+    // When the new SW takes control, reload to show the new version
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (refreshing) return;
+      refreshing = true;
+      window.location.reload();
+    });
+  })();
+}
+</script>
     <!-- Privacy Policy Modal -->
 <div id="privacyPolicyModal" class="privacy-modal">
     <div class="privacy-modal-content">
