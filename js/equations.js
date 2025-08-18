@@ -1,7 +1,8 @@
 // This module manages the collection of equations, their state, and rendering.
 import { showMessageBox, formatEquationTextForDisplay, safeParseFloat, safeParseInt } from './utils.js';
 import { calculateDynamicMargins } from './labels.js';
-import { drawGrid } from './plotter.js'; // Assuming drawGrid needs to be called after equation changes
+// Import setPreviewEquation so we can clear the live preview when an equation is added/updated
+import { drawGrid, setPreviewEquation } from './plotter.js';
 
 export let equationsToDraw = []; // Array to store all equations
 export let nextEquationId = 0; // Simple ID counter for equations
@@ -113,6 +114,12 @@ export function handleEquationSubmit() {
         equationsToDraw.push(newOrUpdatedEquation);
     }
 
+    // 🔑 Clear any live preview once the equation is officially added/updated
+    // This removes the dashed "live equation example" line.
+    if (typeof setPreviewEquation === 'function') {
+        setPreviewEquation(null);
+    }
+
     resetEquationInputsAndButtons();
     renderEquationsList();
     calculateDynamicMargins(); // Recalculate all margins after adding/updating
@@ -184,6 +191,11 @@ export function resetEquationInputsAndButtons() {
     button.textContent = 'Add Equation';
     button.style.backgroundColor = '#007bff';
     document.getElementById('cancelEditButton').classList.add('hidden');
+
+    // (Optional safety) Also clear any preview when resetting inputs
+    if (typeof setPreviewEquation === 'function') {
+        setPreviewEquation(null);
+    }
 }
 
 /**
