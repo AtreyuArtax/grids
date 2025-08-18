@@ -214,8 +214,21 @@
                 <legend>
                     <span class="info-icon" tabindex="0" aria-describedby="labelInfoTooltip">i</span>
                     <span class="info-tooltip" id="labelInfoTooltip" role="tooltip">
-                        Set your grid style and dimensions <b>before</b> moving labels. <br><br>
-                        Your label positions <b>will reset</b> if you change anything about the grid (min/max values, increments, axes arrow on/off, suppress '0', etc.)
+                       Add all equations and set grid style and dimensions <b>before</b> moving labels. <br><br>
+The label positions <b>will reset</b> if any grid settings are changed (min/max values, increments, axes arrow on/off, suppress '0', etc.). 
+<br><br>
+
+<b>Equation Functions</b>
+<ul style="margin:6px 0 0 18px; padding:0;">
+  <li><b>Operators:</b> +, −, *, /, ^ (exponent), parentheses (). Implied multiplication supported (e.g., <code>2x</code>, <code>(x)(x+1)</code>).</li>
+  <li><b>Trig:</b> <code>sin</code>, <code>cos</code>, <code>tan</code>, <code>sec</code>, <code>csc</code>, <code>cot</code>; inverses <code>asin</code>, <code>acos</code>, <code>atan</code>; hyperbolic <code>sinh</code>, <code>cosh</code>, <code>tanh</code>, and inverses <code>asinh</code>, <code>acosh</code>, <code>atanh</code>. Angles are in <b>radians</b>; use units for degrees (e.g., <code>sin(30 deg)</code>).</li>
+  <li><b>Exponentials & logs:</b> <code>exp(x)</code> is <i>e^x</i> (you can write <code>exp(x)</code> <b>or</b> <code>e^x</code>). <code>log(x)</code> is the natural log (<i>ln(x)</i>). For other bases use <code>log(x, b)</code> or the shortcuts <code>log10(x)</code>, <code>log2(x)</code>.</li>
+  <li><b>Roots & powers:</b> <code>sqrt(x)</code>, <code>nthRoot(x, n)</code>. Use <code>^</code> for powers (e.g., <code>x^2</code>).</li>
+  <li><b>Other common:</b> <code>abs</code>, <code>sign</code>, <code>floor</code>, <code>ceil</code>, <code>round</code>, <code>min</code>, <code>max</code>, <code>mod</code>, <code>hypot</code>.</li>
+  <li><b>Constants:</b> <code>pi</code>, <code>e</code>, <code>tau</code>.</li>
+  <li><b>Examples:</b> <code>x^2</code>, <code>3x+5</code>, <code>sin(x)</code>, <code>e^x*cos(x)</code>, <code>log10(x)</code>.</li>
+</ul>
+
                     </span>
                     Equation Plotting
                     <span class="toggle-icon">▼</span>
@@ -240,7 +253,8 @@
                     <label>Equation:
                         <!-- Updated title attribute to reflect math.js syntax -->
                         <input type="text" id="equationInput" placeholder="e.g., sin(x), x^2, -1/2x+3"
-                                 title="Enter functions using math.js syntax (e.g., sin(x), cos(x), tan(x), sqrt(x), log(x), abs(x), pi, e). Use ^ for exponentiation (e.g., x^2). Examples: x^2, 3x + 5. Implied multiplication (e.g., 2x) is supported.">
+                                 title="Enter functions using math.js syntax (e.g., sin(x), cos(x), tan(x), asin(x), acos(x), atan(x), sqrt(x), abs(x), exp(x), log(x)=ln(x), log10(x), log2(x), nthRoot(x,n), pi, e). Use ^ for exponentiation (e.g., x^2). Implied multiplication is supported (e.g., 2x). Angles are in radians by default.
+">
                     </label>
                     <label>Domain Start (optional):
                         <input type="number" id="domainStart" placeholder="e.g., -3" step="any" title="Minimum x-value for the function's domain.">

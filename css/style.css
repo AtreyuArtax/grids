@@ -282,11 +282,11 @@ button:disabled {
 }
 
 .info-tooltip {
-    display: none;                /* Hide the tooltip by default; shown on hover/focus of the icon */
-    position: absolute;           /* Position relative to the nearest positioned ancestor (legend) */
-    left: 2.7em;                  /* Offset tooltip horizontally to the right of the info icon */
-    top: 50%;                     /* Vertically center the tooltip relative to the info icon */
-    transform: translateY(-50%);  /* Fine-tune so tooltip is perfectly vertically centered on the icon */
+    display: none;
+    position: fixed;           /* Changed from absolute to fixed */
+    top: 50%;                  /* Center vertically */
+    left: 50%;                 /* Center horizontally */
+    transform: translate(-50%, -50%); /* Perfect centering */
     background: #fffbe8;
     color: #554;
     border: 1px solid #eed97c;
@@ -295,11 +295,11 @@ button:disabled {
     border-radius: 8px;
     font-size: 1em;
     width: auto;
-    min-width: 300px;
-    max-width: 400px;
+    min-width: 400px;
+    max-width: 700px;
     white-space: normal;
     word-break: break-word;
-    z-index: 100;            /* On top of all content */
+    z-index: 1000;             /* Increased for overlay */
     text-align: left;
     pointer-events: auto;
     animation: fadeIn 0.2s ease;
