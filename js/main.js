@@ -13,6 +13,8 @@ import { calculateDynamicMargins, toggleXAxisSettings } from './labels.js';
 import { drawGrid, downloadSVG, setPreviewEquation } from './plotter.js'; // Import setPreviewEquation
 import { exportSVGtoPNG, exportSVGtoPDF } from './plotter.js';
 import { debounce } from './utils.js';
+import { PointsLayer } from './modules/pointsLayer.js';
+import { PointsUI } from './modules/pointsUI.js';
 
 // Create debounced versions of expensive operations
 const debouncedCalculateAndDraw = debounce(() => {
@@ -249,7 +251,8 @@ function initializeFieldsetStates() {
         'generalSettings',
         'yAxisSettings', 
         'xAxisSettings',
-        'equationPlotting'
+        'equationPlotting',
+        'pointsSection'
     ];
     
     fieldsetsToCollapse.forEach(id => {
@@ -329,6 +332,9 @@ Object.defineProperty(window, 'resetEquationInputsAndButtons', {
 // Event listeners for the DOMContentLoaded event to initialize the application.
 document.addEventListener('DOMContentLoaded', () => {
     try {
+    // Points overlay modules
+    const pointsLayer = new PointsLayer();
+    new PointsUI(pointsLayer);
         // Export button listeners
         safeAddEventListener(safeGetElement('downloadSVG'), 'click', downloadSVG);
         safeAddEventListener(safeGetElement('exportPNG'), 'click', exportSVGtoPNG);

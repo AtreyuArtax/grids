@@ -1,5 +1,6 @@
 // This module handles drawing the grid, axes, and plotting equations using SVG elements.
 import { EPSILON, parseSuperscript, formatRadianLabel, formatEquationTextForDisplay, ZERO_LINE_EXTENSION, AXIS_TITLE_SPACING, ARROW_HEAD_SIZE, LINE_STYLES, SHADE_ALPHA } from './utils.js';
+import { setTransform } from './modules/gridAPI.js';
 import { calculateDynamicMargins, dynamicMarginLeft, dynamicMarginRight,
          dynamicMarginTop, dynamicMarginBottom, doesOverlap } from './labels.js';
 import { equationsToDraw } from './equations.js'; // Assuming equationsToDraw is a mutable array where labelPosition can be updated.
@@ -1229,6 +1230,8 @@ export function drawGrid() {
                 'stroke-width': 1
             }));
         }
+        // Notify overlays to disable (no Cartesian transform)
+        try { setTransform(null); } catch (e) { /* gridAPI may not be loaded yet */ }
         // Skip further grid drawing and return if using polar
         return;
     }
@@ -1523,4 +1526,22 @@ if (gridOptions.showAxisArrows) {
 
     // Re-attach drag event listeners after all SVG elements are redrawn
     setupDragging();
+
+    // Emit current transform for overlays (points, etc.).
+    try {
+        const xMin = gridOptions.xMin;
+        const xMax = gridOptions.xMax;
+        const yMin = gridOptions.yMin;
+        const yMax = gridOptions.yMax;
+        const plotX = gridOptions.offsetX;
+        const plotY = gridOptions.offsetY;
+        const plotWidth = gridOptions.actualGridWidth;
+        const plotHeight = gridOptions.actualGridHeight;
+        const squareSizePx = gridOptions.minorSquareSize;
+        const xValuePerMinorSquare = gridOptions.xValuePerMinorSquare;
+        const yIncrement = gridOptions.yIncrement;
+        setTransform({ xMin, xMax, yMin, yMax, plotX, plotY, plotWidth, plotHeight, squareSizePx, xValuePerMinorSquare, yIncrement });
+    } catch (e) {
+        // no-op if gridAPI not available
+    }
 }

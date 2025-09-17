@@ -56,6 +56,8 @@
                 </div>
             </fieldset>
 
+            
+
             <fieldset class="controls-group collapsible" id="generalSettings">
                 <legend>General Settings <span class="toggle-icon">▼</span></legend>
                 <div class="fieldset-content">
@@ -300,6 +302,70 @@ The label positions <b>will reset</b> if any grid settings are changed (min/max 
                     </div>
                     <div id="equationsList">
                     </div>
+                </div>
+            </fieldset>
+            <!-- Points & Segments controls -->
+            <fieldset class="controls-group collapsible" id="pointsSection">
+                <legend>Points &amp; Segments <span class="toggle-icon">▼</span></legend>
+                <div class="fieldset-content">
+                    <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                        <label>X:
+                            <input type="number" id="pointX" step="any" placeholder="e.g., 1.5">
+                        </label>
+                        <label>Y:
+                            <input type="number" id="pointY" step="any" placeholder="e.g., -2">
+                        </label>
+                        <label>Label (optional):
+                            <input type="text" id="pointLabel" maxlength="40" placeholder="e.g., A">
+                        </label>
+                    </div>
+
+                    <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:8px;">
+                        <div class="color-label-container">
+                            <label for="pointsDotColor">Dot Colour:</label>
+                            <div class="color-input-wrapper">
+                                <input type="color" id="pointsDotColor" value="#000000">
+                                <div class="color-swatches">
+                                    <div class="color-swatch" style="background-color: #000000;" data-color="#000000"></div>
+                                    <div class="color-swatch" style="background-color: #808080;" data-color="#808080"></div>
+                                    <div class="color-swatch" style="background-color: #FF0000;" data-color="#FF0000"></div>
+                                    <div class="color-swatch" style="background-color: #0000FF;" data-color="#0000FF"></div>
+                                    <div class="color-swatch" style="background-color: #008000;" data-color="#008000"></div>
+                                    <div class="color-swatch" style="background-color: #800080;" data-color="#800080"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="color-label-container">
+                            <label for="pointsLineColor">Line Colour:</label>
+                            <div class="color-input-wrapper">
+                                <input type="color" id="pointsLineColor" value="#000000">
+                                <div class="color-swatches">
+                                    <div class="color-swatch" style="background-color: #000000;" data-color="#000000"></div>
+                                    <div class="color-swatch" style="background-color: #808080;" data-color="#808080"></div>
+                                    <div class="color-swatch" style="background-color: #FF0000;" data-color="#FF0000"></div>
+                                    <div class="color-swatch" style="background-color: #0000FF;" data-color="#0000FF"></div>
+                                    <div class="color-swatch" style="background-color: #008000;" data-color="#008000"></div>
+                                    <div class="color-swatch" style="background-color: #800080;" data-color="#800080"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <label>Dot Size:
+                            <input type="number" id="pointsDotSize" min="1" max="20" value="5">
+                        </label>
+                        <label class="checkbox-label">Connect Points:
+                            <input type="checkbox" id="pointsConnect" checked>
+                        </label>
+                        <label class="checkbox-label">Show Labels:
+                            <input type="checkbox" id="pointsShowLabels">
+                        </label>
+                    </div>
+
+                    <div class="button-group" style="margin-top:8px;">
+                        <button id="addPointBtn" type="button">Add Point</button>
+                        <button id="clearPointsBtn" type="button">Clear Points</button>
+                    </div>
+
+                    <div id="pointsList" style="margin-top:8px;"></div>
                 </div>
             </fieldset>
         </div>
