@@ -1,6 +1,6 @@
 // sw.js
 // Bump this on every release (date, commit, or number):
-const VERSION = '2025-09-16-1';
+const VERSION = '2025-09-16-2';
 const CACHE_NAME = `grid-pwa-${VERSION}`;
 
 const ASSETS_TO_CACHE = [
@@ -13,6 +13,9 @@ const ASSETS_TO_CACHE = [
   '/js/labels.js',
   '/js/main.js',
   '/js/utils.js',
+  '/js/modules/gridAPI.js',
+  '/js/modules/pointsLayer.js',
+  '/js/modules/pointsUI.js',
   '/assets/icon-192.png',
   '/assets/icon-512.png'
 ];
