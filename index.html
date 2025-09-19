@@ -9,8 +9,8 @@
     <script src="https://unpkg.com/jspdf@latest/dist/jspdf.umd.min.js"></script>
     <script src="https://unpkg.com/svg2pdf.js@2.2.3/dist/svg2pdf.umd.min.js"></script>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='4' fill='%23E0F7FA' stroke='%230097A7' stroke-width='1.5'/%3E%3Cpath d='M3 11.5 H29 M3 20.5 H29 M11.5 3 V29 M20.5 3 V29' stroke='%2300796B' stroke-width='1'/%3E%3C/svg%3E">
-    <link rel="stylesheet" href="css/style.css?v=6">
-    <script type="module" src="js/main.js?v=6"></script>
+    <link rel="stylesheet" href="css/style.css?v=7">
+    <script type="module" src="js/main.js?v=7"></script>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1976d2">
     <meta name="mobile-web-app-capable" content="yes">
@@ -368,6 +368,39 @@ The label positions <b>will reset</b> if any grid settings are changed (min/max 
                         <label class="checkbox-label">Show Labels:
                             <input type="checkbox" id="pointsShowLabels">
                         </label>
+                        <label class="checkbox-label">Fill Area Under Curve:
+                            <input type="checkbox" id="pointsFillArea">
+                        </label>
+                    </div>
+                    
+                    <!-- Area Fill Colors - Only visible when Fill Area is checked -->
+                    <div id="areaFillColors" style="display:none; margin-bottom:12px; padding:8px; background-color:#f9f9f9; border-radius:4px;">
+                        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                            <div class="color-label-container" style="margin-bottom:0;">
+                                <label for="pointsAreaPositiveColor">Positive Area:</label>
+                                <div class="color-input-wrapper">
+                                    <input type="color" id="pointsAreaPositiveColor" value="#90EE90">
+                                    <div class="color-swatches">
+                                        <div class="color-swatch" style="background-color: #90EE90;" data-color="#90EE90"></div>
+                                        <div class="color-swatch" style="background-color: #87CEEB;" data-color="#87CEEB"></div>
+                                        <div class="color-swatch" style="background-color: #FFB6C1;" data-color="#FFB6C1"></div>
+                                        <div class="color-swatch" style="background-color: #DDA0DD;" data-color="#DDA0DD"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="color-label-container" style="margin-bottom:0;">
+                                <label for="pointsAreaNegativeColor">Negative Area:</label>
+                                <div class="color-input-wrapper">
+                                    <input type="color" id="pointsAreaNegativeColor" value="#FFB6C1">
+                                    <div class="color-swatches">
+                                        <div class="color-swatch" style="background-color: #FFB6C1;" data-color="#FFB6C1"></div>
+                                        <div class="color-swatch" style="background-color: #FFA07A;" data-color="#FFA07A"></div>
+                                        <div class="color-swatch" style="background-color: #F0E68C;" data-color="#F0E68C"></div>
+                                        <div class="color-swatch" style="background-color: #DDA0DD;" data-color="#DDA0DD"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Bulk Entry Section -->

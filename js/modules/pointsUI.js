@@ -15,6 +15,10 @@ export class PointsUI {
     this.elDotSize = document.getElementById('pointsDotSize');
     this.elConnect = document.getElementById('pointsConnect');
     this.elShowLabels = document.getElementById('pointsShowLabels');
+    this.elFillArea = document.getElementById('pointsFillArea');
+    this.elAreaPositiveColor = document.getElementById('pointsAreaPositiveColor');
+    this.elAreaNegativeColor = document.getElementById('pointsAreaNegativeColor');
+    this.areaFillColorsDiv = document.getElementById('areaFillColors');
     this.btnAdd = document.getElementById('addPointBtn');
     this.btnAddBulk = document.getElementById('addBulkPointsBtn');
     this.btnClear = document.getElementById('clearPointsBtn');
@@ -34,8 +38,15 @@ export class PointsUI {
     this.elDotSize?.addEventListener('input', styleUpdate);
     this.elConnect?.addEventListener('change', styleUpdate);
     this.elShowLabels?.addEventListener('change', styleUpdate);
+    this.elFillArea?.addEventListener('change', () => {
+      this.toggleAreaFillControls();
+      this.updateStyle();
+    });
+    this.elAreaPositiveColor?.addEventListener('input', styleUpdate);
+    this.elAreaNegativeColor?.addEventListener('input', styleUpdate);
 
     // Initial sync
+    this.toggleAreaFillControls();
     this.updateStyle();
     this.renderList();
   }
@@ -47,7 +58,16 @@ export class PointsUI {
       dotSize: Number(this.elDotSize?.value || 5),
       connect: !!this.elConnect?.checked,
       showLabels: !!this.elShowLabels?.checked,
+      fillArea: !!this.elFillArea?.checked,
+      areaPositiveColor: this.elAreaPositiveColor?.value || '#90EE90',
+      areaNegativeColor: this.elAreaNegativeColor?.value || '#FFB6C1',
     });
+  }
+
+  toggleAreaFillControls() {
+    if (this.areaFillColorsDiv) {
+      this.areaFillColorsDiv.style.display = this.elFillArea?.checked ? 'block' : 'none';
+    }
   }
 
   addPoint() {
