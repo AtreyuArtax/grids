@@ -21,6 +21,28 @@ export class PointsLayer {
     document.addEventListener('grid:updated', () => this.render());
   }
 
+    /**
+     * Calculates the net area under the plot (sum of positive and negative areas).
+     * Returns area in grid units (not pixels).
+     */
+    getNetArea() {
+      if (this.points.length < 2) return 0;
+      // Use same logic as renderAreaFill, but sum areas
+      // Assume grid is Cartesian and points are sorted by x
+      const sortedPoints = [...this.points].sort((a, b) => a.x - b.x);
+      let netArea = 0;
+      for (let i = 1; i < sortedPoints.length; i++) {
+        const x0 = sortedPoints[i - 1].x;
+        const y0 = sortedPoints[i - 1].y;
+        const x1 = sortedPoints[i].x;
+        const y1 = sortedPoints[i].y;
+        // Trapezoid area between two points and x-axis
+        // Area = (x1 - x0) * (y0 + y1) / 2
+        netArea += (x1 - x0) * (y0 + y1) / 2;
+      }
+      return netArea;
+    }
+
   setStyle(partial) {
     this.style = { ...this.style, ...partial };
     this.render();

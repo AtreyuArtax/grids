@@ -335,6 +335,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // Points overlay modules
     const pointsLayer = new PointsLayer();
     new PointsUI(pointsLayer);
+
+        // Calculate Net Area button
+        const calculateNetAreaBtn = safeGetElement('calculateNetAreaBtn');
+        const netAreaResult = safeGetElement('netAreaResult');
+        if (calculateNetAreaBtn && netAreaResult) {
+            safeAddEventListener(calculateNetAreaBtn, 'click', () => {
+                const netArea = pointsLayer.getNetArea();
+                netAreaResult.textContent = `Net Area: ${netArea.toFixed(3)}`;
+            });
+        }
         // Export button listeners
         safeAddEventListener(safeGetElement('downloadSVG'), 'click', downloadSVG);
         safeAddEventListener(safeGetElement('exportPNG'), 'click', exportSVGtoPNG);
