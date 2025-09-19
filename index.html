@@ -9,8 +9,8 @@
     <script src="https://unpkg.com/jspdf@latest/dist/jspdf.umd.min.js"></script>
     <script src="https://unpkg.com/svg2pdf.js@2.2.3/dist/svg2pdf.umd.min.js"></script>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='4' fill='%23E0F7FA' stroke='%230097A7' stroke-width='1.5'/%3E%3Cpath d='M3 11.5 H29 M3 20.5 H29 M11.5 3 V29 M20.5 3 V29' stroke='%2300796B' stroke-width='1'/%3E%3C/svg%3E">
-    <link rel="stylesheet" href="css/style.css?v=4">
-    <script type="module" src="js/main.js?v=4"></script>
+    <link rel="stylesheet" href="css/style.css?v=5">
+    <script type="module" src="js/main.js?v=5"></script>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1976d2">
     <meta name="mobile-web-app-capable" content="yes">
@@ -308,13 +308,18 @@ The label positions <b>will reset</b> if any grid settings are changed (min/max 
             <fieldset class="controls-group collapsible" id="pointsSection">
                 <legend>Points &amp; Segments <span class="toggle-icon">▼</span></legend>
                 <div class="fieldset-content">
-                    <div style="display:flex; gap:12px; flex-wrap:wrap;">
-                        <label>X:
-                            <input type="number" id="pointX" step="any" placeholder="e.g., 1.5">
-                        </label>
-                        <label>Y:
-                            <input type="number" id="pointY" step="any" placeholder="e.g., -2">
-                        </label>
+                    <div style="display:flex; gap:12px; align-items:end; margin-bottom:12px;">
+                        <div style="display:flex; flex-direction:column; gap:4px;">
+                            <label for="pointX" style="margin:0; font-size:0.85em; color:#666;">x</label>
+                            <input type="number" id="pointX" step="any" placeholder="1.5" style="width:60px; padding:6px; font-size:0.85em;">
+                        </div>
+                        <div style="display:flex; flex-direction:column; gap:4px;">
+                            <label for="pointY" style="margin:0; font-size:0.85em; color:#666;">y</label>
+                            <input type="number" id="pointY" step="any" placeholder="-2" style="width:60px; padding:6px; font-size:0.85em;">
+                        </div>
+                        <button id="addPointBtn" type="button" style="padding:6px 12px; font-size:0.85em;">Add Point</button>
+                    </div>
+                    <div style="margin-bottom:12px;">
                         <label>Label (optional):
                             <input type="text" id="pointLabel" maxlength="40" placeholder="e.g., A">
                         </label>
@@ -350,7 +355,7 @@ The label positions <b>will reset</b> if any grid settings are changed (min/max 
                             </div>
                         </div>
                         <label>Dot Size:
-                            <input type="number" id="pointsDotSize" min="1" max="20" value="5">
+                            <input type="number" id="pointsDotSize" min="1" max="20" value="3">
                         </label>
                         <label class="checkbox-label">Connect Points:
                             <input type="checkbox" id="pointsConnect" checked>
@@ -361,7 +366,6 @@ The label positions <b>will reset</b> if any grid settings are changed (min/max 
                     </div>
 
                     <div class="button-group" style="margin-top:8px;">
-                        <button id="addPointBtn" type="button">Add Point</button>
                         <button id="clearPointsBtn" type="button">Clear Points</button>
                     </div>
 

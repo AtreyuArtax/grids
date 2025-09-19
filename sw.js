@@ -1,6 +1,6 @@
 // sw.js
 // Bump this on every release (date, commit, or number):
-const VERSION = '2025-09-16-2';
+const VERSION = '2025-09-19-1';
 const CACHE_NAME = `grid-pwa-${VERSION}`;
 
 const ASSETS_TO_CACHE = [
