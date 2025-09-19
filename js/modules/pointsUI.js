@@ -22,6 +22,7 @@ export class PointsUI {
     this.btnAdd = document.getElementById('addPointBtn');
     this.btnAddBulk = document.getElementById('addBulkPointsBtn');
     this.btnClear = document.getElementById('clearPointsBtn');
+    this.btnResetLabels = document.getElementById('resetLabelPositionsBtn');
     this.list = document.getElementById('pointsList');
 
     // Editing state
@@ -31,6 +32,7 @@ export class PointsUI {
     this.btnAdd?.addEventListener('click', () => this.addPoint());
     this.btnAddBulk?.addEventListener('click', () => this.addBulkPoints());
     this.btnClear?.addEventListener('click', () => { this.layer.clear(); this.renderList(); });
+    this.btnResetLabels?.addEventListener('click', () => { this.layer.resetLabelPositions(); });
 
     const styleUpdate = () => this.updateStyle();
     this.elDotColor?.addEventListener('input', styleUpdate);
