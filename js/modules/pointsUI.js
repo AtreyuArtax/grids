@@ -9,12 +9,14 @@ export class PointsUI {
     this.elX = document.getElementById('pointX');
     this.elY = document.getElementById('pointY');
     this.elLabel = document.getElementById('pointLabel');
+    this.elBulkInput = document.getElementById('bulkPointsInput');
     this.elDotColor = document.getElementById('pointsDotColor');
     this.elLineColor = document.getElementById('pointsLineColor');
     this.elDotSize = document.getElementById('pointsDotSize');
     this.elConnect = document.getElementById('pointsConnect');
     this.elShowLabels = document.getElementById('pointsShowLabels');
     this.btnAdd = document.getElementById('addPointBtn');
+    this.btnAddBulk = document.getElementById('addBulkPointsBtn');
     this.btnClear = document.getElementById('clearPointsBtn');
     this.list = document.getElementById('pointsList');
 
@@ -23,6 +25,7 @@ export class PointsUI {
 
     // Events
     this.btnAdd?.addEventListener('click', () => this.addPoint());
+    this.btnAddBulk?.addEventListener('click', () => this.addBulkPoints());
     this.btnClear?.addEventListener('click', () => { this.layer.clear(); this.renderList(); });
 
     const styleUpdate = () => this.updateStyle();
@@ -57,6 +60,49 @@ export class PointsUI {
       if (this.elY) this.elY.value = '';
       if (this.elLabel) this.elLabel.value = '';
       this.renderList();
+    }
+  }
+
+  addBulkPoints() {
+    const input = this.elBulkInput?.value?.trim();
+    if (!input) return;
+
+    // Split by lines and spaces, filter out empty entries
+    const entries = input.split(/[\n\s]+/).filter(entry => entry.trim());
+    let addedCount = 0;
+    const errors = [];
+
+    entries.forEach((entry, index) => {
+      const parts = entry.split(',').map(part => part.trim());
+      
+      if (parts.length < 2) {
+        errors.push(`Entry ${index + 1}: "${entry}" - needs at least x,y values`);
+        return;
+      }
+
+      const x = parseFloat(parts[0]);
+      const y = parseFloat(parts[1]);
+      const label = parts[2] || '';
+
+      if (isNaN(x) || isNaN(y)) {
+        errors.push(`Entry ${index + 1}: "${entry}" - x and y must be numbers`);
+        return;
+      }
+
+      if (this.layer.addPoint({ x, y, label })) {
+        addedCount++;
+      }
+    });
+
+    // Clear the input and update the display
+    if (this.elBulkInput) this.elBulkInput.value = '';
+    this.renderList();
+
+    // Show feedback to user
+    if (errors.length > 0) {
+      alert(`Added ${addedCount} points.\n\nErrors:\n${errors.join('\n')}`);
+    } else if (addedCount > 0) {
+      console.log(`Successfully added ${addedCount} points.`);
     }
   }
 
