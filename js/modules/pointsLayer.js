@@ -43,6 +43,45 @@ export class PointsLayer {
       return netArea;
     }
 
+    /**
+     * Calculates the total area under the plot (sum of absolute values of all areas).
+     * This represents the total distance traveled, treating all areas as positive.
+     * Returns area in grid units (not pixels).
+     */
+    getTotalArea() {
+      if (this.points.length < 2) return 0;
+      const sortedPoints = [...this.points].sort((a, b) => a.x - b.x);
+      let totalArea = 0;
+      
+      for (let i = 1; i < sortedPoints.length; i++) {
+        const x0 = sortedPoints[i - 1].x;
+        const y0 = sortedPoints[i - 1].y;
+        const x1 = sortedPoints[i].x;
+        const y1 = sortedPoints[i].y;
+        
+        // Check if the line segment crosses the x-axis (y = 0)
+        if ((y0 >= 0 && y1 >= 0) || (y0 <= 0 && y1 <= 0)) {
+          // Line segment doesn't cross x-axis, calculate area normally and take absolute value
+          const area = (x1 - x0) * (y0 + y1) / 2;
+          totalArea += Math.abs(area);
+        } else {
+          // Line segment crosses x-axis, need to split at crossing point
+          // Find x-coordinate where line crosses y = 0
+          // Using linear interpolation: x_cross = x0 + (x1 - x0) * (-y0) / (y1 - y0)
+          const xCross = x0 + (x1 - x0) * (-y0) / (y1 - y0);
+          
+          // Calculate area of first part (from x0 to xCross)
+          const area1 = (xCross - x0) * y0 / 2; // Triangle from x0 to crossing point
+          totalArea += Math.abs(area1);
+          
+          // Calculate area of second part (from xCross to x1)
+          const area2 = (x1 - xCross) * y1 / 2; // Triangle from crossing point to x1
+          totalArea += Math.abs(area2);
+        }
+      }
+      return totalArea;
+    }
+
   setStyle(partial) {
     this.style = { ...this.style, ...partial };
     this.render();

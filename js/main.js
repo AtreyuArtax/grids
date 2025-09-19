@@ -342,7 +342,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (calculateNetAreaBtn && netAreaResult) {
             safeAddEventListener(calculateNetAreaBtn, 'click', () => {
                 const netArea = pointsLayer.getNetArea();
-                netAreaResult.textContent = `Net Area: ${netArea.toFixed(3)}`;
+                const totalArea = pointsLayer.getTotalArea();
+                netAreaResult.innerHTML = `
+                    <div>Net Area (displacement): ${netArea.toFixed(3)}</div>
+                    <div>Total Area (distance): ${totalArea.toFixed(3)}</div>
+                `;
             });
         }
         // Export button listeners
