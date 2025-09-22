@@ -9,8 +9,8 @@
     <script src="https://unpkg.com/jspdf@latest/dist/jspdf.umd.min.js"></script>
     <script src="https://unpkg.com/svg2pdf.js@2.2.3/dist/svg2pdf.umd.min.js"></script>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='4' fill='%23E0F7FA' stroke='%230097A7' stroke-width='1.5'/%3E%3Cpath d='M3 11.5 H29 M3 20.5 H29 M11.5 3 V29 M20.5 3 V29' stroke='%2300796B' stroke-width='1'/%3E%3C/svg%3E">
-    <link rel="stylesheet" href="css/style.css?v=10">
-    <script type="module" src="js/main.js?v=10"></script>
+    <link rel="stylesheet" href="css/style.css?v=11">
+    <script type="module" src="js/main.js?v=11"></script>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1976d2">
     <meta name="mobile-web-app-capable" content="yes">
@@ -213,28 +213,13 @@
             </div>
 
             <fieldset class="controls-group collapsible" id="equationPlotting">
-                <legend>
-                    <span class="info-icon" tabindex="0" aria-describedby="labelInfoTooltip">i</span>
-                    <span class="info-tooltip" id="labelInfoTooltip" role="tooltip">
-                       Add all equations and set grid style and dimensions <b>before</b> moving labels. <br><br>
-The label positions <b>will reset</b> if any grid settings are changed (min/max values, increments, axes arrow on/off, suppress '0', etc.). 
-<br><br>
-
-<b>Equation Functions</b>
-<ul style="margin:6px 0 0 18px; padding:0;">
-  <li><b>Operators:</b> +, −, *, /, ^ (exponent), parentheses (). Implied multiplication supported (e.g., <code>2x</code>, <code>(x)(x+1)</code>).</li>
-  <li><b>Trig:</b> <code>sin</code>, <code>cos</code>, <code>tan</code>, <code>sec</code>, <code>csc</code>, <code>cot</code>; inverses <code>asin</code>, <code>acos</code>, <code>atan</code>; hyperbolic <code>sinh</code>, <code>cosh</code>, <code>tanh</code>, and inverses <code>asinh</code>, <code>acosh</code>, <code>atanh</code>. Angles are in <b>radians</b>; use units for degrees (e.g., <code>sin(30 deg)</code>).</li>
-  <li><b>Exponentials & logs:</b> <code>exp(x)</code> is <i>e^x</i> (you can write <code>exp(x)</code> <b>or</b> <code>e^x</code>). <code>log(x)</code> is the natural log (<i>ln(x)</i>). For other bases use <code>log(x, b)</code> or the shortcuts <code>log10(x)</code>, <code>log2(x)</code>.</li>
-  <li><b>Roots & powers:</b> <code>sqrt(x)</code>, <code>nthRoot(x, n)</code>. Use <code>^</code> for powers (e.g., <code>x^2</code>).</li>
-  <li><b>Other common:</b> <code>abs</code>, <code>sign</code>, <code>floor</code>, <code>ceil</code>, <code>round</code>, <code>min</code>, <code>max</code>, <code>mod</code>, <code>hypot</code>.</li>
-  <li><b>Constants:</b> <code>pi</code>, <code>e</code>, <code>tau</code>.</li>
-  <li><b>Examples:</b> <code>x^2</code>, <code>3x+5</code>, <code>sin(x)</code>, <code>e^x*cos(x)</code>, <code>log10(x)</code>.</li>
-</ul>
-
-                    </span>
-                    Equation Plotting
-                    <span class="toggle-icon">▼</span>
-                </legend>
+                <div class="fieldset-header">
+                    <span class="info-icon" tabindex="0" id="equationInfoIcon">i</span>
+                    <legend>
+                        Equation Plotting
+                        <span class="toggle-icon">▼</span>
+                    </legend>
+                </div>
 
                 <div class="fieldset-content">
                     <div class="color-label-container">
@@ -306,47 +291,12 @@ The label positions <b>will reset</b> if any grid settings are changed (min/max 
             </fieldset>
             <!-- Points & Segments controls -->
             <fieldset class="controls-group collapsible" id="pointsSection">
-                <legend>
-                    <span class="info-icon" tabindex="0" aria-describedby="pointsInfoTooltip">i</span>
-                    <span class="info-tooltip" id="pointsInfoTooltip" role="tooltip">
-                        <h3>🎯 Basic Usage</h3>
-                        <p><strong>Curve Intensity</strong> creates smooth curved connections between points instead of straight lines.</p>
-                        <ul>
-                            <li><strong>Leave empty</strong> = straight line (linear motion)</li>
-                            <li><strong>Positive numbers</strong> = curves upward from the straight line</li>
-                            <li><strong>Negative numbers</strong> = curves downward from the straight line</li>
-                        </ul>
-
-                        <h3>📊 For Physics Graphs</h3>
-                        <p><strong>Position-Time Graphs:</strong></p>
-                        <ul>
-                            <li>Set curve intensity = <strong>initial velocity</strong> for realistic projectile motion</li>
-                            <li>Example: Object thrown upward at 39.2 m/s → use curve intensity = 39.2</li>
-                            <li>Creates proper parabolic motion matching physics equations</li>
-                        </ul>
-
-                        <h3>🔗 Slope Continuity</h3>
-                        <p>The system automatically:</p>
-                        <ul>
-                            <li><strong>Calculates final slope</strong> at each curved point</li>
-                            <li><strong>Suggests next Y coordinate</strong> when you type X (blue highlight)</li>
-                            <li><strong>Maintains smooth motion</strong> for realistic physics</li>
-                        </ul>
-
-                        <h3>📝 Bulk Entry Format</h3>
-                        <p><code>x,y,label,curveIntensity</code></p>
-                        <p>Example: <code>0,0,Start,39.2 4,78.4,Peak 8,0,End</code></p>
-
-                        <h3>💡 Tips</h3>
-                        <ul>
-                            <li><strong>Experiment!</strong> Try different values to see curve shapes</li>
-                            <li><strong>Physics accuracy:</strong> Use initial velocity for projectile motion</li>
-                            <li><strong>Visual appeal:</strong> Any value works for artistic curves</li>
-                            <li><strong>Slope continuity:</strong> Accept blue-highlighted suggestions for smooth motion</li>
-                        </ul>
-                    </span>
-                    Points &amp; Segments <span class="toggle-icon">▼</span>
-                </legend>
+                <div class="fieldset-header">
+                    <span class="info-icon" tabindex="0" id="pointsInfoIcon">i</span>
+                    <legend>
+                        Points &amp; Segments <span class="toggle-icon">▼</span>
+                    </legend>
+                </div>
                 <div class="fieldset-content">
                     <!-- Color Controls at the top -->
                     <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
@@ -398,7 +348,7 @@ The label positions <b>will reset</b> if any grid settings are changed (min/max 
                     </div>
                     <div style="margin-bottom:12px;">
                         <label>Curve Intensity (optional):
-                            <input type="number" id="pointCurveIntensity" step="any" placeholder="e.g., 39.2 for physics, or any value">
+                            <input type="number" id="pointCurveIntensity" step="any" placeholder="e.g., 2 or -2">
                         </label>
                         <div id="slopeInfo" style="font-size:0.85em; color:#666; margin-top:4px;"></div>
                     </div>
@@ -453,7 +403,7 @@ The label positions <b>will reset</b> if any grid settings are changed (min/max 
                     <div style="margin-bottom:16px; padding-top:12px; border-top:1px solid #e0e0e0;">
                         <div style="margin-bottom:8px;">
                             <label for="bulkPointsInput" style="display:block; margin-bottom:4px; font-size:0.9em; color:#555; font-weight:bold;">Bulk Entry:</label>
-                            <textarea id="bulkPointsInput" placeholder="Enter points as x,y or x,y,label or x,y,label,curveIntensity&#10;Examples:&#10;0,1&#10;2,1 4,2&#10;0,1,A 2,1,B 4,2,C&#10;0,1,A,39.2 4,78.4,B 8,0,C" style="width:100%; height:85px; padding:8px; border:1px solid #ccc; border-radius:4px; font-size:0.85em; font-family:monospace; resize:vertical;"></textarea>
+                            <textarea id="bulkPointsInput" placeholder="Enter points as x,y or x,y,label or x,y,label,curveIntensity&#10;Examples:&#10;0,1&#10;2,1 4,2&#10;0,1,A 2,1,B 4,2,C&#10;0,1,A,39.2 4,78.4,B 8,0,C" style="width:100%; height:110px; padding:8px; border:1px solid #ccc; border-radius:4px; font-size:0.85em; font-family:monospace; resize:vertical;"></textarea>
                         </div>
                         <button id="addBulkPointsBtn" type="button" style="padding:6px 12px; font-size:0.85em;">Add Points</button>
                     </div>
@@ -493,7 +443,7 @@ The label positions <b>will reset</b> if any grid settings are changed (min/max 
 if ('serviceWorker' in navigator) {
   (async () => {
     // Keep this in sync with VERSION above (or compute from build tools)
-    const versionTag = '2025-08-18-2';
+    const versionTag = '2025-09-21-2';
     const reg = await navigator.serviceWorker.register(`/sw.js?v=${versionTag}`);
 
     // Check for update right now (i.e., on app open)
@@ -509,6 +459,84 @@ if ('serviceWorker' in navigator) {
   })();
 }
 </script>
+    <!-- Equation Plotting Info Modal -->
+    <div id="equationInfoModal" class="info-modal">
+        <div class="info-modal-content">
+            <h2>📈 Equation Plotting Guide</h2>
+            <div class="info-modal-body">
+                <p><strong>⚠️ Important:</strong> Add all equations and set grid style and dimensions <strong>before</strong> moving labels.</p>
+                <p>The label positions <strong>will reset</strong> if any grid settings are changed (min/max values, increments, axes arrow on/off, suppress '0', etc.).</p>
+                
+                <h3>🔧 Equation Functions</h3>
+                <ul>
+                    <li><strong>Operators:</strong> +, −, *, /, ^ (exponent), parentheses (). Implied multiplication supported (e.g., <code>2x</code>, <code>(x)(x+1)</code>).</li>
+                    <li><strong>Trig:</strong> <code>sin</code>, <code>cos</code>, <code>tan</code>, <code>sec</code>, <code>csc</code>, <code>cot</code>; inverses <code>asin</code>, <code>acos</code>, <code>atan</code>; hyperbolic <code>sinh</code>, <code>cosh</code>, <code>tanh</code>, and inverses <code>asinh</code>, <code>acosh</code>, <code>atanh</code>. Angles are in <strong>radians</strong>; use units for degrees (e.g., <code>sin(30 deg)</code>).</li>
+                    <li><strong>Exponentials & logs:</strong> <code>exp(x)</code> is <em>e^x</em> (you can write <code>exp(x)</code> <strong>or</strong> <code>e^x</code>). <code>log(x)</code> is the natural log (<em>ln(x)</em>). For other bases use <code>log(x, b)</code> or the shortcuts <code>log10(x)</code>, <code>log2(x)</code>.</li>
+                    <li><strong>Roots & powers:</strong> <code>sqrt(x)</code>, <code>nthRoot(x, n)</code>. Use <code>^</code> for powers (e.g., <code>x^2</code>).</li>
+                    <li><strong>Other common:</strong> <code>abs</code>, <code>sign</code>, <code>floor</code>, <code>ceil</code>, <code>round</code>, <code>min</code>, <code>max</code>, <code>mod</code>, <code>hypot</code>.</li>
+                    <li><strong>Constants:</strong> <code>pi</code>, <code>e</code>, <code>tau</code>.</li>
+                </ul>
+                
+                <h3>💡 Examples</h3>
+                <ul>
+                    <li><code>x^2</code> - Simple quadratic</li>
+                    <li><code>3x+5</code> - Linear function</li>
+                    <li><code>sin(x)</code> - Sine wave</li>
+                    <li><code>e^x*cos(x)</code> - Exponential cosine</li>
+                    <li><code>log10(x)</code> - Base-10 logarithm</li>
+                </ul>
+            </div>
+            <button id="closeEquationInfo" class="info-close-btn">Close</button>
+        </div>
+    </div>
+
+    <!-- Points & Segments Info Modal -->
+    <div id="pointsInfoModal" class="info-modal">
+        <div class="info-modal-content">
+            <h2>🎯 Points & Segments Guide</h2>
+            <div class="info-modal-body">
+                <h3>🎯 Basic Usage</h3>
+                <p><strong>Curve Intensity</strong> creates smooth curved connections between points instead of straight lines.</p>
+                <ul>
+                    <li><strong>Leave empty</strong> = straight line (linear motion)</li>
+                    <li><strong>Positive numbers</strong> = curves upward from the straight line</li>
+                    <li><strong>Negative numbers</strong> = curves downward from the straight line</li>
+                </ul>
+
+                <h3>📊 For Physics Graphs</h3>
+                <p><strong>Position-Time Graphs:</strong></p>
+                <ul>
+                    <li>Plot your start point, max point, and end point from a calculated motion</li>
+                    <li>Then use the initial velocity (Vi) as curve intensity to model the graph</li>
+                    <li>Example: Object thrown upward at 39.2 m/s → use curve intensity = 39.2</li>
+                    <li>Creates proper parabolic motion matching physics equations</li>
+                    <li><strong>Note:</strong> This might be more easily modeled with the actual equation and domain/range restrictions in the Equation Plotting mode</li>
+                </ul>
+
+                <h3>🔗 Slope Continuity</h3>
+                <p>The system automatically:</p>
+                <ul>
+                    <li><strong>Calculates final slope</strong> at each curved point</li>
+                    <li><strong>Suggests next Y coordinate</strong> when you type X (blue highlight)</li>
+                    <li><strong>Maintains smooth motion</strong> for realistic physics</li>
+                </ul>
+
+                <h3>📝 Bulk Entry Format</h3>
+                <p><code>x,y,label,curveIntensity</code></p>
+                <p>Example: <code>0,0,Start,39.2 4,78.4,Peak 8,0,End</code></p>
+
+                <h3>💡 Tips</h3>
+                <ul>
+                    <li><strong>Experiment!</strong> Try different values to see curve shapes</li>
+                    <li><strong>Physics accuracy:</strong> Use initial velocity for projectile motion</li>
+                    <li><strong>Visual appeal:</strong> Any value works for artistic curves</li>
+                    <li><strong>Slope continuity:</strong> Accept blue-highlighted suggestions for smooth motion</li>
+                </ul>
+            </div>
+            <button id="closePointsInfo" class="info-close-btn">Close</button>
+        </div>
+    </div>
+
     <!-- Privacy Policy Modal -->
 <div id="privacyPolicyModal" class="privacy-modal">
     <div class="privacy-modal-content">
@@ -525,7 +553,7 @@ if ('serviceWorker' in navigator) {
     </div>
 </div>
 <script>
-    // Modal logic
+    // Privacy Policy Modal logic
     document.getElementById('privacyPolicyLink').onclick = function(e) {
         e.preventDefault();
         document.getElementById('privacyPolicyModal').style.display = 'flex';
@@ -537,7 +565,19 @@ if ('serviceWorker' in navigator) {
         if (e.target === this) this.style.display = 'none';
     };
     
-    // Points info modal logic
+    // Equation Info Modal logic
+    document.getElementById('equationInfoIcon').onclick = function(e) {
+        e.preventDefault();
+        document.getElementById('equationInfoModal').style.display = 'flex';
+    };
+    document.getElementById('closeEquationInfo').onclick = function() {
+        document.getElementById('equationInfoModal').style.display = 'none';
+    };
+    document.getElementById('equationInfoModal').onclick = function(e) {
+        if (e.target === this) this.style.display = 'none';
+    };
+    
+    // Points Info Modal logic
     document.getElementById('pointsInfoIcon').onclick = function(e) {
         e.preventDefault();
         document.getElementById('pointsInfoModal').style.display = 'flex';
@@ -548,6 +588,15 @@ if ('serviceWorker' in navigator) {
     document.getElementById('pointsInfoModal').onclick = function(e) {
         if (e.target === this) this.style.display = 'none';
     };
+    
+    // Keyboard support - ESC key to close modals
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            document.getElementById('privacyPolicyModal').style.display = 'none';
+            document.getElementById('equationInfoModal').style.display = 'none';
+            document.getElementById('pointsInfoModal').style.display = 'none';
+        }
+    });
     
 </script>
 

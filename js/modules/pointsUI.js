@@ -220,6 +220,7 @@ export class PointsUI {
         // Edit mode
         const form = document.createElement('form');
         form.style.display = 'flex';
+        form.style.flexDirection = 'column';
         form.style.gap = '6px';
         form.onsubmit = e => {
           e.preventDefault();
@@ -231,19 +232,43 @@ export class PointsUI {
           this.renderList();
           this.updateSlopeInfo();
         };
-        form.innerHTML = `<input name="x" type="number" step="any" value="${p.x}" style="width:5em;">`
-          + `<input name="y" type="number" step="any" value="${p.y}" style="width:5em;">`
-          + `<input name="label" type="text" value="${p.label || ''}" style="width:6em;">`
-          + `<input name="curveIntensity" type="number" step="any" value="${p.curveIntensity !== 0 ? p.curveIntensity : ''}" placeholder="curve" style="width:6em;">`;
+        
+        // First row: coordinates
+        const coordRow = document.createElement('div');
+        coordRow.style.display = 'flex';
+        coordRow.style.gap = '6px';
+        coordRow.innerHTML = `<input name="x" type="number" step="any" value="${p.x}" style="width:5em;" title="X coordinate" placeholder="x">`
+          + `<input name="y" type="number" step="any" value="${p.y}" style="width:5em;" title="Y coordinate" placeholder="y">`;
+        
+        // Second row: label and curve
+        const detailRow = document.createElement('div');
+        detailRow.style.display = 'flex';
+        detailRow.style.gap = '6px';
+        detailRow.innerHTML = `<input name="label" type="text" value="${p.label || ''}" placeholder="label" style="flex:1;" title="Point label">`
+          + `<input name="curveIntensity" type="number" step="any" value="${p.curveIntensity !== 0 ? p.curveIntensity : ''}" placeholder="curve" style="width:5em;" title="Curve intensity (+ curves up, - curves down)">`;
+        
+        // Button row
+        const buttonRow = document.createElement('div');
+        buttonRow.style.display = 'flex';
+        buttonRow.style.gap = '6px';
+        
         const saveBtn = document.createElement('button');
         saveBtn.textContent = 'Save';
         saveBtn.type = 'submit';
+        saveBtn.style.flex = '1';
+        
         const cancelBtn = document.createElement('button');
         cancelBtn.textContent = 'Cancel';
         cancelBtn.type = 'button';
+        cancelBtn.style.flex = '1';
         cancelBtn.onclick = () => { this.editIdx = null; this.renderList(); };
-        form.appendChild(saveBtn);
-        form.appendChild(cancelBtn);
+        
+        buttonRow.appendChild(saveBtn);
+        buttonRow.appendChild(cancelBtn);
+        
+        form.appendChild(coordRow);
+        form.appendChild(detailRow);
+        form.appendChild(buttonRow);
         row.appendChild(form);
       } else {
         const left = document.createElement('div');
