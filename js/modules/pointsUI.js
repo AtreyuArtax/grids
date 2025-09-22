@@ -278,10 +278,12 @@ export class PointsUI {
 
         const edit = document.createElement('button');
         edit.textContent = 'Edit';
+        edit.classList.add('edit-button');
         edit.addEventListener('click', () => { this.editIdx = idx; this.renderList(); });
 
         const del = document.createElement('button');
-        del.textContent = 'Delete';
+        del.textContent = 'Remove';
+        del.classList.add('delete-button');
         del.addEventListener('click', () => { this.layer.removePoint(idx); this.renderList(); });
 
         row.appendChild(left);

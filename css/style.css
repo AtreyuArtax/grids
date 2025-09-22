@@ -245,6 +245,24 @@ button:disabled {
     transform: none;
 }
 
+.edit-button {
+    background-color: #17a2b8 !important;
+    color: #fff !important;
+}
+
+.edit-button:hover {
+    background-color: #138496 !important;
+}
+
+.delete-button {
+    background-color: #d64545 !important;
+    color: #fff !important;
+}
+
+.delete-button:hover {
+    background-color: #c13030 !important;
+}
+
 .button-group {
     display: flex;
     gap: 10px;

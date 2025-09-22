@@ -248,15 +248,13 @@ export function renderEquationsList() {
 
         const editBtn = document.createElement('button');
         editBtn.textContent = 'Edit';
-        editBtn.classList.add('small-button');
-        editBtn.style.cssText = 'background-color: #ffc107; color: #333;';
+        editBtn.classList.add('small-button', 'edit-button');
         editBtn.onclick = () => startEditEquation(eq.id);
         buttonGroup.appendChild(editBtn);
 
         const removeBtn = document.createElement('button');
         removeBtn.textContent = 'Remove';
-        removeBtn.classList.add('small-button');
-        removeBtn.style.backgroundColor = '#dc3545';
+        removeBtn.classList.add('small-button', 'delete-button');
         removeBtn.onclick = () => removeEquation(eq.id);
         buttonGroup.appendChild(removeBtn);
 
