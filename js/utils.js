@@ -333,3 +333,95 @@ export function debounce(func, wait) {
         timeout = setTimeout(later, wait);
     };
 }
+
+/**
+ * Shows a custom confirmation dialog.
+ * @param {string} message - The message to display in the confirmation dialog.
+ * @param {string} title - The title of the confirmation dialog (optional).
+ * @returns {Promise<boolean>} A promise that resolves to true if confirmed, false if cancelled.
+ */
+export function showConfirmDialog(message, title = 'Confirm Action') {
+    return new Promise((resolve) => {
+        // Create modal elements
+        const modal = document.createElement('div');
+        modal.className = 'confirm-modal';
+        
+        const content = document.createElement('div');
+        content.className = 'confirm-modal-content';
+        
+        const titleElement = document.createElement('h3');
+        titleElement.textContent = title;
+        
+        const messageElement = document.createElement('p');
+        messageElement.textContent = message;
+        
+        const buttonContainer = document.createElement('div');
+        buttonContainer.className = 'confirm-modal-buttons';
+        
+        const confirmButton = document.createElement('button');
+        confirmButton.textContent = 'Remove';
+        confirmButton.className = 'confirm-yes';
+        
+        const cancelButton = document.createElement('button');
+        cancelButton.textContent = 'Cancel';
+        cancelButton.className = 'confirm-no';
+        
+        // Event handlers
+        const handleConfirm = () => {
+            modal.classList.remove('show');
+            setTimeout(() => {
+                document.body.removeChild(modal);
+                resolve(true);
+            }, 300);
+        };
+        
+        const handleCancel = () => {
+            modal.classList.remove('show');
+            setTimeout(() => {
+                document.body.removeChild(modal);
+                resolve(false);
+            }, 300);
+        };
+        
+        // Click handlers
+        confirmButton.addEventListener('click', handleConfirm);
+        cancelButton.addEventListener('click', handleCancel);
+        
+        // ESC key handler
+        const handleKeydown = (e) => {
+            if (e.key === 'Escape') {
+                handleCancel();
+                document.removeEventListener('keydown', handleKeydown);
+            }
+        };
+        document.addEventListener('keydown', handleKeydown);
+        
+        // Click outside to close
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                handleCancel();
+            }
+        });
+        
+        // Assemble modal
+        buttonContainer.appendChild(cancelButton);
+        buttonContainer.appendChild(confirmButton);
+        content.appendChild(titleElement);
+        content.appendChild(messageElement);
+        content.appendChild(buttonContainer);
+        modal.appendChild(content);
+        
+        // Add to DOM and show
+        document.body.appendChild(modal);
+        
+        // Trigger show animation after a brief delay
+        setTimeout(() => {
+            modal.classList.add('show');
+        }, 10);
+        
+        // Focus the cancel button by default
+        setTimeout(() => {
+            cancelButton.focus();
+        }, 350);
+    });
+}

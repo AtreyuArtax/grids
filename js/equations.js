@@ -1,5 +1,5 @@
 // This module manages the collection of equations, their state, and rendering.
-import { showMessageBox, formatEquationTextForDisplay, safeParseFloat, safeParseInt } from './utils.js';
+import { showMessageBox, formatEquationTextForDisplay, safeParseFloat, safeParseInt, showConfirmDialog } from './utils.js';
 import { calculateDynamicMargins } from './labels.js';
 // Import setPreviewEquation so we can clear the live preview when an equation is added/updated
 import { drawGrid, setPreviewEquation } from './plotter.js';
@@ -255,7 +255,12 @@ export function renderEquationsList() {
         const removeBtn = document.createElement('button');
         removeBtn.textContent = 'Remove';
         removeBtn.classList.add('small-button', 'delete-button');
-        removeBtn.onclick = () => removeEquation(eq.id);
+        removeBtn.onclick = async () => {
+            const confirmed = await showConfirmDialog('Are you sure you want to remove this equation?', 'Remove Equation');
+            if (confirmed) {
+                removeEquation(eq.id);
+            }
+        };
         buttonGroup.appendChild(removeBtn);
 
         eqDiv.appendChild(buttonGroup);

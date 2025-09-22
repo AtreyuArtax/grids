@@ -1,6 +1,8 @@
 // pointsUI.js
 // UI bindings for managing points and styles.
 
+import { showConfirmDialog } from '../utils.js';
+
 export class PointsUI {
   constructor(pointsLayer) {
     this.layer = pointsLayer;
@@ -284,7 +286,13 @@ export class PointsUI {
         const del = document.createElement('button');
         del.textContent = 'Remove';
         del.classList.add('delete-button');
-        del.addEventListener('click', () => { this.layer.removePoint(idx); this.renderList(); });
+        del.addEventListener('click', async () => { 
+            const confirmed = await showConfirmDialog('Are you sure you want to remove this point?', 'Remove Point');
+            if (confirmed) {
+                this.layer.removePoint(idx); 
+                this.renderList(); 
+            }
+        });
 
         row.appendChild(left);
         row.appendChild(edit);
