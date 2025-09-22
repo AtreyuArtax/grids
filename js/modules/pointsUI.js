@@ -9,6 +9,7 @@ export class PointsUI {
     this.elX = document.getElementById('pointX');
     this.elY = document.getElementById('pointY');
     this.elLabel = document.getElementById('pointLabel');
+    this.elCurveIntensity = document.getElementById('pointCurveIntensity');
     this.elBulkInput = document.getElementById('bulkPointsInput');
     this.elDotColor = document.getElementById('pointsDotColor');
     this.elLineColor = document.getElementById('pointsLineColor');
@@ -76,13 +77,76 @@ export class PointsUI {
     const x = this.elX?.value;
     const y = this.elY?.value;
     const label = this.elLabel?.value || '';
+    const curveIntensity = this.elCurveIntensity?.value;
+    
     if (x === '' || y === '') return;
-    if (this.layer.addPoint({ x, y, label })) {
+    
+    // Convert empty string to 0 for curveIntensity (straight line default)
+    const intensityValue = curveIntensity === '' ? 0 : Number(curveIntensity);
+    
+    if (this.layer.addPoint({ x, y, label, curveIntensity: intensityValue })) {
       if (this.elX) this.elX.value = '';
       if (this.elY) this.elY.value = '';
       if (this.elLabel) this.elLabel.value = '';
+      // Don't clear curveIntensity - let user keep same intensity for multiple points
       this.renderList();
+      this.updateSlopeInfo();
     }
+  }
+
+  /**
+   * Update slope information display and provide suggestions for next point
+   */
+  updateSlopeInfo() {
+    const slopeInfoEl = document.getElementById('slopeInfo');
+    if (!slopeInfoEl || this.layer.points.length < 2) {
+      if (slopeInfoEl) slopeInfoEl.textContent = '';
+      return;
+    }
+
+    const lastPoint = this.layer.points[this.layer.points.length - 1];
+    const prevPoint = this.layer.points[this.layer.points.length - 2];
+    
+    if (prevPoint.curveIntensity !== 0) {
+      const finalSlope = this.layer.calculateFinalSlope(prevPoint, lastPoint);
+      slopeInfoEl.innerHTML = `<strong>Final slope at ${lastPoint.label || 'last point'}:</strong> ${finalSlope.toFixed(3)}`;
+      
+      // Add suggestion for next point
+      this.addNextPointSuggestion(finalSlope);
+    } else {
+      slopeInfoEl.textContent = '';
+    }
+  }
+
+  /**
+   * Add event listener to X input to suggest Y value for slope continuity
+   */
+  addNextPointSuggestion(finalSlope) {
+    if (!this.elX || !this.elY) return;
+    
+    const suggestY = () => {
+      const nextX = Number(this.elX.value);
+      if (isFinite(nextX) && this.layer.points.length > 0) {
+        const lastPoint = this.layer.points[this.layer.points.length - 1];
+        const suggestedY = lastPoint.y + finalSlope * (nextX - lastPoint.x);
+        
+        // Only suggest if Y field is empty
+        if (this.elY.value === '') {
+          this.elY.value = suggestedY.toFixed(2);
+          this.elY.style.backgroundColor = '#e8f4fd'; // Light blue to indicate suggestion
+        }
+      }
+    };
+
+    // Remove any existing listeners
+    this.elX.removeEventListener('input', this.suggestYHandler);
+    this.suggestYHandler = suggestY;
+    this.elX.addEventListener('input', this.suggestYHandler);
+    
+    // Clear suggestion styling when user types in Y
+    this.elY.addEventListener('input', () => {
+      this.elY.style.backgroundColor = '';
+    });
   }
 
   addBulkPoints() {
@@ -105,13 +169,19 @@ export class PointsUI {
       const x = parseFloat(parts[0]);
       const y = parseFloat(parts[1]);
       const label = parts[2] || '';
+      const curveIntensity = parts[3] ? parseFloat(parts[3]) : 0;
 
       if (isNaN(x) || isNaN(y)) {
         errors.push(`Entry ${index + 1}: "${entry}" - x and y must be numbers`);
         return;
       }
 
-      if (this.layer.addPoint({ x, y, label })) {
+      if (parts[3] && isNaN(curveIntensity)) {
+        errors.push(`Entry ${index + 1}: "${entry}" - curve intensity must be a number`);
+        return;
+      }
+
+      if (this.layer.addPoint({ x, y, label, curveIntensity })) {
         addedCount++;
       }
     });
@@ -119,6 +189,7 @@ export class PointsUI {
     // Clear the input and update the display
     if (this.elBulkInput) this.elBulkInput.value = '';
     this.renderList();
+    this.updateSlopeInfo();
 
     // Show feedback to user
     if (errors.length > 0) {
@@ -153,14 +224,17 @@ export class PointsUI {
         form.onsubmit = e => {
           e.preventDefault();
           const x = form.x.value, y = form.y.value, label = form.label.value;
-          this.layer.points[idx] = { x: Number(x), y: Number(y), label };
+          const curveIntensity = form.curveIntensity.value === '' ? 0 : Number(form.curveIntensity.value);
+          this.layer.points[idx] = { x: Number(x), y: Number(y), label, curveIntensity };
           this.editIdx = null;
           this.layer.render();
           this.renderList();
+          this.updateSlopeInfo();
         };
         form.innerHTML = `<input name="x" type="number" step="any" value="${p.x}" style="width:5em;">`
           + `<input name="y" type="number" step="any" value="${p.y}" style="width:5em;">`
-          + `<input name="label" type="text" value="${p.label || ''}" style="width:6em;">`;
+          + `<input name="label" type="text" value="${p.label || ''}" style="width:6em;">`
+          + `<input name="curveIntensity" type="number" step="any" value="${p.curveIntensity !== 0 ? p.curveIntensity : ''}" placeholder="curve" style="width:6em;">`;
         const saveBtn = document.createElement('button');
         saveBtn.textContent = 'Save';
         saveBtn.type = 'submit';
@@ -173,7 +247,8 @@ export class PointsUI {
         row.appendChild(form);
       } else {
         const left = document.createElement('div');
-        left.textContent = `(${p.x}, ${p.y})${p.label ? ` — ${p.label}` : ''}`;
+        const slopeText = p.curveIntensity !== 0 ? ` (curve: ${p.curveIntensity})` : '';
+        left.textContent = `(${p.x}, ${p.y})${p.label ? ` — ${p.label}` : ''}${slopeText}`;
         left.style.flex = '1';
 
         const edit = document.createElement('button');

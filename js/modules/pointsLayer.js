@@ -5,7 +5,7 @@ import { getTransform, ensureLayer } from './gridAPI.js';
 
 export class PointsLayer {
   constructor() {
-    this.points = []; // [{x: number, y: number, label?: string, labelOffset?: {x: number, y: number}}]
+    this.points = []; // [{x: number, y: number, label?: string, labelOffset?: {x: number, y: number}, curveIntensity?: number}]
     this.style = {
       dotColor: '#000000',
       lineColor: '#000000',
@@ -98,7 +98,12 @@ export class PointsLayer {
   addPoint(p) {
     const x = Number(p.x), y = Number(p.y);
     if (!isFinite(x) || !isFinite(y)) return false;
-    this.points.push({ x, y, label: p.label || '' });
+    this.points.push({ 
+      x, 
+      y, 
+      label: p.label || '',
+      curveIntensity: p.curveIntensity !== undefined ? Number(p.curveIntensity) : 0
+    });
     this.render();
     return true;
   }
@@ -123,6 +128,88 @@ export class PointsLayer {
       delete point.labelOffset;
     });
     this.render();
+  }
+
+  /**
+   * Calculate the final slope at the end of a quadratic Bézier curve
+   * @param {Object} point1 - Starting point {x, y}
+   * @param {Object} point2 - Ending point {x, y, curveIntensity}
+   * @returns {number} - Final slope at point2
+   */
+  calculateFinalSlope(point1, point2) {
+    if (point1.curveIntensity === 0) {
+      // Linear connection - constant slope
+      return (point2.y - point1.y) / (point2.x - point1.x);
+    }
+    
+    const initialSlope = (point2.y - point1.y) / (point2.x - point1.x);
+    return 2 * point1.curveIntensity - initialSlope;
+  }
+
+  /**
+   * Get suggested next point position to continue slope from previous curve
+   * @param {Object} lastPoint - The last point in the sequence
+   * @param {number} nextX - X coordinate for next point
+   * @returns {Object} - Suggested point {x, y, suggested: true}
+   */
+  getSuggestedNextPoint(lastPoint, nextX) {
+    if (this.points.length < 2) return null;
+    
+    const prevPoint = this.points[this.points.length - 2];
+    const finalSlope = this.calculateFinalSlope(prevPoint, lastPoint);
+    
+    return {
+      x: nextX,
+      y: lastPoint.y + finalSlope * (nextX - lastPoint.x),
+      suggested: true
+    };
+  }
+
+  /**
+   * Generate quadratic Bézier curve points between two points
+   * @param {Object} point1 - Starting point {x, y, curveIntensity}
+   * @param {Object} point2 - Ending point {x, y}
+   * @param {Function} toSvg - Function to convert grid coordinates to SVG
+   * @returns {Array} - Array of SVG coordinate points for smooth curve
+   */
+  generateBezierCurve(point1, point2, toSvg) {
+    if (point1.curveIntensity === 0) {
+      // Linear connection - just return start and end points
+      return [toSvg(point1), toSvg(point2)];
+    }
+
+    const numSteps = 30; // More steps for smoother Bézier curves
+    const segments = [];
+    
+    // Calculate control point for quadratic Bézier curve
+    // The control point determines the curvature based on curve intensity
+    const midX = (point1.x + point2.x) / 2;
+    const midY = (point1.y + point2.y) / 2;
+    
+    // Adjust control point to achieve desired curve intensity
+    const deltaX = point2.x - point1.x;
+    const controlX = midX;
+    const controlY = midY + (point1.curveIntensity * deltaX) / 4;
+    
+    const controlPoint = { x: controlX, y: controlY };
+    
+    // Generate quadratic Bézier curve points
+    for (let i = 0; i <= numSteps; i++) {
+      const t = i / numSteps;
+      
+      // Quadratic Bézier formula: B(t) = (1-t)²P₀ + 2(1-t)tP₁ + t²P₂
+      const x = (1 - t) * (1 - t) * point1.x + 
+                2 * (1 - t) * t * controlPoint.x + 
+                t * t * point2.x;
+      const y = (1 - t) * (1 - t) * point1.y + 
+                2 * (1 - t) * t * controlPoint.y + 
+                t * t * point2.y;
+      
+      const svgPt = toSvg({ x, y });
+      segments.push(svgPt);
+    }
+    
+    return segments;
   }
 
   render() {
@@ -191,15 +278,53 @@ export class PointsLayer {
       }
     });
 
-    // Draw connecting polyline
+    // Draw connecting lines/curves
     if (this.style.connect && this.points.length > 1) {
-      const pts = this.points.map(p => toSvg(p)).map(s => `${s.x},${s.y}`).join(' ');
-      const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-      poly.setAttribute('points', pts);
-      poly.setAttribute('fill', 'none');
-      poly.setAttribute('stroke', this.style.lineColor);
-      poly.setAttribute('stroke-width', '2');
-      g.appendChild(poly);
+      // Check if any points (except the last) have curve intensity > 0
+      const hasCurves = this.points.slice(0, -1).some(p => p.curveIntensity !== 0);
+      
+      if (hasCurves) {
+        // Use Bézier curves for smooth motion
+        const allCurvePoints = [];
+        
+        for (let i = 0; i < this.points.length - 1; i++) {
+          const point1 = this.points[i];
+          const point2 = this.points[i + 1];
+          
+          const curveSegment = this.generateBezierCurve(point1, point2, toSvg);
+          
+          // Add points to the overall path, avoiding duplicates
+          if (i === 0) {
+            allCurvePoints.push(...curveSegment);
+          } else {
+            // Skip first point to avoid duplicates
+            allCurvePoints.push(...curveSegment.slice(1));
+          }
+        }
+        
+        // Create smooth path using SVG path element
+        if (allCurvePoints.length > 0) {
+          const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          const pathData = allCurvePoints.map((pt, i) => 
+            `${i === 0 ? 'M' : 'L'} ${pt.x} ${pt.y}`
+          ).join(' ');
+          
+          path.setAttribute('d', pathData);
+          path.setAttribute('fill', 'none');
+          path.setAttribute('stroke', this.style.lineColor);
+          path.setAttribute('stroke-width', '2');
+          g.appendChild(path);
+        }
+      } else {
+        // Use simple polyline for all linear connections
+        const pts = this.points.map(p => toSvg(p)).map(s => `${s.x},${s.y}`).join(' ');
+        const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+        poly.setAttribute('points', pts);
+        poly.setAttribute('fill', 'none');
+        poly.setAttribute('stroke', this.style.lineColor);
+        poly.setAttribute('stroke-width', '2');
+        g.appendChild(poly);
+      }
     }
   }
 

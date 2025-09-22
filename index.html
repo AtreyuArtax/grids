@@ -306,7 +306,47 @@ The label positions <b>will reset</b> if any grid settings are changed (min/max 
             </fieldset>
             <!-- Points & Segments controls -->
             <fieldset class="controls-group collapsible" id="pointsSection">
-                <legend>Points &amp; Segments <span class="toggle-icon">▼</span></legend>
+                <legend>
+                    <span class="info-icon" tabindex="0" aria-describedby="pointsInfoTooltip">i</span>
+                    <span class="info-tooltip" id="pointsInfoTooltip" role="tooltip">
+                        <h3>🎯 Basic Usage</h3>
+                        <p><strong>Curve Intensity</strong> creates smooth curved connections between points instead of straight lines.</p>
+                        <ul>
+                            <li><strong>Leave empty</strong> = straight line (linear motion)</li>
+                            <li><strong>Positive numbers</strong> = curves upward from the straight line</li>
+                            <li><strong>Negative numbers</strong> = curves downward from the straight line</li>
+                        </ul>
+
+                        <h3>📊 For Physics Graphs</h3>
+                        <p><strong>Position-Time Graphs:</strong></p>
+                        <ul>
+                            <li>Set curve intensity = <strong>initial velocity</strong> for realistic projectile motion</li>
+                            <li>Example: Object thrown upward at 39.2 m/s → use curve intensity = 39.2</li>
+                            <li>Creates proper parabolic motion matching physics equations</li>
+                        </ul>
+
+                        <h3>🔗 Slope Continuity</h3>
+                        <p>The system automatically:</p>
+                        <ul>
+                            <li><strong>Calculates final slope</strong> at each curved point</li>
+                            <li><strong>Suggests next Y coordinate</strong> when you type X (blue highlight)</li>
+                            <li><strong>Maintains smooth motion</strong> for realistic physics</li>
+                        </ul>
+
+                        <h3>📝 Bulk Entry Format</h3>
+                        <p><code>x,y,label,curveIntensity</code></p>
+                        <p>Example: <code>0,0,Start,39.2 4,78.4,Peak 8,0,End</code></p>
+
+                        <h3>💡 Tips</h3>
+                        <ul>
+                            <li><strong>Experiment!</strong> Try different values to see curve shapes</li>
+                            <li><strong>Physics accuracy:</strong> Use initial velocity for projectile motion</li>
+                            <li><strong>Visual appeal:</strong> Any value works for artistic curves</li>
+                            <li><strong>Slope continuity:</strong> Accept blue-highlighted suggestions for smooth motion</li>
+                        </ul>
+                    </span>
+                    Points &amp; Segments <span class="toggle-icon">▼</span>
+                </legend>
                 <div class="fieldset-content">
                     <!-- Color Controls at the top -->
                     <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
@@ -355,6 +395,12 @@ The label positions <b>will reset</b> if any grid settings are changed (min/max 
                         <label>Label (optional):
                             <input type="text" id="pointLabel" maxlength="40" placeholder="e.g., A">
                         </label>
+                    </div>
+                    <div style="margin-bottom:12px;">
+                        <label>Curve Intensity (optional):
+                            <input type="number" id="pointCurveIntensity" step="any" placeholder="e.g., 39.2 for physics, or any value">
+                        </label>
+                        <div id="slopeInfo" style="font-size:0.85em; color:#666; margin-top:4px;"></div>
                     </div>
                     <div style="margin-bottom:12px;">
                         <label>Point Size:
@@ -407,7 +453,7 @@ The label positions <b>will reset</b> if any grid settings are changed (min/max 
                     <div style="margin-bottom:16px; padding-top:12px; border-top:1px solid #e0e0e0;">
                         <div style="margin-bottom:8px;">
                             <label for="bulkPointsInput" style="display:block; margin-bottom:4px; font-size:0.9em; color:#555; font-weight:bold;">Bulk Entry:</label>
-                            <textarea id="bulkPointsInput" placeholder="Enter points as x,y or x,y,label&#10;Examples:&#10;0,1&#10;2,1 4,2&#10;0,1,A 2,1,B 4,2,C" style="width:100%; height:85px; padding:8px; border:1px solid #ccc; border-radius:4px; font-size:0.85em; font-family:monospace; resize:vertical;"></textarea>
+                            <textarea id="bulkPointsInput" placeholder="Enter points as x,y or x,y,label or x,y,label,curveIntensity&#10;Examples:&#10;0,1&#10;2,1 4,2&#10;0,1,A 2,1,B 4,2,C&#10;0,1,A,39.2 4,78.4,B 8,0,C" style="width:100%; height:85px; padding:8px; border:1px solid #ccc; border-radius:4px; font-size:0.85em; font-family:monospace; resize:vertical;"></textarea>
                         </div>
                         <button id="addBulkPointsBtn" type="button" style="padding:6px 12px; font-size:0.85em;">Add Points</button>
                     </div>
@@ -489,7 +535,19 @@ if ('serviceWorker' in navigator) {
     };
     document.getElementById('privacyPolicyModal').onclick = function(e) {
         if (e.target === this) this.style.display = 'none';
-    }
+    };
+    
+    // Points info modal logic
+    document.getElementById('pointsInfoIcon').onclick = function(e) {
+        e.preventDefault();
+        document.getElementById('pointsInfoModal').style.display = 'flex';
+    };
+    document.getElementById('closePointsInfo').onclick = function() {
+        document.getElementById('pointsInfoModal').style.display = 'none';
+    };
+    document.getElementById('pointsInfoModal').onclick = function(e) {
+        if (e.target === this) this.style.display = 'none';
+    };
     
 </script>
 
