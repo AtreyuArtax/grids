@@ -4,6 +4,7 @@ import { setTransform } from './modules/gridAPI.js';
 import { calculateDynamicMargins, dynamicMarginLeft, dynamicMarginRight,
          dynamicMarginTop, dynamicMarginBottom, doesOverlap } from './labels.js';
 import { equationsToDraw } from './equations.js'; // Assuming equationsToDraw is a mutable array where labelPosition can be updated.
+import { errorHandler } from './modules/errorHandler.js';
 
 // Math.js is needed for compiling expressions for plotting
 // Ensure math.js is loaded in index.html like:
@@ -12,7 +13,10 @@ let math;
 if (typeof window !== 'undefined' && window.math) {
     math = window.math;
 } else {
-    console.error("math.js library not found. Please ensure it is loaded.");
+    errorHandler.fatal("math.js library not found. Please ensure it is loaded.", {
+        component: 'plotter',
+        action: 'initialization'
+    });
     // Fallback or error handling if math.js is not available
     math = { compile: (expr) => ({ evaluate: (scope) => NaN }) }; // Dummy math object
 }
@@ -58,8 +62,11 @@ export function setPreviewEquation(eqData) {
         } catch (e) {
             // If the expression is invalid, clear the preview or show an error
             previewEquation = null;
-            console.warn("Invalid expression for preview:", eqData.rawExpression, e);
-            // Optionally, update a UI element to show an error message
+            errorHandler.warn("Invalid expression for preview", {
+                component: 'plotter',
+                action: 'setPreviewEquation',
+                context: { expression: eqData.rawExpression, error: e.message }
+            });
         }
     } else {
         previewEquation = null;
@@ -313,8 +320,10 @@ function showMessageBox(message, type = 'error') {
 export function exportSVGtoPDF(svgId = 'gridSVG') {
     const svgElement = document.getElementById(svgId);
     if (!svgElement) {
-        console.error(`SVG element with ID '${svgId}' not found.`);
-        showMessageBox(`Error: SVG element with ID '${svgId}' not found. Please ensure the SVG element exists in the HTML.`, 'error');
+        errorHandler.error(`SVG element with ID '${svgId}' not found.`, {
+            component: 'plotter',
+            action: 'exportSVGtoPDF'
+        });
         return;
     }
 
@@ -382,8 +391,10 @@ export function exportSVGtoPDF(svgId = 'gridSVG') {
     const svg2pdf = window.svg2pdf && window.svg2pdf.svg2pdf ? window.svg2pdf.svg2pdf : window.svg2pdf;
 
     if (typeof jspdf !== "function" || typeof svg2pdf !== "function") {
-        console.error("jsPDF or svg2pdf.js library not found. Please ensure they are loaded via <script> tags.");
-        showMessageBox("Error: Required PDF libraries (jsPDF, svg2pdf.js) not found. Please ensure they are loaded in your HTML.", 'error');
+        errorHandler.error("jsPDF or svg2pdf.js library not found. Please ensure they are loaded via <script> tags.", {
+            component: 'plotter',
+            action: 'exportSVGtoPDF'
+        });
         return;
     }
 

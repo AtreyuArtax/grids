@@ -552,53 +552,6 @@ if ('serviceWorker' in navigator) {
         <button id="closePrivacyPolicy" class="privacy-close-btn">Close</button>
     </div>
 </div>
-<script>
-    // Privacy Policy Modal logic
-    document.getElementById('privacyPolicyLink').onclick = function(e) {
-        e.preventDefault();
-        document.getElementById('privacyPolicyModal').style.display = 'flex';
-    };
-    document.getElementById('closePrivacyPolicy').onclick = function() {
-        document.getElementById('privacyPolicyModal').style.display = 'none';
-    };
-    document.getElementById('privacyPolicyModal').onclick = function(e) {
-        if (e.target === this) this.style.display = 'none';
-    };
-    
-    // Equation Info Modal logic
-    document.getElementById('equationInfoIcon').onclick = function(e) {
-        e.preventDefault();
-        document.getElementById('equationInfoModal').style.display = 'flex';
-    };
-    document.getElementById('closeEquationInfo').onclick = function() {
-        document.getElementById('equationInfoModal').style.display = 'none';
-    };
-    document.getElementById('equationInfoModal').onclick = function(e) {
-        if (e.target === this) this.style.display = 'none';
-    };
-    
-    // Points Info Modal logic
-    document.getElementById('pointsInfoIcon').onclick = function(e) {
-        e.preventDefault();
-        document.getElementById('pointsInfoModal').style.display = 'flex';
-    };
-    document.getElementById('closePointsInfo').onclick = function() {
-        document.getElementById('pointsInfoModal').style.display = 'none';
-    };
-    document.getElementById('pointsInfoModal').onclick = function(e) {
-        if (e.target === this) this.style.display = 'none';
-    };
-    
-    // Keyboard support - ESC key to close modals
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            document.getElementById('privacyPolicyModal').style.display = 'none';
-            document.getElementById('equationInfoModal').style.display = 'none';
-            document.getElementById('pointsInfoModal').style.display = 'none';
-        }
-    });
-    
-</script>
 
 </body>
 </html>

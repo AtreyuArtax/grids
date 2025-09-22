@@ -1,5 +1,7 @@
 // This module contains general utility functions used across the application.
 
+import { errorHandler } from './modules/errorHandler.js';
+
 // Constants
 export const EPSILON = 1e-6; // Small tolerance for floating point comparisons
 export const ZERO_LINE_EXTENSION = 10; // Length of the axis line extension beyond the grid
@@ -43,7 +45,13 @@ export function parseSuperscript(text) {
  * @returns {number[]} An array containing the simplified numerator and denominator.
  */
 export function simplifyFraction(numerator, denominator) {
-    if (denominator === 0) throw new Error('Denominator cannot be zero');
+    if (denominator === 0) {
+        errorHandler.error('Denominator cannot be zero', {
+            component: 'utils',
+            action: 'simplifyFraction'
+        });
+        return [numerator, 1]; // Return safe fallback
+    }
     
     function gcd(a, b) {
         return b ? gcd(b, a % b) : a;
@@ -163,7 +171,11 @@ export function drawDot(ctx, x, y, colour, r = 4) {
  */
 export function getLineRectIntersection(pInside, pOutside, rect) {
     if (!pInside || !pOutside || !rect) {
-        throw new Error('Invalid parameters for line-rectangle intersection');
+        errorHandler.error('Invalid parameters for line-rectangle intersection', {
+            component: 'utils',
+            action: 'getLineRectIntersection'
+        });
+        return { x: 0, y: 0 }; // Return safe fallback
     }
     
     const dx = pOutside.x - pInside.x;
@@ -280,7 +292,10 @@ export function showMessageBox(message) {
 export function downloadPNG() {
     const canvas = document.getElementById('gridCanvas');
     if (!canvas) {
-        console.error('Canvas element not found');
+        errorHandler.error('Canvas element not found', {
+            component: 'utils',
+            action: 'downloadPNG'
+        });
         return;
     }
     

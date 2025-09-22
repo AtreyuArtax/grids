@@ -3,6 +3,7 @@ import { showMessageBox, formatEquationTextForDisplay, safeParseFloat, safeParse
 import { calculateDynamicMargins } from './labels.js';
 // Import setPreviewEquation so we can clear the live preview when an equation is added/updated
 import { drawGrid, setPreviewEquation } from './plotter.js';
+import { errorHandler } from './modules/errorHandler.js';
 
 export let equationsToDraw = []; // Array to store all equations
 export let nextEquationId = 0; // Simple ID counter for equations
@@ -80,14 +81,20 @@ export function handleEquationSubmit() {
     // Validate input
     const validation = validateEquationInput(expression, domainStart, domainEnd);
     if (!validation.isValid) {
-        showMessageBox(validation.error);
+        errorHandler.validation(validation.error, {
+            component: 'equations',
+            action: 'handleEquationSubmit'
+        });
         return;
     }
 
     // Compile equation
     const compilation = compileEquation(expression);
     if (!compilation.success) {
-        showMessageBox(compilation.error);
+        errorHandler.validation(compilation.error, {
+            component: 'equations',
+            action: 'compileEquation'
+        });
         return;
     }
 

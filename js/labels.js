@@ -1,6 +1,7 @@
 // This module handles calculations for dynamic margins and axis label visibility.
 import { parseSuperscript, formatRadianLabel, formatEquationTextForDisplay, EPSILON, ZERO_LINE_EXTENSION, AXIS_TITLE_SPACING, ARROW_HEAD_SIZE, safeParseFloat, safeParseInt } from './utils.js';
 import { equationsToDraw } from './equations.js'; // Import equationsToDraw
+import { errorHandler } from './modules/errorHandler.js';
 
 export let dynamicMarginLeft = 60;
 export let dynamicMarginRight = 80;
@@ -19,7 +20,10 @@ function measureSVGText(textContent, fontSize, fontFamily) {
     const svg = document.getElementById('gridSVG');
     if (!svg) {
         // Fallback or error handling if SVG element is not yet in DOM
-        console.warn("SVG element not found for text measurement.");
+        errorHandler.warn("SVG element not found for text measurement", {
+            component: 'labels',
+            action: 'measureSVGText'
+        });
         return { width: 0, height: 0, actualBoundingBoxAscent: 0, actualBoundingBoxDescent: 0 };
     }
 
@@ -35,7 +39,11 @@ function measureSVGText(textContent, fontSize, fontFamily) {
     try {
         bbox = tempText.getBBox();
     } catch (e) {
-        console.error("Error getting BBox for text:", textContent, e);
+        errorHandler.warn("Error getting BBox for text", {
+            component: 'labels',
+            action: 'measureSVGText',
+            context: { textContent, error: e.message }
+        });
         // Fallback to default zero bbox if getBBox fails
     }
     svg.removeChild(tempText);

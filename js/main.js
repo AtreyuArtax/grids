@@ -15,6 +15,8 @@ import { exportSVGtoPNG, exportSVGtoPDF } from './plotter.js';
 import { debounce } from './utils.js';
 import { PointsLayer } from './modules/pointsLayer.js';
 import { PointsUI } from './modules/pointsUI.js';
+import { initializeModals } from './modalInit.js';
+import { errorHandler } from './modules/errorHandler.js';
 
 // Create debounced versions of expensive operations
 const debouncedCalculateAndDraw = debounce(() => {
@@ -332,9 +334,12 @@ Object.defineProperty(window, 'resetEquationInputsAndButtons', {
 // Event listeners for the DOMContentLoaded event to initialize the application.
 document.addEventListener('DOMContentLoaded', () => {
     try {
-    // Points overlay modules
-    const pointsLayer = new PointsLayer();
-    new PointsUI(pointsLayer);
+        // Initialize modal system
+        initializeModals();
+        
+        // Points overlay modules
+        const pointsLayer = new PointsLayer();
+        new PointsUI(pointsLayer);
 
         // Calculate Net Area button
         const calculateNetAreaBtn = safeGetElement('calculateNetAreaBtn');
@@ -446,6 +451,10 @@ document.addEventListener('DOMContentLoaded', () => {
         renderEquationsList();
         
     } catch (error) {
-        console.error('Error during initialization:', error);
+        errorHandler.fatal(error, {
+            component: 'main',
+            action: 'initialization',
+            showUser: true
+        });
     }
 });

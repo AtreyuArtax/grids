@@ -617,6 +617,20 @@ button:disabled {
     border-color: #adb5bd;
 }
 
+/********  MODAL MANAGER ANIMATION SUPPORT  ********/
+/* Animation support for modal manager show/hide */
+.info-modal.show,
+.privacy-modal.show {
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+.info-modal:not(.show),
+.privacy-modal:not(.show) {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
 @media (max-width: 768px) {
     .info-modal {
         padding: 10px;
