@@ -5,14 +5,16 @@ import { gridPresets } from './grid-presets.js';
 import {
     handleEquationSubmit,
     resetEquationInputsAndButtons,
+    resetEquationLabelPositions,
+    clearAllEquations,
     renderEquationsList,
     toggleCustomLabelInput,
     equationSettings // Import equationSettings object
 } from './equations.js';
 import { calculateDynamicMargins, toggleXAxisSettings } from './labels.js';
-import { drawGrid, downloadSVG, setPreviewEquation } from './plotter.js'; // Import setPreviewEquation
+import { drawGrid, downloadSVG, setPreviewEquation, safeDrawGrid } from './plotter.js'; // Import setPreviewEquation and safeDrawGrid
 import { exportSVGtoPNG, exportSVGtoPDF } from './plotter.js';
-import { debounce } from './utils.js';
+import { debounce, showConfirmDialog } from './utils.js';
 import { PointsLayer } from './modules/pointsLayer.js';
 import { PointsUI } from './modules/pointsUI.js';
 import { initializeModals } from './modalInit.js';
@@ -313,6 +315,8 @@ Object.defineProperty(window, 'handleEquationSubmit', { // Use window.handleEqua
     value: async function(...args) {
         await originalHandleEquationSubmit.apply(this, args);
         setPreviewEquation(null); // Clear preview after submission
+        // Use safeDrawGrid to defer redraw if drag is in progress
+        safeDrawGrid();
     },
     writable: true
 });
@@ -322,6 +326,8 @@ Object.defineProperty(window, 'resetEquationInputsAndButtons', {
     value: function(...args) {
         originalResetEquationInputsAndButtons.apply(this, args);
         setPreviewEquation(null);
+        // Use safeDrawGrid to defer redraw if drag is in progress
+        safeDrawGrid();
         // Restore the last used value for "Show arrows"
         const showLineArrowsCheckbox = safeGetElement('showLineArrows');
         if (showLineArrowsCheckbox && equationSettings.lastShowLineArrowsValue !== undefined) {
@@ -396,8 +402,27 @@ document.addEventListener('DOMContentLoaded', () => {
         // It's assumed that handleEquationSubmit and resetEquationInputsAndButtons are either imported
         // and attached elsewhere, or expected to be global functions.
         // The original listeners are re-added here, but their behavior is now wrapped.
-        safeAddEventListener(safeGetElement('addOrUpdateEquationButton'), 'click', handleEquationSubmit);
-        safeAddEventListener(safeGetElement('cancelEditButton'), 'click', resetEquationInputsAndButtons);
+        // Wrap equation handlers to trigger grid redraw
+        safeAddEventListener(safeGetElement('addOrUpdateEquationButton'), 'click', () => {
+            handleEquationSubmit();
+            // Use safeDrawGrid to defer redraw if drag is in progress
+            safeDrawGrid();
+        });
+        safeAddEventListener(safeGetElement('cancelEditButton'), 'click', () => {
+            resetEquationInputsAndButtons();
+            safeDrawGrid();
+        });
+        safeAddEventListener(safeGetElement('resetEquationLabelPositionsBtn'), 'click', () => {
+            resetEquationLabelPositions();
+            safeDrawGrid();
+        });
+        safeAddEventListener(safeGetElement('clearEquationsBtn'), 'click', async () => {
+            const confirmed = await showConfirmDialog('Are you sure you want to clear all equations?', 'Clear All Equations');
+            if (confirmed) {
+                clearAllEquations();
+                safeDrawGrid();
+            }
+        });
 
         safeAddEventListener(safeGetElement('equationLabelType'), 'change', toggleCustomLabelInput);
 

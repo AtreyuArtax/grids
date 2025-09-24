@@ -516,17 +516,39 @@ function onMouseUp(event) {
         currentDraggedLabel.style.cursor = 'grab'; // Reset cursor
 
         const eqid = currentDraggedLabel.dataset.eqid;
+        
+        // Check if the dragged label element is still in the DOM
+        // If not, the grid was redrawn during drag operation
+        if (!document.contains(currentDraggedLabel)) {
+            console.log('Drag operation interrupted by grid redraw, ignoring position update');
+            currentDraggedLabel = null;
+            return;
+        }
+        
         const finalX = parseFloat(currentDraggedLabel.getAttribute('x'));
         const finalY = parseFloat(currentDraggedLabel.getAttribute('y'));
+        
+        // Get the reference point for this label (stored during label creation)
+        const refPointX = parseFloat(currentDraggedLabel.dataset.refx || '0');
+        const refPointY = parseFloat(currentDraggedLabel.dataset.refy || '0');
 
         // Find the corresponding equation in the equationsToDraw array
         // IMPORTANT: This assumes each equation in equationsToDraw has a unique 'id' property.
-        // If not, you'll need to modify how equations are identified (e.g., by array index).
-        const eqIndex = equationsToDraw.findIndex(eq => eq.id === eqid);
+        // Convert eqid to number for proper comparison since dataset values are always strings
+        const numericEqId = parseInt(eqid, 10);
+        console.log(`Looking for equation with ID ${numericEqId} in equations:`, equationsToDraw.map(eq => ({ id: eq.id, rawExpression: eq.rawExpression })));
+        const eqIndex = equationsToDraw.findIndex(eq => eq.id === numericEqId);
 
         if (eqIndex !== -1) {
-            // Update the labelPosition for persistence across redraws
-            equationsToDraw[eqIndex].labelPosition = { x: finalX, y: finalY };
+            // Calculate and store the offset from the reference point (similar to points system)
+            const offsetX = finalX - refPointX;
+            const offsetY = finalY - refPointY;
+            console.log(`Storing offset (${offsetX}, ${offsetY}) for equation ${numericEqId}`);
+            equationsToDraw[eqIndex].labelOffset = { x: offsetX, y: offsetY };
+            
+            // Clear the old absolute positioning system
+            delete equationsToDraw[eqIndex].labelPosition;
+            
             // Optional: If you want to persist across page loads, save equationsToDraw to localStorage here.
             // e.g., localStorage.setItem('equations', JSON.stringify(equationsToDraw));
         } else {
@@ -535,6 +557,27 @@ function onMouseUp(event) {
 
         currentDraggedLabel = null; // Reset dragged label
     }
+}
+
+/**
+ * Checks if a drag operation is currently in progress
+ * @returns {boolean} True if a label is currently being dragged
+ */
+function isDragInProgress() {
+    return currentDraggedLabel !== null;
+}
+
+/**
+ * Safely calls drawGrid, deferring the call if a drag is in progress
+ */
+export function safeDrawGrid() {
+    if (isDragInProgress()) {
+        // If drag is in progress, defer the redraw
+        console.log('Deferring grid redraw due to active drag operation');
+        setTimeout(() => safeDrawGrid(), 50);
+        return;
+    }
+    drawGrid();
 }
 
 /**
@@ -902,17 +945,19 @@ function drawEquationEndpoints(equationGroup, eq, segments, gridOptions) {
  * @param {Array<Array<Object>>} segments - Array of line segments for the equation, used for auto-positioning.
  */
 function placeEquationLabel(equationGroup, eq, labelText, gridOptions, placedLabelRects, segments) {
-    // Skip labels for preview equations
-    if (eq.isPreview) {
+    // Skip labels for preview equations or equations without labels
+    if (eq.isPreview || !labelText) {
+        return;
+    }
+    
+    // Skip equations without valid IDs (this shouldn't happen for regular equations)
+    if (!eq.id && eq.id !== 0) {
+        console.warn("Equation missing ID, skipping label positioning:", eq);
         return;
     }
 
     const { offsetX, offsetY, actualGridWidth, actualGridHeight, equationLabelFontSize,
             xMin, yMin, yIncrement, minorSquareSize, xValuePerMinorSquare, currentXAxisLabelType } = gridOptions;
-
-    if (!labelText) {
-        return;
-    }
 
     const labelTextEl = createSVGElement('text', {
         'font-family': 'Inter, sans-serif',
@@ -923,137 +968,157 @@ function placeEquationLabel(equationGroup, eq, labelText, gridOptions, placedLab
     });
     labelTextEl.textContent = labelText;
     labelTextEl.classList.add('draggable-equation-label');
-    if (eq.id) {
-         labelTextEl.dataset.eqid = eq.id;
-    } else {
-        console.warn("Equation missing ID, cannot track label position persistently via ID.");
-    }
+    labelTextEl.dataset.eqid = eq.id;
 
     let proposedLabelX, proposedLabelY;
     let chosenAnchor = 'start';
     let chosenBaseline = 'middle';
+    
+    // Calculate a stable reference point for this equation based on mathematical properties
+    // Use a consistent x-value (like the center of the visible area) to get a stable reference
+    const referenceXGraph = (gridOptions.xMin + gridOptions.xMax) / 2; // Center of the graph
+    let referenceXForEvaluation = referenceXGraph;
+    if (currentXAxisLabelType === 'degrees') {
+        referenceXForEvaluation = math.unit(referenceXForEvaluation, 'deg').toNumber('rad');
+    }
+    
+    let labelRefPoint = null;
+    try {
+        const referenceYGraph = eq.compiledExpression.evaluate({ x: referenceXForEvaluation });
+        if (isFinite(referenceYGraph)) {
+            // Convert to canvas coordinates
+            const referenceXCanvas = offsetX + ((referenceXGraph - gridOptions.xMin) / gridOptions.xIncrement) * minorSquareSize;
+            const referenceYCanvas = offsetY + actualGridHeight - ((referenceYGraph - yMin) / yIncrement) * minorSquareSize;
+            labelRefPoint = { x: referenceXCanvas, y: referenceYCanvas };
+        }
+    } catch (e) {
+        // If evaluation fails at center, try the right edge as fallback
+        const testX = gridOptions.xMax;
+        let xForEvaluation = testX;
+        if (currentXAxisLabelType === 'degrees') {
+            xForEvaluation = math.unit(xForEvaluation, 'deg').toNumber('rad');
+        }
+        try {
+            const testGraphY = eq.compiledExpression.evaluate({ x: xForEvaluation });
+            if (isFinite(testGraphY)) {
+                const testCanvasX = offsetX + actualGridWidth;
+                const testCanvasY = offsetY + actualGridHeight - ((testGraphY - yMin) / yIncrement) * minorSquareSize;
+                labelRefPoint = { x: testCanvasX, y: testCanvasY };
+            }
+        } catch (e2) {
+            // If all else fails, use a default position
+            labelRefPoint = { x: offsetX + actualGridWidth * 0.8, y: offsetY + actualGridHeight * 0.2 };
+        }
+    }
 
-    // Prefer custom position if available
-    if (eq.labelPosition && typeof eq.labelPosition.x === "number" && typeof eq.labelPosition.y === "number") {
-        proposedLabelX = eq.labelPosition.x;
-        proposedLabelY = eq.labelPosition.y;
+    if (!labelRefPoint) {
+        return; // No suitable reference point found
+    }
+
+    // Check if equation has a custom label offset (like points system)
+    if (eq.labelOffset && typeof eq.labelOffset.x === "number" && typeof eq.labelOffset.y === "number") {
+        // Use custom offset from the reference point
+        console.log(`Using stored offset for equation ${eq.id}: (${eq.labelOffset.x}, ${eq.labelOffset.y})`);
+        proposedLabelX = labelRefPoint.x + eq.labelOffset.x;
+        proposedLabelY = labelRefPoint.y + eq.labelOffset.y;
         chosenAnchor = 'middle';
         chosenBaseline = 'middle';
     } else {
-        // Auto-calculated positioning
-        let labelRefPoint = null;
+        // Auto-calculated positioning from reference point
+        // For auto-positioning, try to find a visible point on the curve for better placement
+        let visualRefPoint = null;
         for (let i = segments.length - 1; i >= 0; i--) {
             const segment = segments[i];
             for (let j = segment.length - 1; j >= 0; j--) {
                 const p = segment[j];
                 if (p.x >= offsetX && p.x <= (offsetX + actualGridWidth) &&
                     p.y >= offsetY && p.y <= (offsetY + actualGridHeight)) {
-                    labelRefPoint = p;
+                    visualRefPoint = p;
                     break;
                 }
             }
-            if (labelRefPoint) break;
+            if (visualRefPoint) break;
         }
+        
+        // Use visual reference for auto-positioning if available, otherwise use mathematical reference
+        const autoPositionRef = visualRefPoint || labelRefPoint;
+        
+        const potentialPositions = [
+            { dx: 5, dy: 0, anchor: 'start', baseline: 'middle' },
+            { dx: -5, dy: 0, anchor: 'end', baseline: 'middle' },
+            { dx: 0, dy: -15, anchor: 'middle', baseline: 'alphabetic' },
+            { dx: 0, dy: 15, anchor: 'middle', baseline: 'hanging' },
+            { dx: 5, dy: -15, anchor: 'start', baseline: 'alphabetic' },
+            { dx: 5, dy: 15, anchor: 'start', baseline: 'hanging' }
+        ];
 
-        if (!labelRefPoint) {
-            const testX = gridOptions.xMax + xValuePerMinorSquare; // Use gridOptions.xMax here
-            let xForEvaluation = testX;
-            if (currentXAxisLabelType === 'degrees') {
-                xForEvaluation = math.unit(xForEvaluation, 'deg').toNumber('rad');
-            }
-            let testGraphY;
-            try {
-                testGraphY = eq.compiledExpression.evaluate({ x: xForEvaluation });
-                if (isFinite(testGraphY)) {
-                    const testCanvasY = offsetY + actualGridHeight - ((testGraphY - yMin) / yIncrement) * minorSquareSize;
-                    labelRefPoint = { x: offsetX + actualGridWidth + (minorSquareSize / 2), y: testCanvasY };
-                }
-            } catch (e) { /* ignore */ }
-        }
+        let autoPositionFound = false;
+        for (const pos of potentialPositions) {
+            proposedLabelX = autoPositionRef.x + pos.dx;
+            proposedLabelY = autoPositionRef.y + pos.dy;
+            chosenAnchor = pos.anchor;
+            chosenBaseline = pos.baseline;
 
-        if (labelRefPoint) {
-            const pt = labelRefPoint;
-            const potentialPositions = [
-                { dx: 5, dy: 0, anchor: 'start', baseline: 'middle' },
-                { dx: -5, dy: 0, anchor: 'end', baseline: 'middle' },
-                { dx: 0, dy: -15, anchor: 'middle', baseline: 'alphabetic' },
-                { dx: 0, dy: 15, anchor: 'middle', baseline: 'hanging' },
-                { dx: 5, dy: -15, anchor: 'start', baseline: 'alphabetic' },
-                { dx: 5, dy: 15, anchor: 'start', baseline: 'hanging' }
-            ];
+            labelTextEl.setAttribute('x', proposedLabelX);
+            labelTextEl.setAttribute('y', proposedLabelY);
+            labelTextEl.setAttribute('text-anchor', chosenAnchor);
+            labelTextEl.setAttribute('alignment-baseline', chosenBaseline);
+            equationGroup.appendChild(labelTextEl);
 
-            let autoPositionFound = false;
-            for (const pos of potentialPositions) {
-                proposedLabelX = pt.x + pos.dx;
-                proposedLabelY = pt.y + pos.dy;
-                chosenAnchor = pos.anchor;
-                chosenBaseline = pos.baseline;
+            const bbox = labelTextEl.getBBox();
+            const currentLabelRect = { left: bbox.x, right: bbox.x + bbox.width, top: bbox.y, bottom: bbox.y + bbox.height };
 
-                labelTextEl.setAttribute('x', proposedLabelX);
-                labelTextEl.setAttribute('y', proposedLabelY);
-                labelTextEl.setAttribute('text-anchor', chosenAnchor);
-                labelTextEl.setAttribute('alignment-baseline', chosenBaseline);
-                equationGroup.appendChild(labelTextEl);
+            const safeAreaBuffer = 50;
+            const safeAreaLeft = offsetX - safeAreaBuffer;
+            const safeAreaRight = offsetX + actualGridWidth + safeAreaBuffer;
+            const safeAreaTop = offsetY - safeAreaBuffer;
+            const safeAreaBottom = offsetY + actualGridHeight + safeAreaBuffer;
 
-                const bbox = labelTextEl.getBBox();
-                const currentLabelRect = { left: bbox.x, right: bbox.x + bbox.width, top: bbox.y, bottom: bbox.y + bbox.height };
-
-                const safeAreaBuffer = 50;
-                const safeAreaLeft = offsetX - safeAreaBuffer;
-                const safeAreaRight = offsetX + actualGridWidth + safeAreaBuffer;
-                const safeAreaTop = offsetY - safeAreaBuffer;
-                const safeAreaBottom = offsetY + actualGridHeight + safeAreaBuffer;
-
-                if (currentLabelRect.right < safeAreaLeft || currentLabelRect.left > safeAreaRight ||
-                    currentLabelRect.bottom < safeAreaTop || currentLabelRect.top > safeAreaBottom) {
-                    equationGroup.removeChild(labelTextEl);
-                    continue;
-                }
-
-                let overlapsExisting = false;
-                for (const existingRect of placedLabelRects) {
-                    if (doesOverlap(currentLabelRect, existingRect)) {
-                        overlapsExisting = true;
-                        break;
-                    }
-                }
-
-                if (!overlapsExisting) {
-                    placedLabelRects.push(currentLabelRect);
-                    autoPositionFound = true;
-                    break;
-                }
+            if (currentLabelRect.right < safeAreaLeft || currentLabelRect.left > safeAreaRight ||
+                currentLabelRect.bottom < safeAreaTop || currentLabelRect.top > safeAreaBottom) {
                 equationGroup.removeChild(labelTextEl);
+                continue;
             }
 
-            if (!autoPositionFound) {
-                proposedLabelX = pt.x + 5;
-                proposedLabelY = pt.y;
-                chosenAnchor = 'start';
-                chosenBaseline = 'middle';
-                labelTextEl.setAttribute('x', proposedLabelX);
-                labelTextEl.setAttribute('y', proposedLabelY);
-                labelTextEl.setAttribute('text-anchor', chosenAnchor);
-                labelTextEl.setAttribute('alignment-baseline', chosenBaseline);
-                equationGroup.appendChild(labelTextEl);
-                if (!eq.labelPosition) { // Only add to placed labels if it's auto-positioned
-                     placedLabelRects.push(labelTextEl.getBBox());
+            let overlapsExisting = false;
+            for (const existingRect of placedLabelRects) {
+                if (doesOverlap(currentLabelRect, existingRect)) {
+                    overlapsExisting = true;
+                    break;
                 }
             }
-        } else {
-            return; // No suitable reference point found
+
+            if (!overlapsExisting) {
+                placedLabelRects.push(currentLabelRect);
+                autoPositionFound = true;
+                break;
+            }
+            equationGroup.removeChild(labelTextEl);
+        }
+
+        if (!autoPositionFound) {
+            proposedLabelX = autoPositionRef.x + 5;
+            proposedLabelY = autoPositionRef.y;
+            chosenAnchor = 'start';
+            chosenBaseline = 'middle';
         }
     }
 
+    // Set final position and store reference point for drag operations
+    labelTextEl.setAttribute('x', proposedLabelX);
+    labelTextEl.setAttribute('y', proposedLabelY);
+    labelTextEl.setAttribute('text-anchor', chosenAnchor);
+    labelTextEl.setAttribute('alignment-baseline', chosenBaseline);
+    
+    // Store the stable mathematical reference point for drag calculations
+    labelTextEl.dataset.refx = labelRefPoint.x;
+    labelTextEl.dataset.refy = labelRefPoint.y;
+
     if (!labelTextEl.parentNode) {
-        // If label was not appended during auto-positioning, append it with default or custom position
-        labelTextEl.setAttribute('x', proposedLabelX);
-        labelTextEl.setAttribute('y', proposedLabelY);
-        labelTextEl.setAttribute('text-anchor', chosenAnchor);
-        labelTextEl.setAttribute('alignment-baseline', chosenBaseline);
         equationGroup.appendChild(labelTextEl);
-        if (!eq.labelPosition) { // Only add to placed labels if it's auto-positioned
-             placedLabelRects.push(labelTextEl.getBBox());
+        // Only track auto-positioned labels to avoid overlaps
+        if (!eq.labelOffset) {
+            placedLabelRects.push(labelTextEl.getBBox());
         }
     }
 }

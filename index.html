@@ -8,8 +8,8 @@
     <!-- ============== VERSION CONFIGURATION ============== -->
     <!-- UPDATE THESE TWO LINES TO CHANGE ALL VERSION NUMBERS -->
     <script>
-        window.APP_VERSION = '2025-09-22-1';      // For PWA cache updates
-        window.CACHE_BUSTER = '14';               // For CSS/JS cache busting
+        window.APP_VERSION = '2025-09-24-2';      // For PWA cache updates
+        window.CACHE_BUSTER = '16';               // For CSS/JS cache busting
     </script>
     <!-- =================================================== -->
     
@@ -297,6 +297,8 @@
                     <div class="button-group">
                         <button id="addOrUpdateEquationButton">Add Equation</button>
                         <button id="cancelEditButton" class="hidden">Cancel Edit</button>
+                        <button id="resetEquationLabelPositionsBtn" type="button">Reset Label Positions</button>
+                        <button id="clearEquationsBtn" type="button">Clear Equations</button>
                     </div>
                     <div id="equationsList">
                     </div>
@@ -476,9 +478,6 @@ if ('serviceWorker' in navigator) {
         <div class="info-modal-content">
             <h2>📈 Equation Plotting Guide</h2>
             <div class="info-modal-body">
-                <p><strong>⚠️ Important:</strong> Add all equations and set grid style and dimensions <strong>before</strong> moving labels.</p>
-                <p>The label positions <strong>will reset</strong> if any grid settings are changed (min/max values, increments, axes arrow on/off, suppress '0', etc.).</p>
-                
                 <h3>🔧 Equation Functions</h3>
                 <ul>
                     <li><strong>Operators:</strong> +, −, *, /, ^ (exponent), parentheses (). Implied multiplication supported (e.g., <code>2x</code>, <code>(x)(x+1)</code>).</li>
@@ -518,8 +517,7 @@ if ('serviceWorker' in navigator) {
                 <h3>📊 For Physics Graphs</h3>
                 <p><strong>Position-Time Graphs:</strong></p>
                 <ul>
-                    <li>Plot your start point, max point, and end point from a calculated motion</li>
-                    <li>Then use the initial velocity (Vi) as curve intensity to model the graph</li>
+                    <li>Plot your start point, max point, and end point from a calculated motion, then use the initial velocity (Vi) as curve intensity to model the graph</li>
                     <li>Example: Object thrown upward at 39.2 m/s → use curve intensity = 39.2</li>
                     <li>Creates proper parabolic motion matching physics equations</li>
                     <li><strong>Note:</strong> This might be more easily modeled with the actual equation and domain/range restrictions in the Equation Plotting mode</li>
@@ -536,14 +534,6 @@ if ('serviceWorker' in navigator) {
                 <h3>📝 Bulk Entry Format</h3>
                 <p><code>x,y,label,curveIntensity</code></p>
                 <p>Example: <code>0,0,Start,39.2 4,78.4,Peak 8,0,End</code></p>
-
-                <h3>💡 Tips</h3>
-                <ul>
-                    <li><strong>Experiment!</strong> Try different values to see curve shapes</li>
-                    <li><strong>Physics accuracy:</strong> Use initial velocity for projectile motion</li>
-                    <li><strong>Visual appeal:</strong> Any value works for artistic curves</li>
-                    <li><strong>Slope continuity:</strong> Accept blue-highlighted suggestions for smooth motion</li>
-                </ul>
             </div>
             <button id="closePointsInfo" class="info-close-btn">Close</button>
         </div>

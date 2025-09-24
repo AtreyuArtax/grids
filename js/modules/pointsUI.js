@@ -34,7 +34,13 @@ export class PointsUI {
     // Events
     this.btnAdd?.addEventListener('click', () => this.addPoint());
     this.btnAddBulk?.addEventListener('click', () => this.addBulkPoints());
-    this.btnClear?.addEventListener('click', () => { this.layer.clear(); this.renderList(); });
+    this.btnClear?.addEventListener('click', async () => { 
+      const confirmed = await showConfirmDialog('Are you sure you want to clear all points?', 'Clear All Points');
+      if (confirmed) {
+        this.layer.clear(); 
+        this.renderList(); 
+      }
+    });
     this.btnResetLabels?.addEventListener('click', () => { this.layer.resetLabelPositions(); });
 
     const styleUpdate = () => this.updateStyle();

@@ -533,6 +533,25 @@ button:disabled {
     flex-direction: column;
 }
 
+/* Responsive modal widths */
+@media (min-width: 768px) {
+    .info-modal-content {
+        max-width: 750px;
+    }
+}
+
+@media (min-width: 1200px) {
+    .info-modal-content {
+        max-width: 900px;
+    }
+}
+
+@media (min-width: 1600px) {
+    .info-modal-content {
+        max-width: 1100px;
+    }
+}
+
 .info-modal-content h2 {
     font-size: 1.3rem;
     margin: 0 0 16px 0;
@@ -763,6 +782,19 @@ select:focus {
     text-align: center;
     transform: scale(0.9);
     transition: transform 0.3s ease;
+}
+
+/* Responsive confirmation modal widths */
+@media (min-width: 768px) {
+    .confirm-modal-content {
+        max-width: 480px;
+    }
+}
+
+@media (min-width: 1200px) {
+    .confirm-modal-content {
+        max-width: 520px;
+    }
 }
 
 .confirm-modal.show .confirm-modal-content {

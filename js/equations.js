@@ -2,7 +2,7 @@
 import { showMessageBox, formatEquationTextForDisplay, safeParseFloat, safeParseInt, showConfirmDialog } from './utils.js';
 import { calculateDynamicMargins } from './labels.js';
 // Import setPreviewEquation so we can clear the live preview when an equation is added/updated
-import { drawGrid, setPreviewEquation } from './plotter.js';
+import { setPreviewEquation } from './plotter.js';
 import { errorHandler } from './modules/errorHandler.js';
 
 export let equationsToDraw = []; // Array to store all equations
@@ -130,7 +130,7 @@ export function handleEquationSubmit() {
     resetEquationInputsAndButtons();
     renderEquationsList();
     calculateDynamicMargins(); // Recalculate all margins after adding/updating
-    drawGrid();
+    // Grid will be redrawn by main.js event handler
 }
 
 /**
@@ -145,7 +145,7 @@ export function removeEquation(id) {
         resetEquationInputsAndButtons(); // Clear inputs if the deleted equation was being edited
         renderEquationsList();
         calculateDynamicMargins(); // Recalculate all margins after removing
-        drawGrid();
+        // Grid will be redrawn by main.js event handler
     }
 }
 
@@ -203,6 +203,32 @@ export function resetEquationInputsAndButtons() {
     if (typeof setPreviewEquation === 'function') {
         setPreviewEquation(null);
     }
+}
+
+/**
+ * Resets all custom equation label positions back to automatic positioning.
+ */
+export function resetEquationLabelPositions() {
+    equationsToDraw.forEach(equation => {
+        delete equation.labelOffset;
+        delete equation.labelPosition; // Also clear old absolute positions if any exist
+    });
+    
+    // Return true to indicate that a redraw is needed
+    return true;
+}
+
+/**
+ * Clears all equations from the list.
+ */
+export function clearAllEquations() {
+    equationsToDraw.length = 0; // Clear the array
+    resetEquationInputsAndButtons(); // Reset the form
+    renderEquationsList(); // Update the UI list
+    calculateDynamicMargins(); // Recalculate margins
+    
+    // Return true to indicate that a redraw is needed
+    return true;
 }
 
 /**
