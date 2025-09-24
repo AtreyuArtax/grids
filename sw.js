@@ -8,7 +8,6 @@ const ASSETS_TO_CACHE = [
   './',                 // ensure this serves your app shell
   './index.html',
   './css/style.css',
-  './js/version.js',
   './js/plotter.js',
   './js/equations.js',
   './js/grid-presets.js',
@@ -28,7 +27,23 @@ const ASSETS_TO_CACHE = [
 // Install: pre-cache the current release
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS_TO_CACHE))
+    (async () => {
+      const cache = await caches.open(CACHE_NAME);
+      
+      // Cache files individually to avoid complete failure if one file is missing
+      const cachePromises = ASSETS_TO_CACHE.map(async (asset) => {
+        try {
+          await cache.add(asset);
+          console.log(`Successfully cached: ${asset}`);
+        } catch (error) {
+          console.warn(`Failed to cache ${asset}:`, error);
+          // Continue with other files even if this one fails
+        }
+      });
+      
+      await Promise.allSettled(cachePromises);
+      console.log(`Service worker installed with cache: ${CACHE_NAME}`);
+    })()
   );
   // Take over immediately (no waiting for all tabs to close)
   self.skipWaiting();
