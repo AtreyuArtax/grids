@@ -8,8 +8,8 @@
     <!-- ============== VERSION CONFIGURATION ============== -->
     <!-- UPDATE THESE TWO LINES TO CHANGE ALL VERSION NUMBERS -->
     <script>
-        window.APP_VERSION = '2025-09-24-7';      // For PWA cache updates
-        window.CACHE_BUSTER = '18';               // For CSS/JS cache busting
+        window.APP_VERSION = '2025-09-24-15';     // For PWA cache updates
+        window.CACHE_BUSTER = '26';               // For CSS/JS cache busting
     </script>
     <!-- =================================================== -->
     
@@ -294,12 +294,19 @@
                     <label class="checkbox-label">Show arrows for this equation:
                         <input type="checkbox" id="showLineArrows" checked>
                     </label>
+                    
+                    <!-- Primary Action Buttons -->
+                    <div style="margin-bottom:8px;">
+                        <button id="addOrUpdateEquationButton" style="width:100%;">Add Equation</button>
+                        <button id="cancelEditButton" class="hidden" style="width:100%;">Cancel Edit</button>
+                    </div>
+                    
+                    <!-- Management Buttons -->
                     <div class="button-group">
-                        <button id="addOrUpdateEquationButton">Add Equation</button>
-                        <button id="cancelEditButton" class="hidden">Cancel Edit</button>
                         <button id="resetEquationLabelPositionsBtn" type="button">Reset Label Positions</button>
                         <button id="clearEquationsBtn" type="button">Clear Equations</button>
                     </div>
+                    
                     <div id="equationsList">
                     </div>
                 </div>
@@ -345,6 +352,18 @@
                         </div>
                     </div>
 
+                    <!-- Bulk Entry Section -->
+                    <fieldset id="bulkEntrySection" class="collapsible collapsed" style="margin-bottom:16px;">
+                        <legend>Bulk Entry <span class="toggle-icon">▼</span></legend>
+                        <div class="fieldset-content">
+                            <div style="margin-bottom:8px;">
+                                <label for="bulkPointsInput" style="display:block; margin-bottom:4px; font-size:0.9em; color:#555; font-weight:bold;">Enter multiple points:</label>
+                                <textarea id="bulkPointsInput" placeholder="Enter points as x,y or x,y,label or x,y,label,curveIntensity&#10;Examples:&#10;0,1&#10;2,1 4,2&#10;0,1,A 2,1,B 4,2,C&#10;0,1,A,39.2 4,78.4,B 8,0,C" style="width:100%; height:110px; padding:8px; border:1px solid #ccc; border-radius:4px; font-size:0.85em; font-family:monospace; resize:vertical;"></textarea>
+                            </div>
+                            <button id="addBulkPointsBtn" type="button" style="padding:6px 12px; font-size:0.85em;">Add Points</button>
+                        </div>
+                    </fieldset>
+
                     <div style="display:flex; gap:12px; align-items:end; margin-bottom:12px;">
                         <div style="display:flex; flex-direction:column; gap:4px;">
                             <label for="pointX" style="margin:0; font-size:0.85em; color:#666;">x</label>
@@ -354,7 +373,7 @@
                             <label for="pointY" style="margin:0; font-size:0.85em; color:#666;">y</label>
                             <input type="number" id="pointY" step="any" placeholder="-2" style="width:60px; padding:6px; font-size:0.85em;">
                         </div>
-                        <button id="addPointBtn" type="button" style="padding:6px 12px; font-size:0.85em;">Add Point</button>
+                        <button id="addPointBtn" type="button" style="flex:1; padding:6px 12px; font-size:0.85em;">Add Point</button>
                     </div>
                     <div style="margin-bottom:12px;">
                         <label>Label (optional):
@@ -414,17 +433,13 @@
                         </div>
                     </div>
 
-                    <!-- Bulk Entry Section -->
-                    <fieldset class="collapsed" style="margin-bottom:16px;">
-                        <legend>Bulk Entry <span class="toggle-icon">▼</span></legend>
-                        <div class="fieldset-content">
-                            <div style="margin-bottom:8px;">
-                                <label for="bulkPointsInput" style="display:block; margin-bottom:4px; font-size:0.9em; color:#555; font-weight:bold;">Enter multiple points:</label>
-                                <textarea id="bulkPointsInput" placeholder="Enter points as x,y or x,y,label or x,y,label,curveIntensity&#10;Examples:&#10;0,1&#10;2,1 4,2&#10;0,1,A 2,1,B 4,2,C&#10;0,1,A,39.2 4,78.4,B 8,0,C" style="width:100%; height:110px; padding:8px; border:1px solid #ccc; border-radius:4px; font-size:0.85em; font-family:monospace; resize:vertical;"></textarea>
-                            </div>
-                            <button id="addBulkPointsBtn" type="button" style="padding:6px 12px; font-size:0.85em;">Add Points</button>
-                        </div>
-                    </fieldset>
+                    <!-- Calculate Area Button -->
+                    <div style="margin-bottom:16px;">
+                        <button id="calculateNetAreaBtn" class="primary-btn" type="button" style="width:100%;">
+                            Calculate Area
+                        </button>
+                        <div id="netAreaResult" style="margin-top:6px; font-weight:500; color:#1976d2; line-height:1.4;"></div>
+                    </div>
 
                     <div class="button-group" style="margin-top:8px;">
                         <button id="clearPointsBtn" type="button">Clear Points</button>
@@ -432,12 +447,6 @@
                     </div>
 
                     <div id="pointsList" style="margin-top:8px;"></div>
-                <div style="margin-top: 18px;">
-                    <button id="calculateNetAreaBtn" class="primary-btn" type="button" style="width:100%;">
-                        Calculate Area
-                    </button>
-                    <div id="netAreaResult" style="margin-top:6px; font-weight:500; color:#1976d2; line-height:1.4;"></div>
-                </div>
                 </div>
             </fieldset>
         </div>

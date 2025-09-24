@@ -212,12 +212,11 @@ function setupInputListeners() {
  * Sets up collapsible fieldsets.
  */
 function setupCollapsibleFieldsets() {
-    // Find all fieldsets with legends in the controls card
-    const fieldsetsWithLegends = document.querySelectorAll('.controls-card fieldset legend');
-    fieldsetsWithLegends.forEach(legend => {
-        const fieldset = legend.parentElement;
+    const collapsibleFieldsets = document.querySelectorAll('.controls-card fieldset.collapsible');
+    collapsibleFieldsets.forEach(fieldset => {
+        const legend = fieldset.querySelector('legend');
         // Exclude the 'Grid Presets' fieldset from collapsing behavior
-        if (fieldset && fieldset.id !== 'gridPresetsFieldset' && !legend.classList.contains('static-legend')) {
+        if (legend && fieldset.id !== 'gridPresetsFieldset') {
             safeAddEventListener(legend, 'click', () => {
                 fieldset.classList.toggle('collapsed');
             });
