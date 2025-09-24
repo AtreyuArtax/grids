@@ -8,12 +8,12 @@
   "description": "A tool for plotting SVG grids and equations.",
   "icons": [
     {
-      "src": "assets/icon-192.png",
+      "src": "assets/icon-192-pwa.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "assets/icon-512.png",
+      "src": "assets/icon-512-pwa.png",
       "sizes": "512x512",
       "type": "image/png"
     }
