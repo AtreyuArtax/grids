@@ -8,7 +8,7 @@
     <!-- ============== VERSION CONFIGURATION ============== -->
     <!-- UPDATE THESE TWO LINES TO CHANGE ALL VERSION NUMBERS -->
     <script>
-        window.APP_VERSION = '2025-09-24-3';      // For PWA cache updates
+        window.APP_VERSION = '2025-09-24-4';      // For PWA cache updates
         window.CACHE_BUSTER = '17';               // For CSS/JS cache busting
     </script>
     <!-- =================================================== -->
@@ -460,8 +460,8 @@ if ('serviceWorker' in navigator) {
     try {
       console.log(`Registering service worker with version: ${window.APP_VERSION}`);
       
-      // Use the version defined at the top of the page
-      const reg = await navigator.serviceWorker.register(`/sw.js?v=${window.APP_VERSION}`);
+      // Use relative path for GitHub Pages compatibility
+      const reg = await navigator.serviceWorker.register(`sw.js?v=${window.APP_VERSION}`);
       console.log('Service worker registered successfully');
 
       // Check for update right now (i.e., on app open)

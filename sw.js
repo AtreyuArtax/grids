@@ -5,24 +5,24 @@ const VERSION = urlParams.get('v') || '2025-00-00-0'; // fallback version
 const CACHE_NAME = `grid-pwa-${VERSION}`;
 
 const ASSETS_TO_CACHE = [
-  '/',                 // ensure this serves your app shell
-  '/index.html',
-  '/css/style.css',
-  '/js/version.js',
-  '/js/plotter.js',
-  '/js/equations.js',
-  '/js/grid-presets.js',
-  '/js/labels.js',
-  '/js/main.js',
-  '/js/modalInit.js',
-  '/js/utils.js',
-  '/js/modules/errorHandler.js',
-  '/js/modules/gridAPI.js',
-  '/js/modules/modalManager.js',
-  '/js/modules/pointsLayer.js',
-  '/js/modules/pointsUI.js',
-  '/assets/icon-192.png',
-  '/assets/icon-512.png'
+  './',                 // ensure this serves your app shell
+  './index.html',
+  './css/style.css',
+  './js/version.js',
+  './js/plotter.js',
+  './js/equations.js',
+  './js/grid-presets.js',
+  './js/labels.js',
+  './js/main.js',
+  './js/modalInit.js',
+  './js/utils.js',
+  './js/modules/errorHandler.js',
+  './js/modules/gridAPI.js',
+  './js/modules/modalManager.js',
+  './js/modules/pointsLayer.js',
+  './js/modules/pointsUI.js',
+  './assets/icon-192.png',
+  './assets/icon-512.png'
 ];
 
 // Install: pre-cache the current release
