@@ -8,8 +8,8 @@
     <!-- ============== VERSION CONFIGURATION ============== -->
     <!-- UPDATE THESE TWO LINES TO CHANGE ALL VERSION NUMBERS -->
     <script>
-        window.APP_VERSION = '2025-09-24-2';      // For PWA cache updates
-        window.CACHE_BUSTER = '16';               // For CSS/JS cache busting
+        window.APP_VERSION = '2025-09-24-3';      // For PWA cache updates
+        window.CACHE_BUSTER = '17';               // For CSS/JS cache busting
     </script>
     <!-- =================================================== -->
     
@@ -457,19 +457,39 @@
     <script>
 if ('serviceWorker' in navigator) {
   (async () => {
-    // Use the version defined at the top of the page
-    const reg = await navigator.serviceWorker.register(`/sw.js?v=${window.APP_VERSION}`);
+    try {
+      console.log(`Registering service worker with version: ${window.APP_VERSION}`);
+      
+      // Use the version defined at the top of the page
+      const reg = await navigator.serviceWorker.register(`/sw.js?v=${window.APP_VERSION}`);
+      console.log('Service worker registered successfully');
 
-    // Check for update right now (i.e., on app open)
-    reg.update().catch(() => {});
+      // Check for update right now (i.e., on app open)
+      reg.update().catch(() => {});
 
-    // When the new SW takes control, reload to show the new version
-    let refreshing = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (refreshing) return;
-      refreshing = true;
-      window.location.reload();
-    });
+      // When the new SW takes control, reload to show the new version
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (refreshing) return;
+        refreshing = true;
+        console.log('Service worker updated, reloading page...');
+        window.location.reload();
+      });
+      
+      // Make cache clearing available globally for debugging
+      window.clearAppCache = async function() {
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map(name => caches.delete(name)));
+        if ('serviceWorker' in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(registrations.map(reg => reg.unregister()));
+        }
+        console.log('All caches cleared. Please refresh the page.');
+        window.location.reload();
+      };
+    } catch (error) {
+      console.error('Service worker registration failed:', error);
+    }
   })();
 }
 </script>
