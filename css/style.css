@@ -282,7 +282,7 @@ button:disabled {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 5px 0;
+    padding: 3px 0;
     border-bottom: 1px dotted #eee;
     transition: background-color 0.2s ease;
 }

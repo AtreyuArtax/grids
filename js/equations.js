@@ -249,7 +249,7 @@ export function renderEquationsList() {
         const eqDiv = document.createElement('div');
         eqDiv.style.cssText = `
             display: flex; justify-content: space-between; align-items: center; gap: 10px;
-            margin-bottom: 5px; padding: 5px 0; border-bottom: 1px dashed #eee; font-size: 0.9em;
+            margin-bottom: 5px; padding: 3px 0; border-bottom: 1px dashed #eee; font-size: 0.9em;
         `;
 
         const eqLabel = document.createElement('span');

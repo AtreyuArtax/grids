@@ -296,6 +296,18 @@ function setupEquationLivePreview() {
             });
         });
 
+        // Add Enter key functionality to submit equation
+        safeAddEventListener(equationInput, 'keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault(); // Prevent form submission if in a form
+                // Trigger the same action as clicking the Add Equation button
+                const addButton = safeGetElement('addOrUpdateEquationButton');
+                if (addButton && !addButton.disabled && addButton.style.display !== 'none') {
+                    addButton.click();
+                }
+            }
+        });
+
         // Also trigger preview when other equation settings change
         [equationColorInput, equationLineStyleSelect, inequalityTypeSelect, domainStartInput, domainEndInput].forEach(element => {
             if (element) {

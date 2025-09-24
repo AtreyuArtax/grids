@@ -43,6 +43,18 @@ export class PointsUI {
     });
     this.btnResetLabels?.addEventListener('click', () => { this.layer.resetLabelPositions(); });
 
+    // Add Enter key support for point entry
+    this.elY?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        this.addPoint();
+        // Focus on X input for next point entry
+        if (this.elX) {
+          this.elX.focus();
+        }
+      }
+    });
+
     const styleUpdate = () => this.updateStyle();
     this.elDotColor?.addEventListener('input', styleUpdate);
     this.elLineColor?.addEventListener('input', styleUpdate);
@@ -221,7 +233,7 @@ export class PointsUI {
       row.style.alignItems = 'center';
       row.style.justifyContent = 'space-between';
       row.style.gap = '8px';
-      row.style.padding = '4px 0';
+      row.style.padding = '3px 0';
       row.style.borderBottom = '1px solid #eee';
 
       if (this.editIdx === idx) {

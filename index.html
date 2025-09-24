@@ -8,8 +8,8 @@
     <!-- ============== VERSION CONFIGURATION ============== -->
     <!-- UPDATE THESE TWO LINES TO CHANGE ALL VERSION NUMBERS -->
     <script>
-        window.APP_VERSION = '2025-09-24-15';     // For PWA cache updates
-        window.CACHE_BUSTER = '26';               // For CSS/JS cache busting
+        window.APP_VERSION = '2025-09-24-24';     // For PWA cache updates
+        window.CACHE_BUSTER = '35';               // For CSS/JS cache busting
     </script>
     <!-- =================================================== -->
     
@@ -528,6 +528,13 @@ if ('serviceWorker' in navigator) {
                     <li><code>e^x*cos(x)</code> - Exponential cosine</li>
                     <li><code>log10(x)</code> - Base-10 logarithm</li>
                 </ul>
+                
+                <h3>⚡ Quick Entry Tips</h3>
+                <ul>
+                    <li><strong>Press Enter:</strong> After typing an equation, press <kbd>Enter</kbd> to add it instantly (no need to click the button!)</li>
+                    <li><strong>Live Preview:</strong> See your equation plotted in real-time as you type</li>
+                    <li><strong>Drag Labels:</strong> Click and drag equation labels to reposition them on the graph</li>
+                </ul>
             </div>
             <button id="closeEquationInfo" class="info-close-btn">Close</button>
         </div>
@@ -544,6 +551,7 @@ if ('serviceWorker' in navigator) {
                     <li><strong>Leave empty</strong> = straight line (linear motion)</li>
                     <li><strong>Positive numbers</strong> = curves upward from the straight line</li>
                     <li><strong>Negative numbers</strong> = curves downward from the straight line</li>
+                    <li><strong>Tip:</strong> Press <kbd>Enter</kbd> after entering the Y value to quickly add points</li>
                 </ul>
 
                 <h3>📊 For Physics Graphs</h3>
