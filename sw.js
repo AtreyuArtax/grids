@@ -20,8 +20,11 @@ const ASSETS_TO_CACHE = [
   './js/modules/modalManager.js',
   './js/modules/pointsLayer.js',
   './js/modules/pointsUI.js',
-  './assets/icon-192.png',
-  './assets/icon-512.png'
+  './assets/icon-192-pwa.png',
+  './assets/icon-512-pwa.png',
+  './assets/icon-152-ios.png',
+  './assets/icon-167-ios.png',
+  './assets/icon-180-ios.png'
 ];
 
 // Install: pre-cache the current release
