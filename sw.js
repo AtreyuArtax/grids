@@ -86,9 +86,13 @@ self.addEventListener('fetch', (event) => {
     if (cached) return cached;
     try {
       const res = await fetch(req);
-      if (req.method === 'GET' && res && res.status === 200) {
+      // Only cache http/https requests to avoid chrome-extension and other unsupported schemes
+      if (req.method === 'GET' && res && res.status === 200 && 
+          (req.url.startsWith('http://') || req.url.startsWith('https://'))) {
         const cache = await caches.open(CACHE_NAME);
-        cache.put(req, res.clone());
+        cache.put(req, res.clone()).catch(err => {
+          console.warn('Failed to cache request:', req.url, err);
+        });
       }
       return res;
     } catch {
