@@ -247,10 +247,7 @@ export function renderEquationsList() {
 
     equationsToDraw.forEach(eq => {
         const eqDiv = document.createElement('div');
-        eqDiv.style.cssText = `
-            display: flex; justify-content: space-between; align-items: center; gap: 10px;
-            margin-bottom: 5px; padding: 3px 0; border-bottom: 1px dashed #eee; font-size: 0.9em;
-        `;
+        eqDiv.className = 'list-item'; // Use CSS class instead of inline styles
 
         const eqLabel = document.createElement('span');
 

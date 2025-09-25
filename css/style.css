@@ -270,25 +270,21 @@ button:disabled {
     flex-wrap: nowrap;
 }
 
-/********  EQUATIONS LIST  ********/
-#equationsList {
-    margin-top: 15px;
-    border-top: 1px solid #eee;
-    padding-top: 10px;
-    
+/********  LISTS (EQUATIONS & POINTS)  ********/
+#equationsList,
+#pointsList {
+    margin-top: 8px;
 }
 
-#equationsList div {
+.list-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 3px 0;
-    border-bottom: 1px dotted #eee;
+    border-bottom: 1px dashed #eee;
+    gap: 8px;
+    font-size: 0.9em;
     transition: background-color 0.2s ease;
-}
-
-#equationsList div:last-child {
-    border-bottom: none;
 }
 
 /********  SVG & EXPORT ROW  ********/

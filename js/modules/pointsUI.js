@@ -229,12 +229,7 @@ export class PointsUI {
     const frag = document.createDocumentFragment();
     items.forEach((p, idx) => {
       const row = document.createElement('div');
-      row.style.display = 'flex';
-      row.style.alignItems = 'center';
-      row.style.justifyContent = 'space-between';
-      row.style.gap = '8px';
-      row.style.padding = '3px 0';
-      row.style.borderBottom = '1px solid #eee';
+      row.className = 'list-item'; // Use CSS class instead of inline styles
 
       if (this.editIdx === idx) {
         // Edit mode
