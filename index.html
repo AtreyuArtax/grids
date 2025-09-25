@@ -8,8 +8,8 @@
     <!-- ============== VERSION CONFIGURATION ============== -->
     <!-- UPDATE THESE TWO LINES TO CHANGE ALL VERSION NUMBERS -->
     <script>
-        window.APP_VERSION = '2025-09-24-29';     // For PWA cache updates
-        window.CACHE_BUSTER = '40';               // For CSS/JS cache busting
+        window.APP_VERSION = '2025-09-25-01';     // For PWA cache updates
+        window.CACHE_BUSTER = '41';               // For CSS/JS cache busting
     </script>
     <!-- =================================================== -->
     
@@ -52,25 +52,37 @@
             </div>
 
             <fieldset class="controls-group">
-                <legend class="static-legend">Grid Presets</legend>
+                <legend class="static-legend">Grid Templates</legend>
                 <div class="fieldset-content">
-                    <label>Select Preset:
-                        <select id="gridPreset">
-                            <option value="negativeAndPositive" selected>4 Quadrant</option>
-                            <option value="standardMath">1 Quadrant</option>
-                            <option value="trigGraph">Trig Graph (0 to 2π)</option>
-                            <option value="trigGraphDegrees">Trig Graph (Degrees)</option>
-                            <option value="position">Position</option>
-                            <option value="velocity">Velocity</option>
-                            <option value="acceleration">Acceleration</option>
-                            <option value="graphPaperLetter_1_4in">Letter: 1/4 inch squares</option>
-                            <option value="graphPaperLetter_1_5in">Letter: 1/5 inch (engineering)</option>
-                            <option value="graphPaperLetter_1cm">Letter: 1 cm squares</option>
-                            <option value="graphPaperLetter_5mm">Letter: 5 mm squares</option>
-                            <!-- <option value="blank">Name Here</option> -->
-                            <option value="custom">Custom Settings</option>
-                        </select>
-                    </label>
+                    <div class="template-dropdowns">
+                        <div class="template-dropdown-group">
+                            <label>System Templates:
+                                <select id="systemTemplates">
+                                    <option value="">Select a system template...</option>
+                                    <option value="negativeAndPositive" selected>math: 4 Quadrant</option>
+                                    <option value="standardMath">math: 1 Quadrant</option>
+                                    <option value="trigGraph">math: Trig Graph (0 to 2π)</option>
+                                    <option value="trigGraphDegrees">math: Trig Graph (Degrees)</option>
+                                    <option value="polar">math: Polar Grid</option>
+                                    <option value="position">physics: Position vs Time</option>
+                                    <option value="velocity">physics: Velocity vs Time</option>
+                                    <option value="acceleration">physics: Acceleration vs Time</option>
+                                    <option value="graphPaperLetter_1_4in">paper: Letter 1/4 inch</option>
+                                    <option value="graphPaperLetter_1_5in">paper: Letter 1/5 inch</option>
+                                    <option value="graphPaperLetter_1cm">paper: Letter 1 cm</option>
+                                    <option value="graphPaperLetter_5mm">paper: Letter 5 mm</option>
+                                </select>
+                            </label>
+                        </div>
+                        <div class="template-dropdown-group">
+                            <label>My Templates:
+                                <select id="userTemplates">
+                                    <option value="">Select a template...</option>
+                                </select>
+                            </label>
+                        </div>
+                    </div>
+                    <button type="button" id="saveTemplateBtn" class="save-template-btn">Save Template</button>
                 </div>
             </fieldset>
 

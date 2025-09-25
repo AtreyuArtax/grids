@@ -2,6 +2,7 @@
 // This module handles overall application flow, UI interactions, and initializes other modules.
 
 import { gridPresets } from './grid-presets.js';
+import { userTemplates } from './userTemplates.js';
 import {
     handleEquationSubmit,
     resetEquationInputsAndButtons,
@@ -77,18 +78,25 @@ function togglePaperStyleSettings() {
 /**
  * Applies a selected grid preset to the UI controls and redraws the grid.
  * @param {string} presetName - The name of the preset to apply.
+ * @param {Object} customSettings - Optional custom settings to apply instead of preset
  */
-function applyPreset(presetName) {
-    if (presetName === "custom") {
+function applyPreset(presetName, customSettings = null) {
+    let preset;
+    
+    if (customSettings) {
+        // Use custom settings (for user templates)
+        preset = customSettings;
+    } else if (presetName === "custom") {
         calculateDynamicMargins(); // Recalculate all margins for custom changes
         drawGrid();
         return;
-    }
-
-    const preset = gridPresets[presetName];
-    if (!preset) {
-        console.warn(`Preset '${presetName}' not found`);
-        return;
+    } else {
+        // Use system preset
+        preset = gridPresets[presetName];
+        if (!preset) {
+            console.warn(`Preset '${presetName}' not found`);
+            return;
+        }
     }
 
     // Helper function to safely set element values
@@ -159,6 +167,369 @@ function applyPreset(presetName) {
 }
 
 /**
+ * Gets current grid settings from the UI
+ * @returns {Object} Current grid configuration
+ */
+function getCurrentGridSettings() {
+    const getValue = (id, defaultValue = null) => {
+        const element = safeGetElement(id);
+        if (!element) return defaultValue;
+        if (element.type === 'checkbox') return element.checked;
+        if (element.type === 'number') return parseFloat(element.value) || defaultValue;
+        return element.value || defaultValue;
+    };
+
+    return {
+        squareSizeInput: getValue('squareSizeInput', 15),
+        xMin: getValue('xMin', 0),
+        xMax: getValue('xMax', 10),
+        xIncrement: getValue('xIncrement', 1),
+        xLabelEvery: getValue('xLabelEvery', 1),
+        xAxisLabel: getValue('xAxisLabel', 'x'),
+        xLabelOnZero: getValue('xLabelOnZero', false),
+        xAxisLabelOnRight: getValue('xAxisLabelOnRight', false),
+        xAxisLabelType: getValue('xAxisLabelType', 'numbers'),
+        yMin: getValue('yMin', 0),
+        yMax: getValue('yMax', 10),
+        yIncrement: getValue('yIncrement', 1),
+        yLabelEvery: getValue('yLabelEvery', 1),
+        yAxisLabel: getValue('yAxisLabel', 'y'),
+        yLabelOnZero: getValue('yLabelOnZero', false),
+        yAxisLabelOnTop: getValue('yAxisLabelOnTop', false),
+        suppressZeroLabel: getValue('suppressZeroLabel', false),
+        showAxisArrows: getValue('showAxisArrows', true),
+        showLineArrows: getValue('showLineArrows', true),
+        showAxes: getValue('showAxes', true),
+        minorGridColor: getValue('minorGridColor', '#a9a9a9'),
+        majorGridColor: getValue('majorGridColor', '#555555'),
+        xMinRadians: getValue('xMinRadians', null),
+        xMaxRadians: getValue('xMaxRadians', null),
+        radianStepMultiplier: getValue('radianStepMultiplier', null),
+        xGridUnitsPerRadianStep: getValue('xGridUnitsPerRadianStep', null),
+        paperStyle: getValue('paperStyle', null)
+    };
+}
+
+/**
+ * Shows the save template modal
+ */
+function showSaveTemplateModal() {
+    const currentSettings = getCurrentGridSettings();
+    const suggestedName = userTemplates.generateSmartName(currentSettings);
+    
+    const modal = document.createElement('div');
+    modal.className = 'confirm-modal';
+    
+    const content = document.createElement('div');
+    content.className = 'confirm-modal-content';
+    
+    const titleElement = document.createElement('h3');
+    titleElement.textContent = 'Save Template';
+    
+    const inputLabel = document.createElement('label');
+    inputLabel.textContent = 'Template Name:';
+    inputLabel.style.cssText = 'display: block; margin-bottom: 8px; font-weight: 500; text-align: left;';
+    
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.value = suggestedName;
+    nameInput.style.cssText = 'width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 20px; font-size: 1em;';
+    
+    const buttonContainer = document.createElement('div');
+    buttonContainer.className = 'confirm-modal-buttons';
+    
+    const saveButton = document.createElement('button');
+    saveButton.textContent = 'Save';
+    saveButton.className = 'confirm-yes';
+    saveButton.style.backgroundColor = '#28a745';
+    saveButton.addEventListener('mouseover', () => {
+        saveButton.style.backgroundColor = '#218838';
+    });
+    saveButton.addEventListener('mouseout', () => {
+        saveButton.style.backgroundColor = '#28a745';
+    });
+    
+    const cancelButton = document.createElement('button');
+    cancelButton.textContent = 'Cancel';
+    cancelButton.className = 'confirm-no';
+    
+    // Event handlers
+    const handleSave = () => {
+        const templateName = nameInput.value.trim();
+        if (!templateName) {
+            alert('Please enter a template name.');
+            nameInput.focus();
+            return;
+        }
+        
+        if (userTemplates.save(templateName, currentSettings)) {
+            updateUserTemplatesDropdown();
+            closeModal();
+            console.log('Template saved successfully:', templateName);
+        } else {
+            alert('Failed to save template. Please try again.');
+        }
+    };
+    
+    const closeModal = () => {
+        modal.classList.remove('show');
+        setTimeout(() => {
+            document.body.removeChild(modal);
+        }, 300);
+    };
+    
+    const handleCancel = () => {
+        closeModal();
+    };
+    
+    // Click handlers
+    saveButton.addEventListener('click', handleSave);
+    cancelButton.addEventListener('click', handleCancel);
+    
+    // Enter key handler
+    nameInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            handleSave();
+        }
+    });
+    
+    // ESC key handler
+    const handleKeydown = (e) => {
+        if (e.key === 'Escape') {
+            handleCancel();
+            document.removeEventListener('keydown', handleKeydown);
+        }
+    };
+    document.addEventListener('keydown', handleKeydown);
+    
+    // Click outside to close
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            handleCancel();
+        }
+    });
+    
+    // Assemble modal
+    buttonContainer.appendChild(saveButton);
+    buttonContainer.appendChild(cancelButton);
+    content.appendChild(titleElement);
+    content.appendChild(inputLabel);
+    content.appendChild(nameInput);
+    content.appendChild(buttonContainer);
+    modal.appendChild(content);
+    
+    // Show modal
+    document.body.appendChild(modal);
+    setTimeout(() => {
+        modal.classList.add('show');
+        nameInput.focus();
+        nameInput.select();
+    }, 10);
+}
+
+/**
+ * Updates the user templates dropdown with current templates
+ */
+function updateUserTemplatesDropdown() {
+    const dropdown = safeGetElement('userTemplates');
+    if (!dropdown) return;
+    
+    userTemplates.populateDropdown(dropdown);
+}
+
+/**
+ * Shows context menu for user template management
+ * @param {Event} event - Right-click event
+ * @param {string} templateId - Template ID
+ */
+function showTemplateContextMenu(event, templateId) {
+    const template = userTemplates.getById(templateId);
+    if (!template) return;
+    
+    const contextMenu = document.createElement('div');
+    contextMenu.style.cssText = `
+        position: fixed;
+        top: ${event.clientY}px;
+        left: ${event.clientX}px;
+        background: white;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        z-index: 1001;
+        min-width: 120px;
+    `;
+    
+    contextMenu.innerHTML = `
+        <div style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #eee; transition: background-color 0.2s;" 
+             data-action="rename"
+             onmouseover="this.style.backgroundColor='#f8f9fa'"
+             onmouseout="this.style.backgroundColor='white'">Rename</div>
+        <div style="padding: 8px 12px; cursor: pointer; color: #dc3545; transition: background-color 0.2s;" 
+             data-action="delete"
+             onmouseover="this.style.backgroundColor='#f8f9fa'"
+             onmouseout="this.style.backgroundColor='white'">Delete</div>
+    `;
+    
+    document.body.appendChild(contextMenu);
+    
+    // Handle context menu actions
+    contextMenu.addEventListener('click', async (e) => {
+        const action = e.target.dataset.action;
+        if (action === 'rename') {
+            showTemplateRenameDialog(templateId, template.name);
+        } else if (action === 'delete') {
+            const confirmed = await showConfirmDialog(
+                `Are you sure you want to delete the template "${template.name}"?`,
+                'Delete Template'
+            );
+            if (confirmed) {
+                if (userTemplates.delete(templateId)) {
+                    updateUserTemplatesDropdown();
+                } else {
+                    alert('Failed to delete template.');
+                }
+            }
+        }
+        document.body.removeChild(contextMenu);
+    });
+    
+    // Remove context menu when clicking elsewhere
+    const removeMenu = (e) => {
+        if (!contextMenu.contains(e.target)) {
+            document.body.removeChild(contextMenu);
+            document.removeEventListener('click', removeMenu);
+        }
+    };
+    setTimeout(() => document.addEventListener('click', removeMenu), 100);
+}
+
+/**
+ * Shows rename dialog for user templates
+ * @param {string} templateId - Template ID
+ * @param {string} currentName - Current template name
+ */
+function showTemplateRenameDialog(templateId, currentName) {
+    const modal = document.createElement('div');
+    modal.className = 'confirm-modal';
+    
+    const content = document.createElement('div');
+    content.className = 'confirm-modal-content';
+    
+    const titleElement = document.createElement('h3');
+    titleElement.textContent = 'Rename Template';
+    
+    const inputLabel = document.createElement('label');
+    inputLabel.textContent = 'Template Name:';
+    inputLabel.style.cssText = 'display: block; margin-bottom: 8px; font-weight: 500; text-align: left;';
+    
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.value = currentName;
+    nameInput.style.cssText = 'width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 20px; font-size: 1em;';
+    
+    const buttonContainer = document.createElement('div');
+    buttonContainer.className = 'confirm-modal-buttons';
+    
+    const saveButton = document.createElement('button');
+    saveButton.textContent = 'Save';
+    saveButton.className = 'confirm-yes';
+    saveButton.style.backgroundColor = '#28a745';
+    saveButton.addEventListener('mouseover', () => {
+        saveButton.style.backgroundColor = '#218838';
+    });
+    saveButton.addEventListener('mouseout', () => {
+        saveButton.style.backgroundColor = '#28a745';
+    });
+    
+    const cancelButton = document.createElement('button');
+    cancelButton.textContent = 'Cancel';
+    cancelButton.className = 'confirm-no';
+    
+    // Event handlers
+    const handleSave = () => {
+        const newName = nameInput.value.trim();
+        if (!newName) {
+            alert('Please enter a template name.');
+            nameInput.focus();
+            return;
+        }
+        
+        if (userTemplates.rename(templateId, newName)) {
+            updateUserTemplatesDropdown();
+            closeModal();
+        } else {
+            alert('Failed to rename template. Name might already exist.');
+        }
+    };
+    
+    const closeModal = () => {
+        modal.classList.remove('show');
+        setTimeout(() => {
+            document.body.removeChild(modal);
+        }, 300);
+    };
+    
+    const handleCancel = () => {
+        closeModal();
+    };
+    
+    // Click handlers
+    saveButton.addEventListener('click', handleSave);
+    cancelButton.addEventListener('click', handleCancel);
+    
+    // Enter key handler
+    nameInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            handleSave();
+        }
+    });
+    
+    // ESC key handler
+    const handleKeydown = (e) => {
+        if (e.key === 'Escape') {
+            handleCancel();
+            document.removeEventListener('keydown', handleKeydown);
+        }
+    };
+    document.addEventListener('keydown', handleKeydown);
+    
+    // Click outside to close
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            handleCancel();
+        }
+    });
+    
+    // Assemble modal
+    buttonContainer.appendChild(saveButton);
+    buttonContainer.appendChild(cancelButton);
+    content.appendChild(titleElement);
+    content.appendChild(inputLabel);
+    content.appendChild(nameInput);
+    content.appendChild(buttonContainer);
+    modal.appendChild(content);
+    
+    // Show modal
+    document.body.appendChild(modal);
+    setTimeout(() => {
+        modal.classList.add('show');
+        nameInput.focus();
+        nameInput.select();
+    }, 10);
+}
+
+/**
+ * Sets the dropdowns to custom state when settings change
+ */
+function setCustomState() {
+    const systemDropdown = safeGetElement('systemTemplates');
+    const userDropdown = safeGetElement('userTemplates');
+    
+    if (systemDropdown) systemDropdown.value = '';
+    if (userDropdown) userDropdown.value = '';
+}
+
+/**
  * Sets up color swatch functionality.
  */
 function setupColorSwatches() {
@@ -195,14 +566,12 @@ function setupInputListeners() {
     
     inputs.forEach(input => {
         safeAddEventListener(input, 'input', () => {
-            const gridPresetSelect = safeGetElement('gridPreset');
-            if (gridPresetSelect) gridPresetSelect.value = 'custom';
+            setCustomState();
             debouncedCalculateAndDraw();
         });
         
         safeAddEventListener(input, 'change', () => {
-            const gridPresetSelect = safeGetElement('gridPreset');
-            if (gridPresetSelect) gridPresetSelect.value = 'custom';
+            setCustomState();
             debouncedCalculateAndDraw();
         });
     });
@@ -232,8 +601,7 @@ function setupPolarListeners() {
         const element = safeGetElement(id);
         if (element) {
             safeAddEventListener(element, 'input', () => {
-                const gridPresetSelect = safeGetElement('gridPreset');
-                if (gridPresetSelect) gridPresetSelect.value = 'custom';
+                setCustomState();
                 drawGrid();
             });
         }
@@ -386,24 +754,56 @@ document.addEventListener('DOMContentLoaded', () => {
         // Show Axis Arrows checkbox
         const showAxisArrowsCheckbox = safeGetElement('showAxisArrows');
         safeAddEventListener(showAxisArrowsCheckbox, 'change', () => {
-            const gridPresetSelect = safeGetElement('gridPreset');
-            if (gridPresetSelect) gridPresetSelect.value = 'custom';
+            setCustomState();
             calculateDynamicMargins();
             drawGrid();
         });
 
-        // Grid preset dropdown
-        const gridPresetSelect = safeGetElement('gridPreset');
-        safeAddEventListener(gridPresetSelect, 'change', (event) => {
-            applyPreset(event.target.value);
+        // System templates dropdown
+        const systemTemplatesSelect = safeGetElement('systemTemplates');
+        safeAddEventListener(systemTemplatesSelect, 'change', (event) => {
+            if (event.target.value) {
+                applyPreset(event.target.value);
+                // Clear user template selection
+                const userDropdown = safeGetElement('userTemplates');
+                if (userDropdown) userDropdown.value = '';
+            }
+        });
+
+        // User templates dropdown
+        const userTemplatesSelect = safeGetElement('userTemplates');
+        safeAddEventListener(userTemplatesSelect, 'change', (event) => {
+            if (event.target.value) {
+                const template = userTemplates.getById(event.target.value);
+                if (template) {
+                    applyPreset('custom', template.gridSettings);
+                    // Clear system template selection
+                    const systemDropdown = safeGetElement('systemTemplates');
+                    if (systemDropdown) systemDropdown.value = '';
+                }
+            }
+        });
+
+        // Right-click context menu for user templates
+        safeAddEventListener(userTemplatesSelect, 'contextmenu', (event) => {
+            const templateId = event.target.value;
+            if (templateId) {
+                event.preventDefault();
+                showTemplateContextMenu(event, templateId);
+            }
+        });
+
+        // Save template button
+        const saveTemplateBtn = safeGetElement('saveTemplateBtn');
+        safeAddEventListener(saveTemplateBtn, 'click', () => {
+            showSaveTemplateModal();
         });
 
         // X-axis label type dropdown
         const xAxisLabelTypeSelect = safeGetElement('xAxisLabelType');
         safeAddEventListener(xAxisLabelTypeSelect, 'change', () => {
             toggleXAxisSettings();
-            const gridPresetSelect = safeGetElement('gridPreset');
-            if (gridPresetSelect) gridPresetSelect.value = 'custom';
+            setCustomState();
             calculateDynamicMargins();
             drawGrid();
         });
@@ -441,8 +841,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Paper Style dropdown
         const paperStyleSelect = safeGetElement('paperStyle');
         safeAddEventListener(paperStyleSelect, 'change', () => {
-            const gridPresetSelect = safeGetElement('gridPreset');
-            if (gridPresetSelect) gridPresetSelect.value = 'custom';
+            setCustomState();
             togglePaperStyleSettings();
             drawGrid();
         });
@@ -456,8 +855,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Show axes checkbox
         const showAxesCheckbox = safeGetElement('showAxes');
         safeAddEventListener(showAxesCheckbox, 'change', () => {
-            const gridPresetSelect = safeGetElement('gridPreset');
-            if (gridPresetSelect) gridPresetSelect.value = 'custom';
+            setCustomState();
             drawGrid();
         });
 
@@ -475,6 +873,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // Setup equation live preview
         setupEquationLivePreview();
 
+        // Initialize user templates dropdown
+        updateUserTemplatesDropdown();
+
         // Initial setup calls
         toggleXAxisSettings();
         toggleCustomLabelInput();
@@ -482,8 +883,11 @@ document.addEventListener('DOMContentLoaded', () => {
         calculateDynamicMargins();
         
         // Apply initial preset
-        const initialPreset = gridPresetSelect ? gridPresetSelect.value : 'negativeAndPositive';
-        applyPreset(initialPreset);
+        const systemDropdown = safeGetElement('systemTemplates');
+        const initialPreset = systemDropdown ? systemDropdown.value : 'negativeAndPositive';
+        if (initialPreset) {
+            applyPreset(initialPreset);
+        }
         
         renderEquationsList();
         

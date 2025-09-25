@@ -846,3 +846,50 @@ select:focus {
     background-color: #5a6268;
     transform: translateY(-1px);
 }
+
+/********  TEMPLATE DROPDOWNS  ********/
+.template-dropdowns {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.template-dropdown-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.template-dropdown-group label {
+    font-size: 0.9em;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.template-dropdown-group select {
+    width: 100%;
+    min-width: 0; /* Allow shrinking */
+}
+
+.save-template-btn {
+    background-color: transparent;
+    color: #28a745;
+    border: 2px solid #28a745;
+    font-size: 0.9em;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    align-self: flex-end;
+    margin-top: 8px;
+}
+
+.save-template-btn:hover {
+    background-color: #28a745;
+    color: white;
+    transform: translateY(-1px);
+}
+
+.save-template-btn:active {
+    transform: translateY(0);
+}
