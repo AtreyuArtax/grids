@@ -5,6 +5,7 @@ html {
     padding: 0;
     box-sizing: border-box;
     overflow-x: hidden;
+    scrollbar-gutter: stable; /* Reserve space for scrollbar without showing it */
 }
 body {
     font-family: 'Inter', sans-serif;
