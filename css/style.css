@@ -158,20 +158,20 @@ legend .toggle-icon {
 /* Info icon positioning within legend */
 legend .info-icon {
     order: -1; /* Forces info icon to appear first */
-    margin-right: 8px;
+    margin-right: 1px;
     margin-left: 0;
     flex-shrink: 0;
     position: relative;
     z-index: 10;
     padding: 2px 6px;
-    background-color: #007bff;
+    background-color: #4A90E2;
     color: white;
     border-radius: 50%;
-    font-size: 0.8em;
+    font-size: 0.75em;
     font-weight: bold;
     cursor: pointer;
-    min-width: 16px;
-    height: 16px;
+    min-width: 20px;
+    height: 20px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
