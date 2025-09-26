@@ -615,10 +615,33 @@ function setupCollapsibleFieldsets() {
         const legend = fieldset.querySelector('legend');
         // Exclude the 'Grid Presets' fieldset from collapsing behavior
         if (legend && fieldset.id !== 'gridPresetsFieldset') {
-            safeAddEventListener(legend, 'click', () => {
+            safeAddEventListener(legend, 'click', (e) => {
+                // Don't toggle if clicking on info icon
+                if (e.target.classList.contains('info-icon')) {
+                    return;
+                }
                 fieldset.classList.toggle('collapsed');
             });
         }
+    });
+
+    // Add event listeners to info icons to prevent event bubbling and show info modals
+    const infoIcons = document.querySelectorAll('.info-icon');
+    infoIcons.forEach(icon => {
+        safeAddEventListener(icon, 'click', (e) => {
+            e.stopPropagation(); // Prevent the click from bubbling up to the legend
+            e.preventDefault();
+            
+            // Show appropriate info modal based on parent fieldset
+            const fieldset = icon.closest('fieldset');
+            if (fieldset) {
+                if (fieldset.id === 'equationPlotting') {
+                    showEquationInfo();
+                } else if (fieldset.id === 'pointsSection') {
+                    showPointsInfo();
+                }
+            }
+        });
     });
 }
 
@@ -884,7 +907,20 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        safeAddEventListener(safeGetElement('equationLabelType'), 'change', toggleCustomLabelInput);
+        // Label type toggle event listeners
+        const labelTypeCustom = safeGetElement('labelTypeCustom');
+        const labelTypeEquation = safeGetElement('labelTypeEquation');
+        
+        // Load saved label type preference
+        const savedLabelType = localStorage.getItem('equationLabelType') || 'custom';
+        if (savedLabelType === 'equation') {
+            labelTypeEquation.checked = true;
+        } else {
+            labelTypeCustom.checked = true;
+        }
+        
+        safeAddEventListener(labelTypeCustom, 'change', toggleCustomLabelInput);
+        safeAddEventListener(labelTypeEquation, 'change', toggleCustomLabelInput);
 
         // Paper Style dropdown
         const paperStyleSelect = safeGetElement('paperStyle');
@@ -947,3 +983,23 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+/**
+ * Shows the equation plotting info modal
+ */
+function showEquationInfo() {
+    const modal = document.getElementById('equationInfoModal');
+    if (modal) {
+        modal.style.display = 'block';
+    }
+}
+
+/**
+ * Shows the points info modal
+ */
+function showPointsInfo() {
+    const modal = document.getElementById('pointsInfoModal');
+    if (modal) {
+        modal.style.display = 'block';
+    }
+}

@@ -8,8 +8,8 @@
     <!-- ============== VERSION CONFIGURATION ============== -->
     <!-- UPDATE THESE TWO LINES TO CHANGE ALL VERSION NUMBERS -->
     <script>
-        window.APP_VERSION = '2025-09-26-02';     // For PWA cache updates
-        window.CACHE_BUSTER = '42';               // For CSS/JS cache busting
+        window.APP_VERSION = '2025-09-26-03';     // For PWA cache updates
+        window.CACHE_BUSTER = '43';               // For CSS/JS cache busting
     </script>
     <!-- =================================================== -->
     
@@ -240,13 +240,10 @@
             </div>
 
             <fieldset class="controls-group collapsible" id="equationPlotting">
-                <div class="fieldset-header">
+                <legend>
                     <span class="info-icon" tabindex="0" id="equationInfoIcon">i</span>
-                    <legend>
-                        Equation Plotting
-                        <span class="toggle-icon">▼</span>
-                    </legend>
-                </div>
+                    Equation Plotting <span class="toggle-icon">▼</span>
+                </legend>
 
                 <div class="fieldset-content">
                     <div class="color-label-container">
@@ -293,20 +290,22 @@
                             <option value="dotsAndDash">Dots and Dash</option>
                         </select>
                     </label>
-                    <label>Label Type:
-                        <select id="equationLabelType" title="Select custom and leave blank for no label">
-                            <option value="custom">Custom Label</option>
-                            <option value="equation">Equation Text</option>
-                            
-                        </select>
-                    </label>
-                    <label id="customLabelContainer" class="hidden">Custom Label:
-                        <input type="text" id="equationCustomLabel" placeholder="leave blank for no label"
-                        title="Leave blank for no label">
-                    </label>
-                    <!-- NEW: This is the per-equation line arrow checkbox -->
+                    
+                    <!-- Show arrows checkbox positioned between Line Style and Label Toggle -->
                     <label class="checkbox-label">Show arrows for this equation:
                         <input type="checkbox" id="showLineArrows" checked>
+                    </label>
+                    
+                    <div class="equation-label-toggle">
+                        <input type="radio" id="labelTypeCustom" name="labelType" value="custom" checked>
+                        <label for="labelTypeCustom">Custom Label</label>
+                        <input type="radio" id="labelTypeEquation" name="labelType" value="equation">
+                        <label for="labelTypeEquation">Equation Label</label>
+                    </div>
+                    
+                    <label id="customLabelContainer" class="hidden">Label:
+                        <input type="text" id="equationCustomLabel" placeholder="leave blank for no label"
+                        title="Leave blank for no label">
                     </label>
                     
                     <!-- Primary Action Buttons -->
@@ -327,12 +326,10 @@
             </fieldset>
             <!-- Points & Segments controls -->
             <fieldset class="controls-group collapsible" id="pointsSection">
-                <div class="fieldset-header">
+                <legend>
                     <span class="info-icon" tabindex="0" id="pointsInfoIcon">i</span>
-                    <legend>
-                        Points &amp; Segments <span class="toggle-icon">▼</span>
-                    </legend>
-                </div>
+                    Points &amp; Segments <span class="toggle-icon">▼</span>
+                </legend>
                 <div class="fieldset-content">
                     <!-- Color Controls at the top -->
                     <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">

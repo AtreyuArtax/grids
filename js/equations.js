@@ -71,7 +71,7 @@ export function handleEquationSubmit() {
     const inequalityType = document.getElementById('inequalityType').value;
     const color = document.getElementById('equationColor').value;
     const lineStyle = document.getElementById('equationLineStyle').value;
-    const labelType = document.getElementById('equationLabelType').value;
+    const labelType = document.getElementById('labelTypeCustom').checked ? 'custom' : 'equation';
     const customLabel = document.getElementById('equationCustomLabel').value.trim();
     const showLineArrows = document.getElementById('showLineArrows').checked;
 
@@ -165,7 +165,15 @@ export function startEditEquation(id) {
     document.getElementById('domainEnd').value = equation.domainEnd !== null ? equation.domainEnd : '';
     document.getElementById('inequalityType').value = equation.inequalityType || '=';
     document.getElementById('equationLineStyle').value = equation.lineStyle || 'solid';
-    document.getElementById('equationLabelType').value = equation.labelType || 'equation';
+    
+    // Set the label type radio buttons
+    const labelType = equation.labelType || 'equation';
+    if (labelType === 'custom') {
+        document.getElementById('labelTypeCustom').checked = true;
+    } else {
+        document.getElementById('labelTypeEquation').checked = true;
+    }
+    
     document.getElementById('equationCustomLabel').value = equation.customLabel || '';
     document.getElementById('showLineArrows').checked = equation.showLineArrows !== undefined ? equation.showLineArrows : true;
 
@@ -302,14 +310,18 @@ export function renderEquationsList() {
  * Toggles the visibility of the custom label input field based on the selected label type.
  */
 export function toggleCustomLabelInput() {
-    const labelType = document.getElementById('equationLabelType').value;
+    const customRadio = document.getElementById('labelTypeCustom');
     const customLabelContainer = document.getElementById('customLabelContainer');
     
-    if (!customLabelContainer) return;
+    if (!customLabelContainer || !customRadio) return;
     
-    if (labelType === 'custom') {
+    if (customRadio.checked) {
         customLabelContainer.classList.remove('hidden');
     } else {
         customLabelContainer.classList.add('hidden');
     }
+    
+    // Save the current state to localStorage
+    const labelType = customRadio.checked ? 'custom' : 'equation';
+    localStorage.setItem('equationLabelType', labelType);
 }
