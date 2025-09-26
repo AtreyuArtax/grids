@@ -1069,6 +1069,7 @@ input:focus {
     display: flex;
     gap: 8px;
     align-items: center;
+    min-height: 38px; /* Ensure consistent height whether button is visible or not */
 }
 
 .template-dropdown-container select {
@@ -1082,7 +1083,7 @@ input:focus {
     color: #28a745;
     border: 2px solid #28a745;
     font-size: 0.85em;
-    padding: 6px 10px;
+    padding: 4px 8px;
     border-radius: 4px;
     cursor: pointer;
     transition: all 0.2s ease;
