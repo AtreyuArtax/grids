@@ -263,7 +263,7 @@ function showSaveTemplateModal() {
         }
         
         if (userTemplates.save(templateName, currentSettings)) {
-            updateUserTemplatesDropdown();
+            updateTemplatesDropdown();
             closeModal();
             console.log('Template saved successfully:', templateName);
         } else {
@@ -328,13 +328,45 @@ function showSaveTemplateModal() {
 }
 
 /**
- * Updates the user templates dropdown with current templates
+ * Updates the templates dropdown based on current mode and available templates
  */
-function updateUserTemplatesDropdown() {
-    const dropdown = safeGetElement('userTemplates');
-    if (!dropdown) return;
+function updateTemplatesDropdown() {
+    const dropdown = safeGetElement('templates');
+    const builtinRadio = safeGetElement('templateModeBuiltin');
+    const saveBtn = safeGetElement('saveTemplateBtn');
     
-    userTemplates.populateDropdown(dropdown);
+    if (!dropdown || !builtinRadio || !saveBtn) return;
+    
+    const isBuiltinMode = builtinRadio.checked;
+    
+    if (isBuiltinMode) {
+        // Show built-in templates
+        dropdown.innerHTML = `
+            <option value="">Select a template...</option>
+            <option value="negativeAndPositive" selected>math: 4 Quadrant</option>
+            <option value="standardMath">math: 1 Quadrant</option>
+            <option value="trigGraph">math: Trig Graph (0 to 2π)</option>
+            <option value="trigGraphDegrees">math: Trig Graph (Degrees)</option>
+            <option value="polar">math: Polar Grid</option>
+            <option value="position">physics: Position vs Time</option>
+            <option value="velocity">physics: Velocity vs Time</option>
+            <option value="acceleration">physics: Acceleration vs Time</option>
+            <option value="graphPaperLetter_1_4in">paper: Letter 1/4 inch</option>
+            <option value="graphPaperLetter_1_5in">paper: Letter 1/5 inch</option>
+            <option value="graphPaperLetter_1cm">paper: Letter 1 cm</option>
+            <option value="graphPaperLetter_5mm">paper: Letter 5 mm</option>
+        `;
+        saveBtn.style.display = 'none';
+        dropdown.title = ''; // Remove tooltip for built-in mode
+    } else {
+        // Show user templates
+        userTemplates.populateDropdown(dropdown);
+        saveBtn.style.display = 'inline-block';
+        dropdown.title = 'Right click to rename or remove'; // Add tooltip for user mode
+    }
+    
+    // Save mode preference
+    localStorage.setItem('templateMode', isBuiltinMode ? 'builtin' : 'user');
 }
 
 /**
@@ -384,7 +416,7 @@ function showTemplateContextMenu(event, templateId) {
             );
             if (confirmed) {
                 if (userTemplates.delete(templateId)) {
-                    updateUserTemplatesDropdown();
+                    updateTemplatesDropdown();
                 } else {
                     alert('Failed to delete template.');
                 }
@@ -455,7 +487,7 @@ function showTemplateRenameDialog(templateId, currentName) {
         }
         
         if (userTemplates.rename(templateId, newName)) {
-            updateUserTemplatesDropdown();
+            updateTemplatesDropdown();
             closeModal();
         } else {
             alert('Failed to rename template. Name might already exist.');
@@ -519,14 +551,11 @@ function showTemplateRenameDialog(templateId, currentName) {
 }
 
 /**
- * Sets the dropdowns to custom state when settings change
+ * Sets the dropdown to custom state when settings change
  */
 function setCustomState() {
-    const systemDropdown = safeGetElement('systemTemplates');
-    const userDropdown = safeGetElement('userTemplates');
-    
-    if (systemDropdown) systemDropdown.value = '';
-    if (userDropdown) userDropdown.value = '';
+    const dropdown = safeGetElement('templates');
+    if (dropdown) dropdown.value = '';
 }
 
 /**
@@ -759,35 +788,54 @@ document.addEventListener('DOMContentLoaded', () => {
             drawGrid();
         });
 
-        // System templates dropdown
-        const systemTemplatesSelect = safeGetElement('systemTemplates');
-        safeAddEventListener(systemTemplatesSelect, 'change', (event) => {
-            if (event.target.value) {
-                applyPreset(event.target.value);
-                // Clear user template selection
-                const userDropdown = safeGetElement('userTemplates');
-                if (userDropdown) userDropdown.value = '';
+        // Template mode toggle
+        const builtinRadio = safeGetElement('templateModeBuiltin');
+        const userRadio = safeGetElement('templateModeUser');
+        
+        // Load saved template mode preference
+        const savedMode = localStorage.getItem('templateMode') || 'builtin';
+        if (savedMode === 'user') {
+            userRadio.checked = true;
+        } else {
+            builtinRadio.checked = true;
+        }
+        
+        // Toggle mode handlers
+        safeAddEventListener(builtinRadio, 'change', () => {
+            if (builtinRadio.checked) {
+                updateTemplatesDropdown();
             }
         });
-
-        // User templates dropdown
-        const userTemplatesSelect = safeGetElement('userTemplates');
-        safeAddEventListener(userTemplatesSelect, 'change', (event) => {
+        
+        safeAddEventListener(userRadio, 'change', () => {
+            if (userRadio.checked) {
+                updateTemplatesDropdown();
+            }
+        });
+        
+        // Templates dropdown
+        const templatesSelect = safeGetElement('templates');
+        safeAddEventListener(templatesSelect, 'change', (event) => {
             if (event.target.value) {
-                const template = userTemplates.getById(event.target.value);
-                if (template) {
-                    applyPreset('custom', template.gridSettings);
-                    // Clear system template selection
-                    const systemDropdown = safeGetElement('systemTemplates');
-                    if (systemDropdown) systemDropdown.value = '';
+                const isBuiltinMode = builtinRadio.checked;
+                if (isBuiltinMode) {
+                    // Apply built-in template
+                    applyPreset(event.target.value);
+                } else {
+                    // Apply user template
+                    const template = userTemplates.getById(event.target.value);
+                    if (template) {
+                        applyPreset('custom', template.gridSettings);
+                    }
                 }
             }
         });
 
-        // Right-click context menu for user templates
-        safeAddEventListener(userTemplatesSelect, 'contextmenu', (event) => {
+        // Right-click context menu for user templates (only in user mode)
+        safeAddEventListener(templatesSelect, 'contextmenu', (event) => {
+            const isUserMode = userRadio.checked;
             const templateId = event.target.value;
-            if (templateId) {
+            if (isUserMode && templateId) {
                 event.preventDefault();
                 showTemplateContextMenu(event, templateId);
             }
@@ -873,8 +921,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Setup equation live preview
         setupEquationLivePreview();
 
-        // Initialize user templates dropdown
-        updateUserTemplatesDropdown();
+        // Initialize template dropdown based on saved mode
+        updateTemplatesDropdown();
 
         // Initial setup calls
         toggleXAxisSettings();
@@ -883,8 +931,8 @@ document.addEventListener('DOMContentLoaded', () => {
         calculateDynamicMargins();
         
         // Apply initial preset
-        const systemDropdown = safeGetElement('systemTemplates');
-        const initialPreset = systemDropdown ? systemDropdown.value : 'negativeAndPositive';
+        const templatesDropdown = safeGetElement('templates');
+        const initialPreset = templatesDropdown ? templatesDropdown.value : 'negativeAndPositive';
         if (initialPreset) {
             applyPreset(initialPreset);
         }

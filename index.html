@@ -8,7 +8,7 @@
     <!-- ============== VERSION CONFIGURATION ============== -->
     <!-- UPDATE THESE TWO LINES TO CHANGE ALL VERSION NUMBERS -->
     <script>
-        window.APP_VERSION = '2025-09-25-01';     // For PWA cache updates
+        window.APP_VERSION = '2025-09-26-01';     // For PWA cache updates
         window.CACHE_BUSTER = '41';               // For CSS/JS cache busting
     </script>
     <!-- =================================================== -->
@@ -54,35 +54,32 @@
             <fieldset class="controls-group">
                 <legend class="static-legend">Grid Templates</legend>
                 <div class="fieldset-content">
-                    <div class="template-dropdowns">
-                        <div class="template-dropdown-group">
-                            <label>System Templates:
-                                <select id="systemTemplates">
-                                    <option value="">Select a system template...</option>
-                                    <option value="negativeAndPositive" selected>math: 4 Quadrant</option>
-                                    <option value="standardMath">math: 1 Quadrant</option>
-                                    <option value="trigGraph">math: Trig Graph (0 to 2π)</option>
-                                    <option value="trigGraphDegrees">math: Trig Graph (Degrees)</option>
-                                    <option value="polar">math: Polar Grid</option>
-                                    <option value="position">physics: Position vs Time</option>
-                                    <option value="velocity">physics: Velocity vs Time</option>
-                                    <option value="acceleration">physics: Acceleration vs Time</option>
-                                    <option value="graphPaperLetter_1_4in">paper: Letter 1/4 inch</option>
-                                    <option value="graphPaperLetter_1_5in">paper: Letter 1/5 inch</option>
-                                    <option value="graphPaperLetter_1cm">paper: Letter 1 cm</option>
-                                    <option value="graphPaperLetter_5mm">paper: Letter 5 mm</option>
-                                </select>
-                            </label>
+                    <div class="template-controls">
+                        <div class="template-toggle">
+                            <input type="radio" id="templateModeBuiltin" name="templateMode" value="builtin" checked>
+                            <label for="templateModeBuiltin">Presets</label>
+                            <input type="radio" id="templateModeUser" name="templateMode" value="user">
+                            <label for="templateModeUser">Custom</label>
                         </div>
-                        <div class="template-dropdown-group">
-                            <label>My Templates:
-                                <select id="userTemplates">
-                                    <option value="">Select a template...</option>
-                                </select>
-                            </label>
+                        <div class="template-dropdown-container">
+                            <select id="templates">
+                                <option value="">Select a template...</option>
+                                <option value="negativeAndPositive" selected>math: 4 Quadrant</option>
+                                <option value="standardMath">math: 1 Quadrant</option>
+                                <option value="trigGraph">math: Trig Graph (0 to 2π)</option>
+                                <option value="trigGraphDegrees">math: Trig Graph (Degrees)</option>
+                                <option value="polar">math: Polar Grid</option>
+                                <option value="position">physics: Position vs Time</option>
+                                <option value="velocity">physics: Velocity vs Time</option>
+                                <option value="acceleration">physics: Acceleration vs Time</option>
+                                <option value="graphPaperLetter_1_4in">paper: Letter 1/4 inch</option>
+                                <option value="graphPaperLetter_1_5in">paper: Letter 1/5 inch</option>
+                                <option value="graphPaperLetter_1cm">paper: Letter 1 cm</option>
+                                <option value="graphPaperLetter_5mm">paper: Letter 5 mm</option>
+                            </select>
+                            <button type="button" id="saveTemplateBtn" class="save-template-btn-inline" style="display:none;">Save</button>
                         </div>
                     </div>
-                    <button type="button" id="saveTemplateBtn" class="save-template-btn">Save Template</button>
                 </div>
             </fieldset>
 
