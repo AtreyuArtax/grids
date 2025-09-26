@@ -168,8 +168,7 @@ label {
 }
 
 label input[type="number"],
-label input[type="text"],
-label select {
+label input[type="text"] {
     flex-grow: 1;
     padding: 8px;
     border: 1px solid #ccc;
@@ -180,11 +179,16 @@ label select {
 }
 
 label input[type="number"]:focus,
-label input[type="text"]:focus,
-label select:focus {
+label input[type="text"]:focus {
     outline: none;
     border-color: #007bff;
     box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+/* Let label select elements use the enhanced select styling */
+label select {
+    flex-grow: 1;
+    margin-left: auto;
 }
 
 /* Styling for the native color input element */
@@ -217,6 +221,54 @@ label input[type="checkbox"] {
     width: fit-content; /* Ensure the label only takes up space needed for its content */
     cursor: pointer;
 }
+
+/********  ENHANCED SELECT STYLING  ********/
+select {
+    appearance: none; /* Remove default browser styling */
+    background: white;
+    background-image: url("data:image/svg+xml;charset=US-ASCII,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path fill='%231976d2' d='M1 1l5 5 5-5z'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 6px 40px 6px 12px;
+    font-size: 0.9em;
+    font-family: inherit;
+    color: #333;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    min-height: 30px;
+    font-weight: 500;
+}
+
+select:hover,
+select:focus {
+    outline: none;
+    border-color: #1976d2;
+    box-shadow: 0 2px 6px rgba(25,118,210,0.15);
+}
+
+/* Style the options */
+select option {
+    padding: 8px 12px;
+    background: white;
+    color: #333;
+    border: none;
+}
+
+select option:hover {
+    background: #f5f5f5;
+}
+
+/* Override label select styles for consistency */
+label select {
+    flex-grow: 1;
+    margin-left: auto;
+}
+
+
 
 /********  BUTTONS  ********/
 button {
@@ -727,8 +779,7 @@ button:disabled {
 
 /* Focus indicators for better accessibility */
 button:focus,
-input:focus,
-select:focus {
+input:focus {
     outline: 2px solid #007bff;
     outline-offset: 2px;
 }
@@ -911,9 +962,7 @@ select:focus {
 .template-dropdown-container select {
     flex: 1;
     min-width: 0;
-    height: 32px;
-    padding: 6px 10px;
-    font-size: 0.85em;
+    /* Remove specific height, padding, font-size, border overrides to use consistent select styling */
 }
 
 .save-template-btn-inline {
