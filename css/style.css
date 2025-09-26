@@ -91,18 +91,9 @@ fieldset {
     transition: border-color 0.2s ease;
 }
 
-/* Spacing between adjacent fieldsets */
+/* Consistent spacing between all fieldsets */
 fieldset + fieldset {
-    margin-top: 16px;
-}
-
-/* Specific spacing for axis settings */
-#cartesianAxisSettings {
-    margin-bottom: 16px;
-}
-
-#xAxisSettings {
-    margin-top: 16px;
+    margin-top: 5px;
 }
 
 fieldset:hover {

@@ -8,8 +8,8 @@
     <!-- ============== VERSION CONFIGURATION ============== -->
     <!-- UPDATE THESE TWO LINES TO CHANGE ALL VERSION NUMBERS -->
     <script>
-        window.APP_VERSION = '2025-09-26-03';     // For PWA cache updates
-        window.CACHE_BUSTER = '43';               // For CSS/JS cache busting
+        window.APP_VERSION = '2025-09-26-04';     // For PWA cache updates
+        window.CACHE_BUSTER = '44';               // For CSS/JS cache busting
     </script>
     <!-- =================================================== -->
     
@@ -155,49 +155,48 @@
                 </label>
             </div>
 
-            <div id="cartesianAxisSettings">
-                <fieldset class="controls-group collapsible" id="yAxisSettings">
-                    <legend>y-Axis Settings <span class="toggle-icon">▼</span></legend>
-                    <div class="fieldset-content">
-                        <label>y Min:
-                            <input type="number" id="yMin" value="0">
-                        </label>
-                        <label>y Max:
-                            <input type="number" id="yMax" value="10">
-                        </label>
-                        <label>Increment:
-                            <input type="number" id="yIncrement" value="1" min="0.001" step="0.1"
-                            title="Sets the numerical value represented by each minor grid square. For example, '1' means each small square counts as 1 unit.">
-                        </label>
-                        <label>Label Nth Step:
-                            <input type="number" id="yLabelEvery" value="1" min="1" step="1">
-                        </label>
-                        <label>Axis Label:
-                            <input type="text" id="yAxisLabel" value="y">
-                        </label>
-                        <label class="checkbox-label">Numbers on Axis:
-                            <input type="checkbox" id="yLabelOnZero" checked>
-                        </label>
-                        <label class="checkbox-label">Axis Label on Top:
-                            <input type="checkbox" id="yAxisLabelOnTop">
-                        </label>
-                    </div>
-                </fieldset>
+            <fieldset class="controls-group collapsible" id="yAxisSettings">
+                <legend>y-Axis Settings <span class="toggle-icon">▼</span></legend>
+                <div class="fieldset-content">
+                    <label>y Min:
+                        <input type="number" id="yMin" value="0">
+                    </label>
+                    <label>y Max:
+                        <input type="number" id="yMax" value="10">
+                    </label>
+                    <label>Increment:
+                        <input type="number" id="yIncrement" value="1" min="0.001" step="0.1"
+                        title="Sets the numerical value represented by each minor grid square. For example, '1' means each small square counts as 1 unit.">
+                    </label>
+                    <label>Label Nth Step:
+                        <input type="number" id="yLabelEvery" value="1" min="1" step="1">
+                    </label>
+                    <label>Axis Label:
+                        <input type="text" id="yAxisLabel" value="y">
+                    </label>
+                    <label class="checkbox-label">Numbers on Axis:
+                        <input type="checkbox" id="yLabelOnZero" checked>
+                    </label>
+                    <label class="checkbox-label">Axis Label on Top:
+                        <input type="checkbox" id="yAxisLabelOnTop">
+                    </label>
+                </div>
+            </fieldset>
 
-                <fieldset class="controls-group collapsible" id="xAxisSettings">
-                    <legend>x-Axis Settings <span class="toggle-icon">▼</span></legend>
-                    <div class="fieldset-content">
-                        <label>x-Axis Label Type:
-                            <select id="xAxisLabelType">
-                                <option value="numbers">Numbers</option>
-                                <option value="radians">Radians (π)</option>
-                                <option value="degrees">Degrees (°)</option> <!-- NEW OPTION -->
-                            </select>
-                        </label>
+            <fieldset class="controls-group collapsible" id="xAxisSettings">
+                <legend>x-Axis Settings <span class="toggle-icon">▼</span></legend>
+                <div class="fieldset-content">
+                    <label>x-Axis Label Type:
+                        <select id="xAxisLabelType">
+                            <option value="numbers">Numbers</option>
+                            <option value="radians">Radians (π)</option>
+                            <option value="degrees">Degrees (°)</option> <!-- NEW OPTION -->
+                        </select>
+                    </label>
 
-                        <div id="numericalXAxisSettings">
-                            <label>x Min:
-                                <input type="number" id="xMin" value="0">
+                    <div id="numericalXAxisSettings">
+                        <label>x Min:
+                            <input type="number" id="xMin" value="0">
                             </label>
                             <label>x Max:
                                 <input type="number" id="xMax" value="10">
@@ -237,7 +236,6 @@
                         </label>
                     </div>
                 </fieldset>
-            </div>
 
             <fieldset class="controls-group collapsible" id="equationPlotting">
                 <legend>
