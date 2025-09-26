@@ -234,9 +234,49 @@ label input[type="color"]:hover {
     border-color: #007bff;
 }
 
+/* Modern enhanced checkbox styling */
 label input[type="checkbox"] {
+    appearance: none; /* Remove default styling */
+    width: 16px;
+    height: 16px;
+    border: 2px solid #d0d0d0;
+    border-radius: 3px;
+    background: white;
     margin-left: 0;
     cursor: pointer;
+    position: relative;
+    transition: all 0.15s ease;
+    flex-shrink: 0; /* Prevent shrinking in flex containers */
+}
+
+/* Hover state */
+label input[type="checkbox"]:hover {
+    border-color: #1976d2;
+    background-color: #f8f9ff;
+}
+
+/* Checked state */
+label input[type="checkbox"]:checked {
+    background: #1976d2;
+    border-color: #1976d2;
+}
+
+/* Checkmark */
+label input[type="checkbox"]:checked::after {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: 1px;
+    width: 6px;
+    height: 9px;
+    border: 2px solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+/* Remove focus outline */
+label input[type="checkbox"]:focus {
+    outline: none;
 }
 
 .checkbox-label {
