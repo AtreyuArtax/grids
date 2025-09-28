@@ -237,6 +237,7 @@ export class PointsUI {
         form.style.display = 'flex';
         form.style.flexDirection = 'column';
         form.style.gap = '6px';
+        form.style.width = '100%'; // Ensure form takes full width
         form.onsubmit = e => {
           e.preventDefault();
           const x = form.x.value, y = form.y.value, label = form.label.value;
@@ -264,18 +265,21 @@ export class PointsUI {
         
         // Button row
         const buttonRow = document.createElement('div');
+        buttonRow.classList.add('edit-button-group');
         buttonRow.style.display = 'flex';
         buttonRow.style.gap = '6px';
         
         const saveBtn = document.createElement('button');
-        saveBtn.textContent = 'Save';
+        saveBtn.textContent = 'Update';
         saveBtn.type = 'submit';
         saveBtn.style.flex = '1';
+        saveBtn.classList.add('update-button');
         
         const cancelBtn = document.createElement('button');
         cancelBtn.textContent = 'Cancel';
         cancelBtn.type = 'button';
         cancelBtn.style.flex = '1';
+        cancelBtn.classList.add('cancel-button');
         cancelBtn.onclick = () => { this.editIdx = null; this.renderList(); };
         
         buttonRow.appendChild(saveBtn);

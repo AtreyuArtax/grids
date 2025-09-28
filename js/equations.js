@@ -180,8 +180,9 @@ export function startEditEquation(id) {
     toggleCustomLabelInput(); // Update custom label visibility
 
     const button = document.getElementById('addOrUpdateEquationButton');
-    button.textContent = 'Update Equation';
-    button.style.backgroundColor = '#28a745';
+    button.textContent = 'Update';
+    button.classList.add('update-button');
+    button.style.removeProperty('backgroundColor'); // Remove inline style to let CSS take over
     document.getElementById('cancelEditButton').classList.remove('hidden');
 }
 
@@ -204,7 +205,8 @@ export function resetEquationInputsAndButtons() {
     
     const button = document.getElementById('addOrUpdateEquationButton');
     button.textContent = 'Add Equation';
-    button.style.backgroundColor = '#007bff';
+    button.classList.remove('update-button');
+    button.style.removeProperty('backgroundColor'); // Remove inline style to let CSS take over
     document.getElementById('cancelEditButton').classList.add('hidden');
 
     // (Optional safety) Also clear any preview when resetting inputs

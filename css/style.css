@@ -1,3 +1,52 @@
+/********  CSS VARIABLES  ********/
+:root {
+    /* Colors */
+    --primary-blue: #1976d2;
+    --primary-blue-hover: #1565c0;
+    --success-green: #28a745;
+    --success-green-hover: #218838;
+    --danger-red: #d64545;
+    --danger-red-hover: #c13030;
+    --info-blue: #17a2b8;
+    --info-blue-hover: #138496;
+    --icon-blue: #6B8CAE;
+    --icon-blue-hover: #5a7fa0;
+    
+    /* Text Colors */
+    --text-primary: #333;
+    --text-secondary: #555;
+    --text-muted: #666;
+    
+    /* Background Colors */
+    --background-card: #ffffff;
+    --background-light: #f5f5f5;
+    --background-fieldset: #fdfdfd;
+    --background-body: #f0f2f5;
+    
+    /* Border Colors */
+    --border-light: #e0e0e0;
+    --border-medium: #ccc;
+    --border-hover: #d0d0d0;
+    
+    /* Spacing */
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 12px;
+    --spacing-lg: 16px;
+    --spacing-xl: 24px;
+    --spacing-xxl: 25px;
+    
+    /* Transitions */
+    --transition-fast: 0.15s ease;
+    --transition-base: 0.2s ease;
+    --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* Shadows */
+    --shadow-light: 0 1px 3px rgba(0,0,0,0.1);
+    --shadow-medium: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --shadow-button: 0 2px 4px rgba(0,0,0,0.2);
+}
+
 /********  GLOBAL RESET & BASE  ********/
 html {
     height: 100%;
@@ -9,11 +58,11 @@ html {
 }
 body {
     font-family: 'Inter', sans-serif;
-    background-color: #f0f2f5;
+    background-color: var(--background-body);
     margin: 0;
     /* Added padding-bottom for the fixed footer at the bottom right. */
     /* 40px estimated height for footer: 10px bottom margin + ~30px for link content */
-    padding: 20px 24px 15px 24px; /* top right bottom left */
+    padding: 20px var(--spacing-xl) 15px var(--spacing-xl); /* top right bottom left */
     min-height: 100vh; /* Ensure body covers full viewport height */
     box-sizing: border-box; /* Include padding in height calculation */
 }
@@ -24,7 +73,7 @@ body {
 /********  FLEX LAYOUT  ********/
 .main-flex-layout {
     display: flex;
-    gap: 24px;                         /* space between control & canvas */
+    gap: var(--spacing-xl);                         /* space between control & canvas */
     align-items: flex-start; /* Keeps children aligned at the top */
     justify-content: center;
     flex-wrap: wrap;
@@ -33,10 +82,10 @@ body {
 
 /********  CARD STYLING  ********/
 .card {
-    background-color: #ffffff;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    padding: 25px;
+    background-color: var(--background-card);
+    border-radius: var(--spacing-sm);
+    box-shadow: var(--shadow-medium);
+    padding: var(--spacing-xxl);
     margin-bottom: 20px;
 }
 
@@ -46,7 +95,7 @@ body {
     max-width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: var(--spacing-md);
 }
 
 /********  CANVAS CARD (sticky)  ********/
@@ -84,35 +133,35 @@ body {
 
 /********  FORM & FIELDSETS  ********/
 fieldset {
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--border-light);
     border-radius: 6px;
     padding: 15px;
     margin: 0;
-    background-color: #fdfdfd;
-    transition: border-color 0.2s ease;
+    background-color: var(--background-fieldset);
+    transition: border-color var(--transition-base);
 }
 
 /* Consistent spacing between all fieldsets */
 fieldset + fieldset {
-    margin-top: 5px;
+    margin-top: var(--spacing-sm);
 }
 
 fieldset:hover {
-    border-color: #d0d0d0;
+    border-color: var(--border-hover);
 }
 
 legend {
     font-weight: bold;
-    color: #333;
+    color: var(--text-primary);
     position: relative;
     padding: 0 10px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     user-select: none;
-    gap: 8px;
+    gap: var(--spacing-sm);
     cursor: pointer;
-    transition: color 0.2s ease;
+    transition: color var(--transition-base);
 }
 
 /********  FIELDSET HEADER WITH INFO ICON  ********/
@@ -122,12 +171,6 @@ legend {
     width: 100%;
     margin-bottom: 10px;
     gap: 8px;
-}
-
-.fieldset-header .info-icon {
-    margin: 0;
-    flex-shrink: 0;
-    order: 1;
 }
 
 .fieldset-header legend {
@@ -142,7 +185,7 @@ legend {
 }
 
 legend:not(.static-legend):hover {
-    color: #007bff;
+    color: var(--primary-blue);
     cursor: pointer;
 }
 .static-legend {
@@ -152,29 +195,14 @@ legend:not(.static-legend):hover {
 legend .toggle-icon {
     font-size: 1.2em;
     margin-left: 10px;
-    transition: transform 0.2s ease;
+    transition: transform var(--transition-base);
 }
 
 /* Info icon positioning within legend */
 legend .info-icon {
     order: -1; /* Forces info icon to appear first */
-    margin-right: 1px;
+    margin-right: 8px;
     margin-left: 0;
-    flex-shrink: 0;
-    position: relative;
-    z-index: 10;
-    padding: 2px 6px;
-    background-color: #4A90E2;
-    color: white;
-    border-radius: 50%;
-    font-size: 0.75em;
-    font-weight: bold;
-    cursor: pointer;
-    min-width: 20px;
-    height: 20px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
 }
 
 fieldset.collapsed .toggle-icon {
@@ -199,18 +227,18 @@ label input[type="number"],
 label input[type="text"] {
     flex-grow: 1;
     padding: 6px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--border-medium);
     border-radius: 4px;
     font-size: 0.9em;
     margin-left: auto;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    transition: border-color var(--transition-base), box-shadow var(--transition-base);
 }
 
 label input[type="number"]:focus,
 label input[type="text"]:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.25);
 }
 
 /* Let label select elements use the enhanced select styling */
@@ -240,26 +268,26 @@ label input[type="checkbox"] {
     appearance: none; /* Remove default styling */
     width: 16px;
     height: 16px;
-    border: 2px solid #d0d0d0;
+    border: 2px solid var(--border-hover);
     border-radius: 3px;
     background: white;
     margin-left: 0;
     cursor: pointer;
     position: relative;
-    transition: all 0.15s ease;
+    transition: all var(--transition-fast);
     flex-shrink: 0; /* Prevent shrinking in flex containers */
 }
 
 /* Hover state */
 label input[type="checkbox"]:hover {
-    border-color: #1976d2;
+    border-color: var(--primary-blue);
     background-color: #f8f9ff;
 }
 
 /* Checked state */
 label input[type="checkbox"]:checked {
-    background: #1976d2;
-    border-color: #1976d2;
+    background: var(--primary-blue);
+    border-color: var(--primary-blue);
 }
 
 /* Checkmark */
@@ -340,18 +368,20 @@ label select {
 
 /********  BUTTONS  ********/
 button {
-    background-color: #007bff;
+    background-color: var(--primary-blue);
     color: #fff;
-    padding: 5px 10px;
+    padding: 6px 12px;
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    font-size: .9em;
-    transition: background-color 0.2s ease, transform 0.1s ease;
+    font-size: 0.9em;
+    font-weight: 500;
+    transition: all var(--transition-base);
+    margin-right: 4px; /* Small margin between adjacent buttons */
 }
 
 button:hover {
-    background-color: #0056b3;
+    background-color: var(--primary-blue-hover);
     transform: translateY(-1px);
 }
 
@@ -365,29 +395,98 @@ button:disabled {
     transform: none;
 }
 
-.edit-button {
-    background-color: #17a2b8 !important;
+/* Consistent Edit/Update button styling (Blue for Update actions) */
+.edit-button,
+#addOrUpdateEquationButton,
+.update-button {
+    background-color: var(--info-blue) !important;
     color: #fff !important;
 }
 
-.edit-button:hover {
-    background-color: #138496 !important;
+.edit-button:hover,
+#addOrUpdateEquationButton:hover,
+.update-button:hover {
+    background-color: var(--info-blue-hover) !important;
 }
 
-.delete-button {
-    background-color: #d64545 !important;
+/* Consistent Cancel/Delete button styling (Red for Cancel/Delete actions) */
+.delete-button,
+#cancelEditButton,
+.cancel-button {
+    background-color: var(--danger-red) !important;
     color: #fff !important;
 }
 
-.delete-button:hover {
-    background-color: #c13030 !important;
+.delete-button:hover,
+#cancelEditButton:hover,
+.cancel-button:hover {
+    background-color: var(--danger-red-hover) !important;
+}
+
+/* Primary Add/Save button styling (Green for Add/Save actions) */
+.save-button,
+.add-button,
+#addOrUpdateEquationButton:not(.update-button),
+#addPointBtn,
+#addBulkPointsBtn {
+    background-color: var(--success-green) !important;
+    color: #fff !important;
+}
+
+.save-button:hover,
+.add-button:hover,
+#addOrUpdateEquationButton:not(.update-button):hover,
+#addPointBtn:hover,
+#addBulkPointsBtn:hover {
+    background-color: var(--success-green-hover) !important;
+}
+
+/* Override for equation button when in editing mode */
+#addOrUpdateEquationButton.update-button {
+    background-color: var(--info-blue) !important;
+    color: #fff !important;
+}
+
+#addOrUpdateEquationButton.update-button:hover {
+    background-color: var(--info-blue-hover) !important;
 }
 
 .button-group {
     display: flex;
-    gap: 10px;
+    gap: var(--spacing-sm);
     margin-top: 15px;
     flex-wrap: nowrap;
+}
+
+/* For edit button groups in both equations and points */
+.edit-button-group {
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: center;
+    width: 100%; /* Ensure full width */
+}
+
+/* When both buttons are visible, split the width */
+.edit-button-group button {
+    flex: 1;
+}
+
+/* When only one button is visible (add mode), take full width */
+.edit-button-group button:only-child:not(.hidden) {
+    flex: 1;
+}
+
+/* Handle hidden buttons properly */
+.edit-button-group button.hidden {
+    display: none;
+}
+
+/* For inline button groups in equation/points lists */
+.inline-button-group {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-left: auto;
 }
 
 /********  LISTS (EQUATIONS & POINTS)  ********/
@@ -420,24 +519,23 @@ button:disabled {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 1.25em;
-    height: 1.25em;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
-    background: #e0f5ff;
-    color: #1570A6;
+    background-color: var(--icon-blue);
+    color: white;
     font-weight: bold;
-    font-size: 1em;
-    border: 1px solid #b6defd;
+    font-size: 0.75em;
     cursor: pointer;
-    margin-right: 7px;
-    transition: background 0.15s ease, transform 0.1s ease;
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
     position: relative;
-    outline: none;
+    z-index: 10;
 }
 
 .info-icon:hover,
 .info-icon:focus {
-    background: #b6defd;
+    background-color: var(--icon-blue-hover);
     transform: scale(1.1);
 }
 
@@ -981,11 +1079,11 @@ input:focus {
 /* Shared toggle styling for consistent appearance */
 .toggle-switch {
     display: flex;
-    background: #f5f5f5;
+    background: var(--background-light);
     border-radius: 16px;
     padding: 2px;
-    margin-bottom: 8px;
-    border: 1px solid #e0e0e0;
+    margin-bottom: var(--spacing-sm);
+    border: 1px solid var(--border-light);
     position: relative;
     overflow: hidden;
     height: 28px;
@@ -998,13 +1096,13 @@ input:focus {
 .toggle-switch label {
     flex: 1;
     text-align: center;
-    padding: 0 8px;
+    padding: 0 var(--spacing-sm);
     border-radius: 12px;
     font-size: 0.8em;
     font-weight: 500;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all var(--transition-smooth);
     background: transparent;
-    color: #666;
+    color: var(--text-muted);
     cursor: pointer;
     position: relative;
     z-index: 2;
@@ -1030,16 +1128,16 @@ input:focus {
     left: 2px;
     right: 50%;
     bottom: 2px;
-    background: linear-gradient(135deg, #1976d2, #1565c0);
+    background: linear-gradient(135deg, var(--primary-blue), var(--primary-blue-hover));
     border-radius: 12px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all var(--transition-smooth);
     box-shadow: 0 1px 3px rgba(25,118,210,0.3);
     z-index: 1;
 }
 
 /* Shared hover effects */
 .toggle-switch label:hover {
-    color: #333;
+    color: var(--text-primary);
 }
 
 .toggle-switch input[type="radio"]:checked + label:hover {
@@ -1059,68 +1157,37 @@ input:focus {
 
 .template-dropdown-container {
     display: flex;
-    gap: 8px;
+    gap: var(--spacing-sm);
     align-items: center;
-    min-height: 30px; /* Ensure consistent height whether button is visible or not */
+    min-height: 32px; /* Changed from 30px to match dropdown height better */
+}
+
+.template-dropdown-container select {
+    flex: 1; /* Allow dropdown to take available space */
+    min-width: 0; /* Allow shrinking if needed */
 }
 
 .save-template-btn-inline {
     background-color: transparent;
-    color: #28a745;
-    border: 2px solid #28a745;
+    color: var(--success-green);
+    border: 2px solid var(--success-green);
     font-size: 0.85em;
-    padding: 4px 8px;
+    padding: 4px var(--spacing-sm);
     border-radius: 4px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all var(--transition-base);
     white-space: nowrap;
     flex-shrink: 0;
     width: auto;
+    margin-left: auto;
 }
 
 .save-template-btn-inline:hover {
-    background-color: #28a745;
+    background-color: var(--success-green);
     color: white;
 }
 
 /* Specific margin for equation toggle */
 .equation-label-toggle {
     margin-bottom: 12px;
-}
-
-.template-dropdown-container {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    min-height: 38px; /* Ensure consistent height whether button is visible or not */
-}
-
-.template-dropdown-container select {
-    flex: 1;
-    min-width: 0;
-    /* Remove specific height, padding, font-size, border overrides to use consistent select styling */
-}
-
-.save-template-btn-inline {
-    background-color: transparent;
-    color: #28a745;
-    border: 2px solid #28a745;
-    font-size: 0.85em;
-    padding: 4px 8px;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    white-space: nowrap;
-    flex-shrink: 0;
-    width: auto;
-}
-
-.save-template-btn-inline:hover {
-    background-color: #28a745;
-    color: white;
-    transform: translateY(-1px);
-}
-
-.save-template-btn-inline:active {
-    transform: translateY(0);
 }
