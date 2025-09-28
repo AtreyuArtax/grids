@@ -8,8 +8,8 @@
     <!-- ============== VERSION CONFIGURATION ============== -->
     <!-- UPDATE THESE TWO LINES TO CHANGE ALL VERSION NUMBERS -->
     <script>
-        window.APP_VERSION = '2025-09-26-07';     // For PWA cache updates
-        window.CACHE_BUSTER = '47';               // For CSS/JS cache busting
+        window.APP_VERSION = '2025-09-28-01';     // For PWA cache updates
+        window.CACHE_BUSTER = '48';               // For CSS/JS cache busting
     </script>
     <!-- =================================================== -->
     
@@ -55,7 +55,7 @@
                 <legend class="static-legend">Grid Templates</legend>
                 <div class="fieldset-content">
                     <div class="template-controls">
-                        <div class="template-toggle">
+                        <div class="template-toggle toggle-switch">
                             <input type="radio" id="templateModeBuiltin" name="templateMode" value="builtin" checked>
                             <label for="templateModeBuiltin">Presets</label>
                             <input type="radio" id="templateModeUser" name="templateMode" value="user">
@@ -294,7 +294,7 @@
                         <input type="checkbox" id="showLineArrows" checked>
                     </label>
                     
-                    <div class="equation-label-toggle">
+                    <div class="equation-label-toggle toggle-switch">
                         <input type="radio" id="labelTypeCustom" name="labelType" value="custom" checked>
                         <label for="labelTypeCustom">Custom Label</label>
                         <input type="radio" id="labelTypeEquation" name="labelType" value="equation">
