@@ -58,10 +58,32 @@ export const gridPresets = {
         xMinRadians: null, xMaxRadians: null, radianStepMultiplier: null, xGridUnitsPerRadianStep: null,
         paperStyle: 'grid'
     },
+    "velocity2": {
+        squareSizeInput: 15,
+        xMin: 0, xMax: 10, xIncrement: 1, xLabelEvery: 2, xAxisLabel: "Time (s)", xLabelOnZero: false, xAxisLabelOnRight: false, xAxisLabelType: 'numbers',
+        yMin: -5, yMax: 5, yIncrement: 1, yLabelEvery: 1, yAxisLabel: "Velocity (m/s [E])", yLabelOnZero: true, yAxisLabelOnTop: false,
+        suppressZeroLabel: true, showAxisArrows: true,
+        showLineArrows: true, showAxes: true,
+        minorGridColor: "#a9a9a9",
+        majorGridColor: "#555555",
+        xMinRadians: null, xMaxRadians: null, radianStepMultiplier: null, xGridUnitsPerRadianStep: null,
+        paperStyle: 'grid'
+    },
     "position": {
         squareSizeInput: 15,
         xMin: 0, xMax: 15, xIncrement: 0.5, xLabelEvery: 0, xAxisLabel: "Time (s)", xLabelOnZero: false, xAxisLabelOnRight: false, xAxisLabelType: 'numbers',
         yMin: -10, yMax: 10, yIncrement: 1, yLabelEvery: 0, yAxisLabel: "Position (m [E])", yLabelOnZero: true, yAxisLabelOnTop: false,
+        suppressZeroLabel: true, showAxisArrows: true,
+        showLineArrows: true, showAxes: true,
+        minorGridColor: "#a9a9a9",
+        majorGridColor: "#555555",
+        xMinRadians: null, xMaxRadians: null, radianStepMultiplier: null, xGridUnitsPerRadianStep: null,
+        paperStyle: 'grid'
+    },
+    "position2": {
+        squareSizeInput: 15,
+        xMin: 0, xMax: 10, xIncrement: 1, xLabelEvery: 2, xAxisLabel: "Time (s)", xLabelOnZero: false, xAxisLabelOnRight: false, xAxisLabelType: 'numbers',
+        yMin: -5, yMax: 5, yIncrement: 1, yLabelEvery: 1, yAxisLabel: "Position (m [E])", yLabelOnZero: true, yAxisLabelOnTop: false,
         suppressZeroLabel: true, showAxisArrows: true,
         showLineArrows: true, showAxes: true,
         minorGridColor: "#a9a9a9",
