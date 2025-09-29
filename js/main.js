@@ -334,38 +334,27 @@ function updateTemplatesDropdown() {
     const dropdown = safeGetElement('templates');
     const builtinRadio = safeGetElement('templateModeBuiltin');
     const saveBtn = safeGetElement('saveTemplateBtn');
-    
     if (!dropdown || !builtinRadio || !saveBtn) return;
-    
+
     const isBuiltinMode = builtinRadio.checked;
-    
+
     if (isBuiltinMode) {
-        // Show built-in templates
-        dropdown.innerHTML = `
-            <option value="">Select a template...</option>
-            <option value="negativeAndPositive" selected>math: 4 Quadrant</option>
-            <option value="standardMath">math: 1 Quadrant</option>
-            <option value="trigGraph">math: Trig Graph (0 to 2π)</option>
-            <option value="trigGraphDegrees">math: Trig Graph (Degrees)</option>
-            <option value="polar">math: Polar Grid</option>
-            <option value="position">physics: Position vs Time</option>
-            <option value="velocity">physics: Velocity vs Time</option>
-            <option value="acceleration">physics: Acceleration vs Time</option>
-            <option value="graphPaperLetter_1_4in">paper: Letter 1/4 inch</option>
-            <option value="graphPaperLetter_1_5in">paper: Letter 1/5 inch</option>
-            <option value="graphPaperLetter_1cm">paper: Letter 1 cm</option>
-            <option value="graphPaperLetter_5mm">paper: Letter 5 mm</option>
-        `;
+        dropdown.innerHTML = '<option value="">Select a template...</option>';
+        Object.entries(gridPresets).forEach(([key, preset], idx) => {
+            const opt = document.createElement('option');
+            opt.value = key;
+            opt.textContent = preset.label || key;
+            if (idx === 0) opt.selected = true;
+            dropdown.appendChild(opt);
+        });
         saveBtn.style.display = 'none';
-        dropdown.title = ''; // Remove tooltip for built-in mode
+        dropdown.title = '';
     } else {
-        // Show user templates
         userTemplates.populateDropdown(dropdown);
         saveBtn.style.display = 'inline-block';
-        dropdown.title = 'Right click to rename or remove'; // Add tooltip for user mode
+        dropdown.title = 'Right click to rename or remove';
     }
-    
-    // Save mode preference
+
     localStorage.setItem('templateMode', isBuiltinMode ? 'builtin' : 'user');
 }
 
