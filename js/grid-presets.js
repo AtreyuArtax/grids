@@ -9,7 +9,8 @@ export const gridPresets = {
         showLineArrows: true, showAxes: true,
         minorGridColor: "#a9a9a9",
         majorGridColor: "#555555",
-        xMinRadians: null, xMaxRadians: null, radianStepMultiplier: null, xGridUnitsPerRadianStep: null
+        xMinRadians: null, xMaxRadians: null, radianStepMultiplier: null, xGridUnitsPerRadianStep: null,
+        paperStyle: 'grid'
     },
     "negativeAndPositive": {
         squareSizeInput: 15,
@@ -19,7 +20,8 @@ export const gridPresets = {
         showLineArrows: true, showAxes: true,
         minorGridColor: "#a9a9a9",
         majorGridColor: "#555555",
-        xMinRadians: null, xMaxRadians: null, radianStepMultiplier: null, xGridUnitsPerRadianStep: null
+        xMinRadians: null, xMaxRadians: null, radianStepMultiplier: null, xGridUnitsPerRadianStep: null,
+        paperStyle: 'grid'
     },
     "trigGraph": {
         squareSizeInput: 15,
@@ -31,7 +33,8 @@ export const gridPresets = {
         minorGridColor: "#a9a9a9",
         majorGridColor: "#555555",
         xMinRadians: 0, xMaxRadians: 2, radianStepMultiplier: 0.5, // 0 to 2π, steps of π/2
-        xGridUnitsPerRadianStep: 6 // Each π/2 spans 3 minor grid units
+        xGridUnitsPerRadianStep: 6, // Each π/2 spans 3 minor grid units
+        paperStyle: 'grid'
     },
     "trigGraphDegrees": {
         squareSizeInput: 15,
@@ -41,7 +44,8 @@ export const gridPresets = {
         showLineArrows: true, showAxes: true,
         minorGridColor: "#a9a9a9",
         majorGridColor: "#555555",
-        xMinRadians: null, xMaxRadians: null, radianStepMultiplier: null, xGridUnitsPerRadianStep: null
+        xMinRadians: null, xMaxRadians: null, radianStepMultiplier: null, xGridUnitsPerRadianStep: null,
+        paperStyle: 'grid'
     },
     "velocity": {
         squareSizeInput: 15,
@@ -51,7 +55,8 @@ export const gridPresets = {
         showLineArrows: true, showAxes: true,
         minorGridColor: "#a9a9a9",
         majorGridColor: "#555555",
-        xMinRadians: null, xMaxRadians: null, radianStepMultiplier: null, xGridUnitsPerRadianStep: null
+        xMinRadians: null, xMaxRadians: null, radianStepMultiplier: null, xGridUnitsPerRadianStep: null,
+        paperStyle: 'grid'
     },
     "position": {
         squareSizeInput: 15,
@@ -61,7 +66,8 @@ export const gridPresets = {
         showLineArrows: true, showAxes: true,
         minorGridColor: "#a9a9a9",
         majorGridColor: "#555555",
-        xMinRadians: null, xMaxRadians: null, radianStepMultiplier: null, xGridUnitsPerRadianStep: null
+        xMinRadians: null, xMaxRadians: null, radianStepMultiplier: null, xGridUnitsPerRadianStep: null,
+        paperStyle: 'grid'
     },
     "acceleration": {
         squareSizeInput: 15,
@@ -71,7 +77,8 @@ export const gridPresets = {
         showLineArrows: true, showAxes: true,
         minorGridColor: "#a9a9a9",
         majorGridColor: "#555555",
-        xMinRadians: null, xMaxRadians: null, radianStepMultiplier: null, xGridUnitsPerRadianStep: null
+        xMinRadians: null, xMaxRadians: null, radianStepMultiplier: null, xGridUnitsPerRadianStep: null,
+        paperStyle: 'grid'
     },
     "graphPaperLetter_1_4in": {
         squareSizeInput: 15, // 1/4 inch at 96dpi is 24px
@@ -81,7 +88,8 @@ export const gridPresets = {
         showLineArrows: true, showAxes: false,
         minorGridColor: "#323232",
         majorGridColor: "#323232",
-        xMinRadians: null, xMaxRadians: null, radianStepMultiplier: null, xGridUnitsPerRadianStep: null
+        xMinRadians: null, xMaxRadians: null, radianStepMultiplier: null, xGridUnitsPerRadianStep: null,
+        paperStyle: 'grid'
     },
     "graphPaperLetter_1_5in": {
         squareSizeInput: 15, // 1/5 inch at 96dpi is 19.2px
@@ -91,7 +99,8 @@ export const gridPresets = {
         showLineArrows: true, showAxes: false,
         minorGridColor: "#323232",
         majorGridColor: "#323232",
-        xMinRadians: null, xMaxRadians: null, radianStepMultiplier: null, xGridUnitsPerRadianStep: null
+        xMinRadians: null, xMaxRadians: null, radianStepMultiplier: null, xGridUnitsPerRadianStep: null,
+        paperStyle: 'grid'
     },
     "graphPaperLetter_1cm": {
         squareSizeInput: 15, // 1cm ≈ 37.8px at 96dpi
@@ -101,7 +110,8 @@ export const gridPresets = {
         showLineArrows: true, showAxes: false,
         minorGridColor: "#323232",
         majorGridColor: "#323232",
-        xMinRadians: null, xMaxRadians: null, radianStepMultiplier: null, xGridUnitsPerRadianStep: null
+        xMinRadians: null, xMaxRadians: null, radianStepMultiplier: null, xGridUnitsPerRadianStep: null,
+        paperStyle: 'grid'
     },
     "graphPaperLetter_5mm": {
         squareSizeInput: 15, // 5mm ≈ 18.9px at 96dpi
@@ -111,7 +121,8 @@ export const gridPresets = {
         showLineArrows: true, showAxes: false,
         minorGridColor: "#323232",
         majorGridColor: "#323232",
-        xMinRadians: null, xMaxRadians: null, radianStepMultiplier: null, xGridUnitsPerRadianStep: null
+        xMinRadians: null, xMaxRadians: null, radianStepMultiplier: null, xGridUnitsPerRadianStep: null,
+        paperStyle: 'grid'
     },
     "polar": {
     squareSizeInput: 15,
