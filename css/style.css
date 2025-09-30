@@ -1163,8 +1163,12 @@ input:focus {
 }
 
 .template-dropdown-container select {
-    flex: 1; /* Allow dropdown to take available space */
-    min-width: 0; /* Allow shrinking if needed */
+    max-width: 280px;      /* Limit dropdown width */
+    width: 100%;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    display: block;
 }
 
 .save-template-btn-inline {
