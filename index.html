@@ -8,8 +8,8 @@
     <!-- ============== VERSION CONFIGURATION ============== -->
     <!-- UPDATE THESE TWO LINES TO CHANGE ALL VERSION NUMBERS -->
     <script>
-        window.APP_VERSION = '2025-09-29-03';     // For PWA cache updates
-        window.CACHE_BUSTER = '53';               // For CSS/JS cache busting
+        window.APP_VERSION = '2025-09-29-04';     // For PWA cache updates
+        window.CACHE_BUSTER = '54';               // For CSS/JS cache busting
     </script>
     <!-- =================================================== -->
     
@@ -302,8 +302,9 @@
                     
                     <!-- Management Buttons -->
                     <div class="button-group">
-                        <button id="resetEquationLabelPositionsBtn" type="button">Reset Label Positions</button>
                         <button id="clearEquationsBtn" type="button">Clear Equations</button>
+                        <button id="resetEquationLabelPositionsBtn" type="button">Reset Label Positions</button>
+                        
                     </div>
                     
                     <div id="equationsList">
@@ -560,7 +561,7 @@ if ('serviceWorker' in navigator) {
                     <li><strong>Note:</strong> This might be more easily modeled with the actual equation and domain/range restrictions in the Equation Plotting mode</li>
                 </ul>
 
-                <h3>🔗 Slope Continuity</h3>
+                <h3>🔗 Slope Continuity (not functioning as intended)</h3>
                 <p>The system automatically:</p>
                 <ul>
                     <li><strong>Calculates final slope</strong> at each curved point</li>
