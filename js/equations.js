@@ -296,7 +296,7 @@ export function renderEquationsList() {
         removeBtn.textContent = 'Remove';
         removeBtn.classList.add('small-button', 'delete-button');
         removeBtn.onclick = async () => {
-            const confirmed = await showConfirmDialog('Are you sure you want to remove this equation?', 'Remove Equation');
+            const confirmed = await showConfirmDialog('Are you sure you want to remove this equation?', 'Remove Equation', 'Remove');
             if (confirmed) {
                 removeEquation(eq.id);
             }

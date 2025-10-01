@@ -15,7 +15,7 @@ import {
 import { calculateDynamicMargins, toggleXAxisSettings } from './labels.js';
 import { drawGrid, downloadSVG, setPreviewEquation, safeDrawGrid } from './plotter.js'; // Import setPreviewEquation and safeDrawGrid
 import { exportSVGtoPNG, exportSVGtoPDF } from './plotter.js';
-import { debounce, showConfirmDialog } from './utils.js';
+import { debounce, showConfirmDialog, showInputDialog } from './utils.js';
 import { PointsLayer } from './modules/pointsLayer.js';
 import { PointsUI } from './modules/pointsUI.js';
 import { initializeModals } from './modalInit.js';
@@ -213,118 +213,27 @@ function getCurrentGridSettings() {
 /**
  * Shows the save template modal
  */
-function showSaveTemplateModal() {
+async function showSaveTemplateModal() {
     const currentSettings = getCurrentGridSettings();
     const suggestedName = userTemplates.generateSmartName(currentSettings);
     
-    const modal = document.createElement('div');
-    modal.className = 'confirm-modal';
+    const templateName = await showInputDialog(
+        'Give your grid template a name to save it for later use.',
+        'Save Template',
+        suggestedName,
+        'Template Name:'
+    );
     
-    const content = document.createElement('div');
-    content.className = 'confirm-modal-content';
+    if (!templateName) {
+        return; // User cancelled
+    }
     
-    const titleElement = document.createElement('h3');
-    titleElement.textContent = 'Save Template';
-    
-    const inputLabel = document.createElement('label');
-    inputLabel.textContent = 'Template Name:';
-    inputLabel.style.cssText = 'display: block; margin-bottom: 8px; font-weight: 500; text-align: left;';
-    
-    const nameInput = document.createElement('input');
-    nameInput.type = 'text';
-    nameInput.value = suggestedName;
-    nameInput.style.cssText = 'width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 20px; font-size: 1em;';
-    
-    const buttonContainer = document.createElement('div');
-    buttonContainer.className = 'confirm-modal-buttons';
-    
-    const saveButton = document.createElement('button');
-    saveButton.textContent = 'Save';
-    saveButton.className = 'confirm-yes';
-    saveButton.style.backgroundColor = '#28a745';
-    saveButton.addEventListener('mouseover', () => {
-        saveButton.style.backgroundColor = '#218838';
-    });
-    saveButton.addEventListener('mouseout', () => {
-        saveButton.style.backgroundColor = '#28a745';
-    });
-    
-    const cancelButton = document.createElement('button');
-    cancelButton.textContent = 'Cancel';
-    cancelButton.className = 'confirm-no';
-    
-    // Event handlers
-    const handleSave = () => {
-        const templateName = nameInput.value.trim();
-        if (!templateName) {
-            alert('Please enter a template name.');
-            nameInput.focus();
-            return;
-        }
-        
-        if (userTemplates.save(templateName, currentSettings)) {
-            updateTemplatesDropdown();
-            closeModal();
-            console.log('Template saved successfully:', templateName);
-        } else {
-            alert('Failed to save template. Please try again.');
-        }
-    };
-    
-    const closeModal = () => {
-        modal.classList.remove('show');
-        setTimeout(() => {
-            document.body.removeChild(modal);
-        }, 300);
-    };
-    
-    const handleCancel = () => {
-        closeModal();
-    };
-    
-    // Click handlers
-    saveButton.addEventListener('click', handleSave);
-    cancelButton.addEventListener('click', handleCancel);
-    
-    // Enter key handler
-    nameInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            handleSave();
-        }
-    });
-    
-    // ESC key handler
-    const handleKeydown = (e) => {
-        if (e.key === 'Escape') {
-            handleCancel();
-            document.removeEventListener('keydown', handleKeydown);
-        }
-    };
-    document.addEventListener('keydown', handleKeydown);
-    
-    // Click outside to close
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            handleCancel();
-        }
-    });
-    
-    // Assemble modal
-    buttonContainer.appendChild(saveButton);
-    buttonContainer.appendChild(cancelButton);
-    content.appendChild(titleElement);
-    content.appendChild(inputLabel);
-    content.appendChild(nameInput);
-    content.appendChild(buttonContainer);
-    modal.appendChild(content);
-    
-    // Show modal
-    document.body.appendChild(modal);
-    setTimeout(() => {
-        modal.classList.add('show');
-        nameInput.focus();
-        nameInput.select();
-    }, 10);
+    if (userTemplates.save(templateName, currentSettings)) {
+        updateTemplatesDropdown();
+        console.log('Template saved successfully:', templateName);
+    } else {
+        alert('Failed to save template. Please try again.');
+    }
 }
 
 /**
@@ -401,7 +310,8 @@ function showTemplateContextMenu(event, templateId) {
         } else if (action === 'delete') {
             const confirmed = await showConfirmDialog(
                 `Are you sure you want to delete the template "${template.name}"?`,
-                'Delete Template'
+                'Delete Template',
+                'Delete'
             );
             if (confirmed) {
                 if (userTemplates.delete(templateId)) {
@@ -429,114 +339,23 @@ function showTemplateContextMenu(event, templateId) {
  * @param {string} templateId - Template ID
  * @param {string} currentName - Current template name
  */
-function showTemplateRenameDialog(templateId, currentName) {
-    const modal = document.createElement('div');
-    modal.className = 'confirm-modal';
+async function showTemplateRenameDialog(templateId, currentName) {
+    const newName = await showInputDialog(
+        `Rename "${currentName}" to a new name.`,
+        'Rename Template',
+        currentName,
+        'New Name:'
+    );
     
-    const content = document.createElement('div');
-    content.className = 'confirm-modal-content';
+    if (!newName) {
+        return; // User cancelled
+    }
     
-    const titleElement = document.createElement('h3');
-    titleElement.textContent = 'Rename Template';
-    
-    const inputLabel = document.createElement('label');
-    inputLabel.textContent = 'Template Name:';
-    inputLabel.style.cssText = 'display: block; margin-bottom: 8px; font-weight: 500; text-align: left;';
-    
-    const nameInput = document.createElement('input');
-    nameInput.type = 'text';
-    nameInput.value = currentName;
-    nameInput.style.cssText = 'width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 20px; font-size: 1em;';
-    
-    const buttonContainer = document.createElement('div');
-    buttonContainer.className = 'confirm-modal-buttons';
-    
-    const saveButton = document.createElement('button');
-    saveButton.textContent = 'Save';
-    saveButton.className = 'confirm-yes';
-    saveButton.style.backgroundColor = '#28a745';
-    saveButton.addEventListener('mouseover', () => {
-        saveButton.style.backgroundColor = '#218838';
-    });
-    saveButton.addEventListener('mouseout', () => {
-        saveButton.style.backgroundColor = '#28a745';
-    });
-    
-    const cancelButton = document.createElement('button');
-    cancelButton.textContent = 'Cancel';
-    cancelButton.className = 'confirm-no';
-    
-    // Event handlers
-    const handleSave = () => {
-        const newName = nameInput.value.trim();
-        if (!newName) {
-            alert('Please enter a template name.');
-            nameInput.focus();
-            return;
-        }
-        
-        if (userTemplates.rename(templateId, newName)) {
-            updateTemplatesDropdown();
-            closeModal();
-        } else {
-            alert('Failed to rename template. Name might already exist.');
-        }
-    };
-    
-    const closeModal = () => {
-        modal.classList.remove('show');
-        setTimeout(() => {
-            document.body.removeChild(modal);
-        }, 300);
-    };
-    
-    const handleCancel = () => {
-        closeModal();
-    };
-    
-    // Click handlers
-    saveButton.addEventListener('click', handleSave);
-    cancelButton.addEventListener('click', handleCancel);
-    
-    // Enter key handler
-    nameInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            handleSave();
-        }
-    });
-    
-    // ESC key handler
-    const handleKeydown = (e) => {
-        if (e.key === 'Escape') {
-            handleCancel();
-            document.removeEventListener('keydown', handleKeydown);
-        }
-    };
-    document.addEventListener('keydown', handleKeydown);
-    
-    // Click outside to close
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            handleCancel();
-        }
-    });
-    
-    // Assemble modal
-    buttonContainer.appendChild(saveButton);
-    buttonContainer.appendChild(cancelButton);
-    content.appendChild(titleElement);
-    content.appendChild(inputLabel);
-    content.appendChild(nameInput);
-    content.appendChild(buttonContainer);
-    modal.appendChild(content);
-    
-    // Show modal
-    document.body.appendChild(modal);
-    setTimeout(() => {
-        modal.classList.add('show');
-        nameInput.focus();
-        nameInput.select();
-    }, 10);
+    if (userTemplates.rename(templateId, newName)) {
+        updateTemplatesDropdown();
+    } else {
+        alert('Failed to rename template. Name might already exist.');
+    }
 }
 
 /**
@@ -889,7 +708,7 @@ document.addEventListener('DOMContentLoaded', () => {
             safeDrawGrid();
         });
         safeAddEventListener(safeGetElement('clearEquationsBtn'), 'click', async () => {
-            const confirmed = await showConfirmDialog('Are you sure you want to clear all equations?', 'Clear All Equations');
+            const confirmed = await showConfirmDialog('Are you sure you want to clear all equations?', 'Clear All Equations', 'Clear');
             if (confirmed) {
                 clearAllEquations();
                 safeDrawGrid();
@@ -992,3 +811,9 @@ function showPointsInfo() {
         modal.style.display = 'block';
     }
 }
+
+// Make grid functions globally available for pointsUI module
+window.getGridState = getCurrentGridSettings;
+window.applyGridState = function(gridState) {
+    applyPreset(null, gridState);
+};

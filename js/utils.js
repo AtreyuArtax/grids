@@ -353,9 +353,10 @@ export function debounce(func, wait) {
  * Shows a custom confirmation dialog.
  * @param {string} message - The message to display in the confirmation dialog.
  * @param {string} title - The title of the confirmation dialog (optional).
+ * @param {string} confirmText - The text for the confirm button (optional, defaults to 'Remove').
  * @returns {Promise<boolean>} A promise that resolves to true if confirmed, false if cancelled.
  */
-export function showConfirmDialog(message, title = 'Confirm Action') {
+export function showConfirmDialog(message, title = 'Confirm Action', confirmText = 'OK') {
     return new Promise((resolve) => {
         // Create modal elements
         const modal = document.createElement('div');
@@ -374,8 +375,20 @@ export function showConfirmDialog(message, title = 'Confirm Action') {
         buttonContainer.className = 'confirm-modal-buttons';
         
         const confirmButton = document.createElement('button');
-        confirmButton.textContent = 'Remove';
+        confirmButton.textContent = confirmText;
         confirmButton.className = 'confirm-yes';
+        
+        // Style confirm button based on action type
+        if (confirmText === 'Continue' || confirmText === 'Save' || confirmText === 'Load' || confirmText === 'OK') {
+            confirmButton.style.backgroundColor = '#28a745'; // Green for positive actions
+            confirmButton.addEventListener('mouseover', () => {
+                confirmButton.style.backgroundColor = '#218838';
+            });
+            confirmButton.addEventListener('mouseout', () => {
+                confirmButton.style.backgroundColor = '#28a745';
+            });
+        }
+        // Default red styling is already applied by CSS for destructive actions like Delete/Remove
         
         const cancelButton = document.createElement('button');
         cancelButton.textContent = 'Cancel';
@@ -438,5 +451,129 @@ export function showConfirmDialog(message, title = 'Confirm Action') {
         setTimeout(() => {
             cancelButton.focus();
         }, 350);
+    });
+}
+
+/**
+ * Shows a custom input dialog for text input.
+ * @param {string} message - The message to display in the input dialog.
+ * @param {string} title - The title of the input dialog.
+ * @param {string} defaultValue - The default value for the input field.
+ * @param {string} inputLabel - The label for the input field.
+ * @returns {Promise<string|null>} A promise that resolves to the input value if confirmed, null if cancelled.
+ */
+export function showInputDialog(message, title = 'Input', defaultValue = '', inputLabel = 'Value:') {
+    return new Promise((resolve) => {
+        // Create modal elements
+        const modal = document.createElement('div');
+        modal.className = 'confirm-modal';
+        
+        const content = document.createElement('div');
+        content.className = 'confirm-modal-content';
+        
+        const titleElement = document.createElement('h3');
+        titleElement.textContent = title;
+        
+        // Optional message
+        if (message) {
+            const messageElement = document.createElement('p');
+            messageElement.textContent = message;
+            messageElement.style.cssText = 'margin-bottom: 16px; color: #666;';
+            content.appendChild(titleElement);
+            content.appendChild(messageElement);
+        } else {
+            content.appendChild(titleElement);
+        }
+        
+        const inputLabelElement = document.createElement('label');
+        inputLabelElement.textContent = inputLabel;
+        inputLabelElement.style.cssText = 'display: block; margin-bottom: 8px; font-weight: 500; text-align: left;';
+        
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = defaultValue;
+        input.style.cssText = 'width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 20px; font-size: 1em; box-sizing: border-box;';
+        
+        const buttonContainer = document.createElement('div');
+        buttonContainer.className = 'confirm-modal-buttons';
+        
+        const saveButton = document.createElement('button');
+        saveButton.textContent = 'Save';
+        saveButton.className = 'confirm-yes';
+        saveButton.style.backgroundColor = '#28a745';
+        saveButton.addEventListener('mouseover', () => {
+            saveButton.style.backgroundColor = '#218838';
+        });
+        saveButton.addEventListener('mouseout', () => {
+            saveButton.style.backgroundColor = '#28a745';
+        });
+        
+        const cancelButton = document.createElement('button');
+        cancelButton.textContent = 'Cancel';
+        cancelButton.className = 'confirm-no';
+        
+        // Event handlers
+        const handleSave = () => {
+            const value = input.value.trim();
+            closeModal();
+            resolve(value || null);
+        };
+        
+        const closeModal = () => {
+            modal.classList.remove('show');
+            setTimeout(() => {
+                if (document.body.contains(modal)) {
+                    document.body.removeChild(modal);
+                }
+            }, 300);
+        };
+        
+        const handleCancel = () => {
+            closeModal();
+            resolve(null);
+        };
+        
+        // Click handlers
+        saveButton.addEventListener('click', handleSave);
+        cancelButton.addEventListener('click', handleCancel);
+        
+        // Enter key handler
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleSave();
+            }
+        });
+        
+        // ESC key handler
+        const handleKeydown = (e) => {
+            if (e.key === 'Escape') {
+                handleCancel();
+                document.removeEventListener('keydown', handleKeydown);
+            }
+        };
+        document.addEventListener('keydown', handleKeydown);
+        
+        // Click outside to close
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                handleCancel();
+            }
+        });
+        
+        // Assemble modal
+        buttonContainer.appendChild(cancelButton);
+        buttonContainer.appendChild(saveButton);
+        content.appendChild(inputLabelElement);
+        content.appendChild(input);
+        content.appendChild(buttonContainer);
+        modal.appendChild(content);
+        
+        // Show modal
+        document.body.appendChild(modal);
+        setTimeout(() => {
+            modal.classList.add('show');
+            input.focus();
+            input.select(); // Select all text for easy replacement
+        }, 10);
     });
 }

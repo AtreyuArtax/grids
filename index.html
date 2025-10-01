@@ -8,8 +8,8 @@
     <!-- ============== VERSION CONFIGURATION ============== -->
     <!-- UPDATE THESE TWO LINES TO CHANGE ALL VERSION NUMBERS -->
     <script>
-        window.APP_VERSION = '2025-09-29-04';     // For PWA cache updates
-        window.CACHE_BUSTER = '54';               // For CSS/JS cache busting
+        window.APP_VERSION = '2025-10-01-01';     // For PWA cache updates
+        window.CACHE_BUSTER = '55';               // For CSS/JS cache busting
     </script>
     <!-- =================================================== -->
     
@@ -443,6 +443,25 @@
                         <button id="clearPointsBtn" type="button">Clear Points</button>
                         <button id="resetLabelPositionsBtn" type="button">Reset Label Positions</button>
                     </div>
+
+                    <!-- Point Sets Management -->
+                    <fieldset class="collapsible collapsed" style="margin-top:12px; margin-bottom:8px;">
+                        <legend>Saved Point Sets <span class="toggle-icon">▼</span></legend>
+                        <div class="fieldset-content">
+                            <div class="template-dropdown-container" style="margin-bottom:8px;">
+                                <select id="pointSets">
+                                    <option value="">Select a point set...</option>
+                                </select>
+                                <button type="button" id="savePointSetBtn" class="save-template-btn-inline">Save</button>
+                            </div>
+                            <div class="button-group">
+                                <button id="loadPointSetBtn" type="button">Load</button>
+                                <button id="renamePointSetBtn" type="button">Rename</button>
+                                <button id="deletePointSetBtn" type="button">Delete</button>
+                            </div>
+                            <div id="pointSetsStatus" style="font-size:0.85em; color:#666; margin-top:4px; text-align:center;"></div>
+                        </div>
+                    </fieldset>
 
                     <div id="pointsList" style="margin-top:8px;"></div>
                 </div>
