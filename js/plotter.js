@@ -44,6 +44,13 @@ let previewEquation = null;
 export function setPreviewEquation(eqData) {
     if (eqData && eqData.rawExpression) {
         try {
+            // Test if math object is available
+            if (typeof math === 'undefined') {
+                console.error('math.js is not loaded');
+                previewEquation = null;
+                return;
+            }
+            
             // Compile the expression for efficiency during plotting
             const compiledExpression = math.compile(eqData.rawExpression);
             previewEquation = {
@@ -990,6 +997,9 @@ function placeEquationLabel(equationGroup, eq, labelText, gridOptions, placedLab
             const referenceXCanvas = offsetX + ((referenceXGraph - gridOptions.xMin) / gridOptions.xIncrement) * minorSquareSize;
             const referenceYCanvas = offsetY + actualGridHeight - ((referenceYGraph - yMin) / yIncrement) * minorSquareSize;
             labelRefPoint = { x: referenceXCanvas, y: referenceYCanvas };
+        } else {
+            // Center point didn't work, try to find a better point
+            throw new Error('Center evaluation produced non-finite value');
         }
     } catch (e) {
         // If evaluation fails at center, try the right edge as fallback
@@ -1004,6 +1014,8 @@ function placeEquationLabel(equationGroup, eq, labelText, gridOptions, placedLab
                 const testCanvasX = offsetX + actualGridWidth;
                 const testCanvasY = offsetY + actualGridHeight - ((testGraphY - yMin) / yIncrement) * minorSquareSize;
                 labelRefPoint = { x: testCanvasX, y: testCanvasY };
+            } else {
+                throw new Error('Right edge also non-finite');
             }
         } catch (e2) {
             // If all else fails, use a default position
@@ -1591,10 +1603,14 @@ if (gridOptions.showAxisArrows) {
 
         // Label Placement (skipped for preview equations in placeEquationLabel)
         let labelText = '';
-        if (eq.labelType === 'custom' && eq.customLabel.trim() !== '') {
-            labelText = formatEquationTextForDisplay(eq.customLabel);
-        } else if (eq.labelType === 'equation') {
-            labelText = formatEquationTextForDisplay(`y ${eq.inequalityType || '='} ${eq.rawExpression}`);
+        const labelType = eq.labelType || 'equation'; // Default to 'equation' if not set
+        const customLabel = eq.customLabel || ''; // Default to empty string if not set
+        const rawExpression = eq.rawExpression || ''; // Default to empty string if not set
+        
+        if (labelType === 'custom' && customLabel.trim() !== '') {
+            labelText = formatEquationTextForDisplay(customLabel);
+        } else if (labelType === 'equation' && rawExpression.trim() !== '') {
+            labelText = formatEquationTextForDisplay(`y ${eq.inequalityType || '='} ${rawExpression}`);
         }
 
         placeEquationLabel(equationGroup, eq, labelText, gridOptions, placedLabelRects, segments);

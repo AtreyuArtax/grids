@@ -262,10 +262,14 @@ export function renderEquationsList() {
         const eqLabel = document.createElement('span');
 
         let displayLabelContent;
-        if (eq.labelType === 'custom' && eq.customLabel.trim() !== '') {
-            displayLabelContent = eq.customLabel;
+        const labelType = eq.labelType || 'equation'; // Default to 'equation' if not set
+        const customLabel = eq.customLabel || ''; // Default to empty string if not set
+        const rawExpression = eq.rawExpression || ''; // Default to empty string if not set
+        
+        if (labelType === 'custom' && customLabel.trim() !== '') {
+            displayLabelContent = customLabel;
         } else {
-            displayLabelContent = `y ${eq.inequalityType || '='} ${eq.rawExpression}`;
+            displayLabelContent = `y ${eq.inequalityType || '='} ${rawExpression}`;
         }
 
         const displayLabel = formatEquationTextForDisplay(displayLabelContent);

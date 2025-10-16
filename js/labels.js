@@ -256,10 +256,14 @@ export function calculateDynamicMargins() {
 
     equationsToDraw.forEach(eq => {
         let labelText = '';
-        if (eq.labelType === 'custom' && eq.customLabel.trim() !== '') {
-            labelText = formatEquationTextForDisplay(eq.customLabel);
-        } else if (eq.labelType === 'equation') {
-            labelText = formatEquationTextForDisplay(`y ${eq.inequalityType || '='} ${eq.rawExpression}`);
+        const labelType = eq.labelType || 'equation'; // Default to 'equation' if not set
+        const customLabel = eq.customLabel || ''; // Default to empty string if not set
+        const rawExpression = eq.rawExpression || ''; // Default to empty string if not set
+        
+        if (labelType === 'custom' && customLabel.trim() !== '') {
+            labelText = formatEquationTextForDisplay(customLabel);
+        } else if (labelType === 'equation' && rawExpression.trim() !== '') {
+            labelText = formatEquationTextForDisplay(`y ${eq.inequalityType || '='} ${rawExpression}`);
         }
         if (labelText) {
             const metrics = measureSVGText(labelText, equationLabelFontSize, equationLabelFontFamily);
