@@ -8,13 +8,18 @@
     <!-- ============== VERSION CONFIGURATION ============== -->
     <!-- UPDATE THESE TWO LINES TO CHANGE ALL VERSION NUMBERS -->
     <script>
-        window.APP_VERSION = '2025-10-16-02';     // For PWA cache updates
-        window.CACHE_BUSTER = '56';               // For CSS/JS cache busting
+        window.APP_VERSION = '2025-10-16-03';     // For PWA cache updates
+        window.CACHE_BUSTER = '57';               // For CSS/JS cache busting
     </script>
     <!-- =================================================== -->
     
     <!-- math.js CDN import: Added for robust equation parsing and evaluation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.min.js"></script>
+    
+    <!-- KaTeX: For rendering beautiful mathematical equations -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script>
+    
     <script src="https://unpkg.com/jspdf@latest/dist/jspdf.umd.min.js"></script>
     <script src="https://unpkg.com/svg2pdf.js@2.2.3/dist/svg2pdf.umd.min.js"></script>
     <link rel="icon" type="image/png" href="assets/icon-192-pwa.png">
@@ -288,6 +293,13 @@
                         <input type="radio" id="labelTypeEquation" name="labelType" value="equation">
                         <label for="labelTypeEquation">Equation Label</label>
                     </div>
+                    
+                    <label id="notationTypeContainer" class="hidden">Notation:
+                        <select id="labelNotation">
+                            <option value="y" selected>y =</option>
+                            <option value="fx">f(x) =</option>
+                        </select>
+                    </label>
                     
                     <label id="customLabelContainer" class="hidden">Label:
                         <input type="text" id="equationCustomLabel" placeholder="leave blank for no label"

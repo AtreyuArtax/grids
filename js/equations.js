@@ -74,6 +74,7 @@ export function handleEquationSubmit() {
     const labelType = document.getElementById('labelTypeCustom').checked ? 'custom' : 'equation';
     const customLabel = document.getElementById('equationCustomLabel').value.trim();
     const showLineArrows = document.getElementById('showLineArrows').checked;
+    const labelNotation = document.getElementById('labelNotation') ? document.getElementById('labelNotation').value : 'y';
 
     const domainStart = domainStartInput === '' ? null : safeParseFloat(domainStartInput);
     const domainEnd = domainEndInput === '' ? null : safeParseFloat(domainEndInput);
@@ -108,7 +109,8 @@ export function handleEquationSubmit() {
         lineStyle: lineStyle,
         labelType: labelType,
         customLabel: customLabel,
-        showLineArrows: showLineArrows
+        showLineArrows: showLineArrows,
+        labelNotation: labelNotation
     };
 
     if (editingEquationId !== null) {
@@ -176,6 +178,12 @@ export function startEditEquation(id) {
     
     document.getElementById('equationCustomLabel').value = equation.customLabel || '';
     document.getElementById('showLineArrows').checked = equation.showLineArrows !== undefined ? equation.showLineArrows : true;
+    
+    // Set the label notation dropdown
+    const labelNotationSelect = document.getElementById('labelNotation');
+    if (labelNotationSelect) {
+        labelNotationSelect.value = equation.labelNotation || 'y';
+    }
 
     toggleCustomLabelInput(); // Update custom label visibility
 
@@ -317,14 +325,18 @@ export function renderEquationsList() {
  */
 export function toggleCustomLabelInput() {
     const customRadio = document.getElementById('labelTypeCustom');
+    const equationRadio = document.getElementById('labelTypeEquation');
     const customLabelContainer = document.getElementById('customLabelContainer');
+    const notationTypeContainer = document.getElementById('notationTypeContainer');
     
     if (!customLabelContainer || !customRadio) return;
     
     if (customRadio.checked) {
         customLabelContainer.classList.remove('hidden');
+        if (notationTypeContainer) notationTypeContainer.classList.add('hidden');
     } else {
         customLabelContainer.classList.add('hidden');
+        if (notationTypeContainer) notationTypeContainer.classList.remove('hidden');
     }
     
     // Save the current state to localStorage

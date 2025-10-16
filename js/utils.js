@@ -162,6 +162,166 @@ export function formatEquationTextForDisplay(expression) {
 }
 
 /**
+ * Converts math.js syntax to LaTeX for rendering with KaTeX.
+ * @param {string} expression The math.js expression (e.g., "(2x-3)/(x-1)", "sin(x^2)").
+ * @returns {string} The LaTeX formatted string (e.g., "\\frac{2x-3}{x-1}", "\\sin(x^2)").
+ */
+export function convertMathToLaTeX(expression) {
+    if (!expression || typeof expression !== 'string') return '';
+    
+    let latex = expression;
+    
+    // Helper function to find matching closing parenthesis
+    function findMatchingParen(str, startIndex) {
+        let depth = 1;
+        for (let i = startIndex; i < str.length; i++) {
+            if (str[i] === '(') depth++;
+            else if (str[i] === ')') {
+                depth--;
+                if (depth === 0) return i;
+            }
+        }
+        return -1;
+    }
+    
+    // First, handle exponents with parentheses (may contain fractions)
+    // We need to process these before general fraction conversion
+    let result = '';
+    let i = 0;
+    while (i < latex.length) {
+        if (latex[i] === '^' && latex[i + 1] === '(') {
+            // Find the matching closing parenthesis
+            const closeIndex = findMatchingParen(latex, i + 2);
+            if (closeIndex !== -1) {
+                const exponent = latex.substring(i + 2, closeIndex);
+                
+                // Check if the exponent contains a division
+                if (exponent.includes('/')) {
+                    // Convert fractions within the exponent
+                    let processedExponent = exponent;
+                    // Match (a)/(b) pattern
+                    processedExponent = processedExponent.replace(/\(([^()]+)\)\s*\/\s*\(([^()]+)\)/g, '\\frac{$1}{$2}');
+                    // Match simple a/b pattern
+                    processedExponent = processedExponent.replace(/([^\/\s]+)\s*\/\s*([^\/\s]+)/g, '\\frac{$1}{$2}');
+                    result += `^{${processedExponent}}`;
+                } else {
+                    result += `^{${exponent}}`;
+                }
+                i = closeIndex + 1;
+                continue;
+            }
+        }
+        result += latex[i];
+        i++;
+    }
+    latex = result;
+    
+    // Convert remaining fractions: (a)/(b) -> \frac{a}{b}
+    // This regex matches patterns like (anything)/(anything)
+    latex = latex.replace(/\(([^()]+)\)\s*\/\s*\(([^()]+)\)/g, '\\frac{$1}{$2}');
+    
+    // Convert simple fractions: a/b -> \frac{a}{b} (where a and b are single terms)
+    latex = latex.replace(/(\w+|\d+)\s*\/\s*(\w+|\d+)/g, '\\frac{$1}{$2}');
+    
+    // Convert remaining simple exponents: x^2 -> x^{2}
+    latex = latex.replace(/\^(\w)/g, '^{$1}'); // Single character exponent
+    latex = latex.replace(/\^(\d+)/g, '^{$1}'); // Multi-digit exponent
+    
+    // Convert math functions to LaTeX commands
+    const functions = {
+        'sin': '\\sin',
+        'cos': '\\cos',
+        'tan': '\\tan',
+        'sec': '\\sec',
+        'csc': '\\csc',
+        'cot': '\\cot',
+        'asin': '\\arcsin',
+        'acos': '\\arccos',
+        'atan': '\\arctan',
+        'sinh': '\\sinh',
+        'cosh': '\\cosh',
+        'tanh': '\\tanh',
+        'log': '\\log',
+        'log10': '\\log_{10}',
+        'log2': '\\log_{2}',
+        'ln': '\\ln',
+        'exp': '\\exp',
+        'sqrt': '\\sqrt',
+        'abs': '\\left|', // Will need special handling
+        'nthRoot': '\\sqrt'
+    };
+    
+    // Replace function names with LaTeX equivalents
+    for (const [func, latexFunc] of Object.entries(functions)) {
+        if (func === 'abs') {
+            // Special case: abs(x) -> |x|
+            latex = latex.replace(new RegExp(`\\b${func}\\(([^)]+)\\)`, 'g'), `\\left|$1\\right|`);
+        } else if (func === 'sqrt') {
+            // sqrt(x) -> \sqrt{x}
+            latex = latex.replace(new RegExp(`\\b${func}\\(([^)]+)\\)`, 'g'), `${latexFunc}{$1}`);
+        } else if (func === 'nthRoot') {
+            // nthRoot(x,n) -> \sqrt[n]{x}
+            latex = latex.replace(/\bnthRoot\(([^,]+),\s*([^)]+)\)/g, '\\sqrt[$2]{$1}');
+        } else {
+            // Standard functions: sin(x) -> \sin(x)
+            latex = latex.replace(new RegExp(`\\b${func}\\b`, 'g'), latexFunc);
+        }
+    }
+    
+    // Convert Greek letters
+    latex = latex.replace(/\bpi\b/g, '\\pi');
+    latex = latex.replace(/\bPi\b/g, '\\Pi');
+    latex = latex.replace(/\btheta\b/g, '\\theta');
+    latex = latex.replace(/\bTheta\b/g, '\\Theta');
+    latex = latex.replace(/\balpha\b/g, '\\alpha');
+    latex = latex.replace(/\bbeta\b/g, '\\beta');
+    latex = latex.replace(/\bgamma\b/g, '\\gamma');
+    latex = latex.replace(/\bGamma\b/g, '\\Gamma');
+    latex = latex.replace(/\bdelta\b/g, '\\delta');
+    latex = latex.replace(/\bDelta\b/g, '\\Delta');
+    
+    // Convert inequality symbols
+    latex = latex.replace(/<=\s*/g, '\\leq ');
+    latex = latex.replace(/>=\s*/g, '\\geq ');
+    latex = latex.replace(/!=/g, '\\neq');
+    
+    // Handle special math constants
+    latex = latex.replace(/\be\b/g, 'e'); // Euler's number stays as 'e'
+    
+    // Clean up multiplication signs (optional - LaTeX handles implicit multiplication)
+    latex = latex.replace(/\*/g, '\\cdot ');
+    
+    return latex;
+}
+
+/**
+ * Renders a LaTeX expression to HTML using KaTeX.
+ * @param {string} latex The LaTeX expression to render.
+ * @param {Object} options Optional KaTeX rendering options.
+ * @returns {string} HTML string of the rendered expression.
+ */
+export function renderLaTeXToHTML(latex, options = {}) {
+    if (!latex || typeof latex !== 'string') return '';
+    
+    // Check if KaTeX is available
+    if (typeof katex === 'undefined') {
+        console.warn('KaTeX is not loaded, falling back to plain text');
+        return latex;
+    }
+    
+    try {
+        return katex.renderToString(latex, {
+            throwOnError: false,
+            displayMode: false,
+            ...options
+        });
+    } catch (e) {
+        console.error('KaTeX rendering error:', e);
+        return latex; // Fallback to plain text
+    }
+}
+
+/**
  * Draws a dot on the canvas.
  * @param {CanvasRenderingContext2D} ctx - The canvas rendering context.
  * @param {number} x - X coordinate of the dot.

@@ -1,5 +1,5 @@
 // This module handles drawing the grid, axes, and plotting equations using SVG elements.
-import { EPSILON, parseSuperscript, formatRadianLabel, formatEquationTextForDisplay, ZERO_LINE_EXTENSION, AXIS_TITLE_SPACING, ARROW_HEAD_SIZE, LINE_STYLES, SHADE_ALPHA } from './utils.js';
+import { EPSILON, parseSuperscript, formatRadianLabel, formatEquationTextForDisplay, convertMathToLaTeX, renderLaTeXToHTML, ZERO_LINE_EXTENSION, AXIS_TITLE_SPACING, ARROW_HEAD_SIZE, LINE_STYLES, SHADE_ALPHA } from './utils.js';
 import { setTransform } from './modules/gridAPI.js';
 import { calculateDynamicMargins, dynamicMarginLeft, dynamicMarginRight,
          dynamicMarginTop, dynamicMarginBottom, doesOverlap } from './labels.js';
@@ -166,12 +166,61 @@ function drawDotGrid(group, options) {
 
 
 /**
+ * Prepares SVG for export by cleaning up KaTeX annotations
+ * @param {SVGElement} svgElement The SVG element to prepare
+ * @returns {string} Serialized SVG string
+ */
+function prepareSVGForExport(svgElement) {
+    // Clone the SVG to avoid modifying the original
+    const svgClone = svgElement.cloneNode(true);
+    
+    // Find all foreignObject elements containing KaTeX
+    const foreignObjects = svgClone.querySelectorAll('foreignObject');
+    
+    foreignObjects.forEach(fo => {
+        // Convert foreignObject to simple SVG text for better compatibility
+        const x = fo.getAttribute('x');
+        const y = fo.getAttribute('y');
+        const eqId = fo.dataset.eqid;
+        
+        // Get original element to extract text
+        const originalFO = svgElement.querySelector(`foreignObject[data-eqid="${eqId}"]`);
+        if (!originalFO) return;
+        
+        const div = originalFO.querySelector('div');
+        if (!div) return;
+        
+        // KaTeX creates two versions: katex-mathml and katex-html
+        // Get text from only the HTML version to avoid duplication
+        const katexHtml = div.querySelector('.katex-html');
+        const labelText = katexHtml ? katexHtml.textContent : div.textContent;
+        
+        const color = div.style.color || 'black';
+        const fontSize = div.style.fontSize || '12px';
+        
+        // Create simple SVG text element
+        const textEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        textEl.setAttribute('x', x);
+        textEl.setAttribute('y', parseFloat(y) + parseFloat(fontSize) * 0.7);
+        textEl.setAttribute('fill', color);
+        textEl.setAttribute('font-size', fontSize);
+        textEl.setAttribute('font-family', 'Arial, sans-serif');
+        textEl.textContent = labelText;
+        
+        // Replace foreignObject with text
+        fo.parentNode.replaceChild(textEl, fo);
+    });
+    
+    const serializer = new XMLSerializer();
+    return serializer.serializeToString(svgClone);
+}
+
+/**
  * Downloads the SVG content as an SVG image file.
  */
 export function downloadSVG() {
     const svgElement = document.getElementById('gridSVG');
-    const serializer = new XMLSerializer();
-    let svgString = serializer.serializeToString(svgElement);
+    let svgString = prepareSVGForExport(svgElement);
 
     // Add XML declaration and DOCTYPE for standalone SVG file
     const xmlHeader = '<?xml version="1.0" standalone="no"?>\n<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">\n';
@@ -208,8 +257,7 @@ function downloadDataUri(filename, uri) {
 // -- Export SVG as PNG
 export function exportSVGtoPNG() {
     const svgElement = document.getElementById('gridSVG');
-    const serializer = new XMLSerializer();
-    const svgString = serializer.serializeToString(svgElement);
+    const svgString = prepareSVGForExport(svgElement);
 
     // Get SVG viewBox for crisp output
     let width, height;
@@ -217,19 +265,17 @@ export function exportSVGtoPNG() {
         width = svgElement.viewBox.baseVal.width;
         height = svgElement.viewBox.baseVal.height;
     } else {
-        // fallback, try width/height attribute
         width = parseInt(svgElement.getAttribute('width'), 10) || 800;
         height = parseInt(svgElement.getAttribute('height'), 10) || 600;
     }
 
-    // Optional: allow user to scale up (for printing), e.g. 2x resolution
-    const scale = 3; // or 1 for "actual size"
+    const scale = 3;
     const canvas = document.createElement('canvas');
     canvas.width = width * scale;
     canvas.height = height * scale;
 
     const ctx = canvas.getContext('2d');
-    ctx.setTransform(scale, 0, 0, scale, 0, 0); // scale everything
+    ctx.setTransform(scale, 0, 0, scale, 0, 0);
 
     // Draw background
     ctx.fillStyle = '#fff';
@@ -413,11 +459,58 @@ export function exportSVGtoPDF(svgId = 'gridSVG') {
     });
 
     // Use svg2pdf to draw the SVG onto the PDF.
+    // First, create a clone with inlined styles for proper export
+    const svgClone = svgElement.cloneNode(true);
+    svgClone.setAttribute('id', 'gridSVG_temp_clone');
+    
+    // Inline styles on the clone
+    const foreignObjects = svgClone.querySelectorAll('foreignObject');
+    foreignObjects.forEach(fo => {
+        const div = fo.querySelector('div');
+        if (div) {
+            const originalFO = svgElement.querySelector(`foreignObject[data-eqid="${fo.dataset.eqid}"]`);
+            if (originalFO) {
+                const originalDiv = originalFO.querySelector('div');
+                if (originalDiv) {
+                    // Copy all computed styles
+                    const allElements = div.querySelectorAll('*');
+                    const originalElements = Array.from(originalDiv.querySelectorAll('*'));
+                    
+                    allElements.forEach((elem, index) => {
+                        if (originalElements[index]) {
+                            const computed = window.getComputedStyle(originalElements[index]);
+                            let style = elem.getAttribute('style') || '';
+                            
+                            const katexProps = ['font-family', 'font-size', 'font-weight', 'font-style', 
+                                              'color', 'position', 'top', 'margin-top', 'vertical-align'];
+                            
+                            katexProps.forEach(prop => {
+                                const value = computed.getPropertyValue(prop);
+                                if (value && value !== 'normal' && value !== 'none' && value !== '0px') {
+                                    if (!style.includes(prop)) {
+                                        style += `${prop}: ${value};`;
+                                    }
+                                }
+                            });
+                            
+                            elem.setAttribute('style', style);
+                        }
+                    });
+                }
+            }
+        }
+    });
+    
+    // Temporarily add clone to DOM (svg2pdf needs it in DOM)
+    document.body.appendChild(svgClone);
+    svgClone.style.position = 'absolute';
+    svgClone.style.left = '-10000px';
+    
     // Crucially, we pass 'width' and 'height' as the *target scaled dimensions*
     // and 'x'/'y' as the computed offsets. We do NOT pass a separate 'scale'
     // parameter to svg2pdf to avoid potential double scaling issues, as the
     // width/height parameters implicitly handle the scaling.
-    svg2pdf(svgElement, pdf, {
+    svg2pdf(svgClone, pdf, {
         x: xOffset,
         y: yOffset,
         width: scaledContentW,
@@ -426,12 +519,19 @@ export function exportSVGtoPDF(svgId = 'gridSVG') {
         // The desired scaling is achieved by setting 'width' and 'height'
         // to the calculated 'scaledContentW' and 'scaledContentH'.
     }).then(() => {
+        // Clean up the temporary clone
+        document.body.removeChild(svgClone);
+        
         // Generate a timestamp for the filename
         const now = new Date();
         const pad = n => n.toString().padStart(2, '0');
         const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}`;
         pdf.save(`grid_${timestamp}.pdf`);
     }).catch(err => {
+        // Clean up the temporary clone on error too
+        if (document.getElementById('gridSVG_temp_clone')) {
+            document.body.removeChild(svgClone);
+        }
         console.error("Error exporting SVG to PDF:", err);
         showMessageBox(`Error exporting SVG to PDF: ${err.message}`, 'error');
     });
@@ -469,7 +569,7 @@ function onMouseDown(event) {
     if (event.button !== 0) return;
 
     // Check if the clicked element is an equation label.
-    // Use closest() to find the parent SVG <text> element with the class.
+    // Use closest() to find the parent foreignObject element with the class.
     const target = event.target.closest('.draggable-equation-label');
 
     if (target) {
@@ -478,9 +578,9 @@ function onMouseDown(event) {
         event.preventDefault();
 
         // Get the current position of the label in SVG coordinates
-        // getAttribute('x') and getAttribute('y') are reliable for SVG text elements
-        initialLabelX = parseFloat(currentDraggedLabel.getAttribute('x'));
-        initialLabelY = parseFloat(currentDraggedLabel.getAttribute('y'));
+        // foreignObject uses 'x' and 'y' attributes just like text elements
+        initialLabelX = parseFloat(currentDraggedLabel.getAttribute('x')) || 0;
+        initialLabelY = parseFloat(currentDraggedLabel.getAttribute('y')) || 0;
 
         // Get the mouse position relative to the SVG container
         const svgRect = currentDraggedLabel.ownerSVGElement.getBoundingClientRect();
@@ -966,16 +1066,41 @@ function placeEquationLabel(equationGroup, eq, labelText, gridOptions, placedLab
     const { offsetX, offsetY, actualGridWidth, actualGridHeight, equationLabelFontSize,
             xMin, yMin, yIncrement, minorSquareSize, xValuePerMinorSquare, currentXAxisLabelType } = gridOptions;
 
-    const labelTextEl = createSVGElement('text', {
-        'font-family': 'Inter, sans-serif',
-        'font-size': `${equationLabelFontSize}px`,
-        fill: eq.color,
+    // Create foreignObject to hold HTML (KaTeX rendered content)
+    const foreignObject = createSVGElement('foreignObject', {
+        'x': '-10000',  // Start off-screen to avoid flicker during measurement
+        'y': '-10000',
+        'width': '1',
+        'height': '1',
+        'overflow': 'visible',
         'cursor': 'grab',
         'pointer-events': 'all'
     });
-    labelTextEl.textContent = labelText;
-    labelTextEl.classList.add('draggable-equation-label');
-    labelTextEl.dataset.eqid = eq.id;
+    foreignObject.classList.add('draggable-equation-label');
+    foreignObject.dataset.eqid = eq.id;
+    
+    // Create div inside foreignObject for KaTeX content
+    const div = document.createElement('div');
+    div.style.cssText = `
+        color: ${eq.color};
+        font-size: ${equationLabelFontSize}px;
+        white-space: nowrap;
+        user-select: none;
+        pointer-events: none;
+        display: inline-block;
+    `;
+    div.innerHTML = labelText; // labelText now contains rendered KaTeX HTML
+    foreignObject.appendChild(div);
+    
+    // Temporarily append to get dimensions (needed for width/height calculation)
+    equationGroup.appendChild(foreignObject);
+    
+    // Now get the actual dimensions of the rendered content
+    const divRect = div.getBoundingClientRect();
+    foreignObject.setAttribute('width', divRect.width);
+    foreignObject.setAttribute('height', divRect.height);
+    
+    const labelTextEl = foreignObject;
 
     let proposedLabelX, proposedLabelY;
     let chosenAnchor = 'start';
@@ -1073,11 +1198,25 @@ function placeEquationLabel(equationGroup, eq, labelText, gridOptions, placedLab
 
             labelTextEl.setAttribute('x', proposedLabelX);
             labelTextEl.setAttribute('y', proposedLabelY);
-            labelTextEl.setAttribute('text-anchor', chosenAnchor);
-            labelTextEl.setAttribute('alignment-baseline', chosenBaseline);
-            equationGroup.appendChild(labelTextEl);
+            
+            // Only append if not already in DOM
+            if (!labelTextEl.parentNode) {
+                equationGroup.appendChild(labelTextEl);
+            }
 
-            const bbox = labelTextEl.getBBox();
+            // For foreignObject, we need to get the bounding box of the inner div
+            const div = labelTextEl.querySelector('div');
+            const divRect = div.getBoundingClientRect();
+            const svgRect = labelTextEl.ownerSVGElement.getBoundingClientRect();
+            
+            // Calculate bbox relative to SVG coordinate space
+            const bbox = {
+                x: proposedLabelX,
+                y: proposedLabelY,
+                width: divRect.width,
+                height: divRect.height
+            };
+            
             const currentLabelRect = { left: bbox.x, right: bbox.x + bbox.width, top: bbox.y, bottom: bbox.y + bbox.height };
 
             const safeAreaBuffer = 50;
@@ -1119,8 +1258,6 @@ function placeEquationLabel(equationGroup, eq, labelText, gridOptions, placedLab
     // Set final position and store reference point for drag operations
     labelTextEl.setAttribute('x', proposedLabelX);
     labelTextEl.setAttribute('y', proposedLabelY);
-    labelTextEl.setAttribute('text-anchor', chosenAnchor);
-    labelTextEl.setAttribute('alignment-baseline', chosenBaseline);
     
     // Store the stable mathematical reference point for drag calculations
     labelTextEl.dataset.refx = labelRefPoint.x;
@@ -1130,7 +1267,16 @@ function placeEquationLabel(equationGroup, eq, labelText, gridOptions, placedLab
         equationGroup.appendChild(labelTextEl);
         // Only track auto-positioned labels to avoid overlaps
         if (!eq.labelOffset) {
-            placedLabelRects.push(labelTextEl.getBBox());
+            // For foreignObject, calculate bbox from the inner div
+            const div = labelTextEl.querySelector('div');
+            const divRect = div.getBoundingClientRect();
+            const bbox = {
+                x: proposedLabelX,
+                y: proposedLabelY,
+                width: divRect.width,
+                height: divRect.height
+            };
+            placedLabelRects.push(bbox);
         }
     }
 }
@@ -1601,19 +1747,29 @@ if (gridOptions.showAxisArrows) {
             currentXAxisLabelType: gridOptions.xAxisLabelType
         });
 
-        // Label Placement (skipped for preview equations in placeEquationLabel)
-        let labelText = '';
-        const labelType = eq.labelType || 'equation'; // Default to 'equation' if not set
-        const customLabel = eq.customLabel || ''; // Default to empty string if not set
-        const rawExpression = eq.rawExpression || ''; // Default to empty string if not set
-        
-        if (labelType === 'custom' && customLabel.trim() !== '') {
-            labelText = formatEquationTextForDisplay(customLabel);
-        } else if (labelType === 'equation' && rawExpression.trim() !== '') {
-            labelText = formatEquationTextForDisplay(`y ${eq.inequalityType || '='} ${rawExpression}`);
-        }
+        // Label Placement (skip entirely for preview equations)
+        if (!eq.isPreview) {
+            let labelText = '';
+            const labelType = eq.labelType || 'equation'; // Default to 'equation' if not set
+            const customLabel = eq.customLabel || ''; // Default to empty string if not set
+            const rawExpression = eq.rawExpression || ''; // Default to empty string if not set
+            const labelNotation = eq.labelNotation || 'y'; // Default to 'y' notation
+            
+            if (labelType === 'custom' && customLabel.trim() !== '') {
+                // Convert custom label to LaTeX and render with KaTeX
+                const latexString = convertMathToLaTeX(customLabel);
+                labelText = renderLaTeXToHTML(latexString);
+            } else if (labelType === 'equation' && rawExpression.trim() !== '') {
+                // Build LaTeX string with notation preference (y= or f(x)=)
+                const notation = labelNotation === 'fx' ? 'f(x)' : 'y';
+                const relation = eq.inequalityType || '=';
+                const latexExpression = convertMathToLaTeX(rawExpression);
+                const latexString = `${notation} ${relation} ${latexExpression}`;
+                labelText = renderLaTeXToHTML(latexString);
+            }
 
-        placeEquationLabel(equationGroup, eq, labelText, gridOptions, placedLabelRects, segments);
+            placeEquationLabel(equationGroup, eq, labelText, gridOptions, placedLabelRects, segments);
+        }
     });
 
     // Re-attach drag event listeners after all SVG elements are redrawn
