@@ -23,6 +23,8 @@ export const SHADE_ALPHA = 0.2;
  * Utility function to parse superscript syntax (handles '^' character).
  * @param {string} text - The input text possibly containing '^' followed by digits/symbols.
  * @returns {string} The text with '^' notation converted to unicode superscripts.
+ * Note: Only simple exponents (single digit, variable, or operator) are converted to superscript.
+ * Complex expressions with parentheses are kept as-is for readability.
  */
 export function parseSuperscript(text) {
     if (!text || typeof text !== 'string') return '';
@@ -31,10 +33,25 @@ export function parseSuperscript(text) {
         '0': '⁰', '1': '¹', '2': '²', '3': '³',
         '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷',
         '8': '⁸', '9': '⁹', '-': '⁻', '+': '⁺', '=': '₌',
-        '(': '⁽', ')': '⁾'
+        'a': 'ᵃ', 'b': 'ᵇ', 'c': 'ᶜ', 'd': 'ᵈ', 'e': 'ᵉ', 'f': 'ᶠ',
+        'g': 'ᵍ', 'h': 'ʰ', 'i': 'ⁱ', 'j': 'ʲ', 'k': 'ᵏ', 'l': 'ˡ',
+        'm': 'ᵐ', 'n': 'ⁿ', 'o': 'ᵒ', 'p': 'ᵖ', 'q': 'ᵍ', 'r': 'ʳ',
+        's': 'ˢ', 't': 'ᵗ', 'u': 'ᵘ', 'v': 'ᵛ', 'w': 'ʷ', 'x': 'ˣ',
+        'y': 'ʸ', 'z': 'ᶻ',
+        'A': 'ᴬ', 'B': 'ᴮ', 'C': 'ᶜ', 'D': 'ᴰ', 'E': 'ᴱ', 'F': 'ᶠ',
+        'G': 'ᴳ', 'H': 'ᴴ', 'I': 'ᴵ', 'J': 'ᴶ', 'K': 'ᴷ', 'L': 'ᴸ',
+        'M': 'ᴹ', 'N': 'ᴺ', 'O': 'ᴼ', 'P': 'ᴾ', 'Q': 'ᵠ', 'R': 'ᴿ',
+        'S': 'ˢ', 'T': 'ᵀ', 'U': 'ᵁ', 'V': 'ᴱ', 'W': 'ᴹ', 'X': 'ˣ',
+        'Y': 'ʸ', 'Z': 'ᶻ'
     };
-    return text.replace(/\^([0-9+\-=()]+)/g, (_, exp) => {
-        return [...exp].map(c => superscriptMap[c] || c).join('');
+    
+    // Match ^ followed by exponent content:
+    // - Single digit: [0-9]
+    // - Or a single variable/letter: [a-zA-Z]
+    // - Or simple operators/signs: [+\-=]
+    // Notably, we do NOT convert parenthesized expressions as they render poorly in superscript
+    return text.replace(/\^([0-9a-zA-Z+\-=])/g, (match, char) => {
+        return superscriptMap[char] || match;
     });
 }
 
