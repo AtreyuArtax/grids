@@ -1,5 +1,5 @@
 // This module handles drawing the grid, axes, and plotting equations using SVG elements.
-import { EPSILON, parseSuperscript, formatRadianLabel, formatEquationTextForDisplay, convertMathToLaTeX, renderLaTeXToHTML, ZERO_LINE_EXTENSION, AXIS_TITLE_SPACING, ARROW_HEAD_SIZE, LINE_STYLES, SHADE_ALPHA } from './utils.js';
+import { EPSILON, parseSuperscript, formatRadianLabel, formatEquationTextForDisplay, convertMathToLaTeX, renderLaTeXToSVG, ZERO_LINE_EXTENSION, AXIS_TITLE_SPACING, ARROW_HEAD_SIZE, LINE_STYLES, SHADE_ALPHA } from './utils.js';
 import { setTransform } from './modules/gridAPI.js';
 import { calculateDynamicMargins, dynamicMarginLeft, dynamicMarginRight,
          dynamicMarginTop, dynamicMarginBottom, doesOverlap } from './labels.js';
@@ -31,6 +31,9 @@ let initialLabelY = 0; // Initial label Y coordinate
 
 // --- Global variable for live equation preview ---
 let previewEquation = null;
+
+// --- Global variable for tracking pending label renders ---
+let pendingLabelRenders = [];
 
 /**
  * Sets the equation to be displayed as a live preview.
@@ -166,50 +169,55 @@ function drawDotGrid(group, options) {
 
 
 /**
- * Prepares SVG for export by cleaning up KaTeX annotations
+ * Prepares SVG for export by serializing it
  * @param {SVGElement} svgElement The SVG element to prepare
+ * @param {number} labelScaleMultiplier Optional scale multiplier for labels (default 1)
  * @returns {string} Serialized SVG string
  */
-function prepareSVGForExport(svgElement) {
+function prepareSVGForExport(svgElement, labelScaleMultiplier = 1) {
     // Clone the SVG to avoid modifying the original
     const svgClone = svgElement.cloneNode(true);
     
-    // Find all foreignObject elements containing KaTeX
-    const foreignObjects = svgClone.querySelectorAll('foreignObject');
+    // Get or create the defs section for MathJax font definitions
+    let defsSection = svgClone.querySelector('defs');
+    if (!defsSection) {
+        defsSection = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+        svgClone.insertBefore(defsSection, svgClone.firstChild);
+    }
     
-    foreignObjects.forEach(fo => {
-        // Convert foreignObject to simple SVG text for better compatibility
-        const x = fo.getAttribute('x');
-        const y = fo.getAttribute('y');
-        const eqId = fo.dataset.eqid;
-        
-        // Get original element to extract text
-        const originalFO = svgElement.querySelector(`foreignObject[data-eqid="${eqId}"]`);
-        if (!originalFO) return;
-        
-        const div = originalFO.querySelector('div');
-        if (!div) return;
-        
-        // KaTeX creates two versions: katex-mathml and katex-html
-        // Get text from only the HTML version to avoid duplication
-        const katexHtml = div.querySelector('.katex-html');
-        const labelText = katexHtml ? katexHtml.textContent : div.textContent;
-        
-        const color = div.style.color || 'black';
-        const fontSize = div.style.fontSize || '12px';
-        
-        // Create simple SVG text element
-        const textEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        textEl.setAttribute('x', x);
-        textEl.setAttribute('y', parseFloat(y) + parseFloat(fontSize) * 0.7);
-        textEl.setAttribute('fill', color);
-        textEl.setAttribute('font-size', fontSize);
-        textEl.setAttribute('font-family', 'Arial, sans-serif');
-        textEl.textContent = labelText;
-        
-        // Replace foreignObject with text
-        fo.parentNode.replaceChild(textEl, fo);
-    });
+    // Check if MathJax defs already exist in the document
+    const mathJaxDefs = document.getElementById('MJX-SVG-global-cache');
+    if (mathJaxDefs) {
+        // Clone MathJax font definitions into our SVG
+        const defsClone = mathJaxDefs.cloneNode(true);
+        defsClone.removeAttribute('id'); // Remove ID to avoid conflicts
+        defsSection.appendChild(defsClone);
+    }
+    
+    // Adjust MathJax label scaling if needed
+    if (labelScaleMultiplier !== 1) {
+        const labels = svgClone.querySelectorAll('.draggable-equation-label');
+        labels.forEach(label => {
+            // Find the MathJax SVG child (not the nested g)
+            const mathSVG = label.querySelector('svg');
+            if (mathSVG) {
+                const currentTransform = mathSVG.getAttribute('transform') || '';
+                
+                // Extract the current scale value
+                const scaleMatch = currentTransform.match(/scale\(([0-9.]+)\)/);
+                if (scaleMatch) {
+                    const currentScale = parseFloat(scaleMatch[1]);
+                    
+                    // Apply the multiplier
+                    const exportScale = currentScale * labelScaleMultiplier;
+                    
+                    // Replace the scale
+                    const newTransform = currentTransform.replace(/scale\([0-9.]+\)/, `scale(${exportScale})`);
+                    mathSVG.setAttribute('transform', newTransform);
+                }
+            }
+        });
+    }
     
     const serializer = new XMLSerializer();
     return serializer.serializeToString(svgClone);
@@ -218,7 +226,10 @@ function prepareSVGForExport(svgElement) {
 /**
  * Downloads the SVG content as an SVG image file.
  */
-export function downloadSVG() {
+export async function downloadSVG() {
+    // Wait for all labels to finish rendering
+    await waitForLabelsToRender();
+    
     const svgElement = document.getElementById('gridSVG');
     let svgString = prepareSVGForExport(svgElement);
 
@@ -255,7 +266,10 @@ function downloadDataUri(filename, uri) {
 }
 
 // -- Export SVG as PNG
-export function exportSVGtoPNG() {
+export async function exportSVGtoPNG() {
+    // Wait for all labels to finish rendering
+    await waitForLabelsToRender();
+    
     const svgElement = document.getElementById('gridSVG');
     const svgString = prepareSVGForExport(svgElement);
 
@@ -370,7 +384,10 @@ function showMessageBox(message, type = 'error') {
  * (Note: The original code didn't take an ID parameter,
  * but this allows for more flexibility if needed).
  */
-export function exportSVGtoPDF(svgId = 'gridSVG') {
+export async function exportSVGtoPDF(svgId = 'gridSVG') {
+    // Wait for all labels to finish rendering
+    await waitForLabelsToRender();
+    
     const svgElement = document.getElementById(svgId);
     if (!svgElement) {
         errorHandler.error(`SVG element with ID '${svgId}' not found.`, {
@@ -459,52 +476,18 @@ export function exportSVGtoPDF(svgId = 'gridSVG') {
     });
 
     // Use svg2pdf to draw the SVG onto the PDF.
-    // First, create a clone with inlined styles for proper export
-    const svgClone = svgElement.cloneNode(true);
-    svgClone.setAttribute('id', 'gridSVG_temp_clone');
-    
-    // Inline styles on the clone
-    const foreignObjects = svgClone.querySelectorAll('foreignObject');
-    foreignObjects.forEach(fo => {
-        const div = fo.querySelector('div');
-        if (div) {
-            const originalFO = svgElement.querySelector(`foreignObject[data-eqid="${fo.dataset.eqid}"]`);
-            if (originalFO) {
-                const originalDiv = originalFO.querySelector('div');
-                if (originalDiv) {
-                    // Copy all computed styles
-                    const allElements = div.querySelectorAll('*');
-                    const originalElements = Array.from(originalDiv.querySelectorAll('*'));
-                    
-                    allElements.forEach((elem, index) => {
-                        if (originalElements[index]) {
-                            const computed = window.getComputedStyle(originalElements[index]);
-                            let style = elem.getAttribute('style') || '';
-                            
-                            const katexProps = ['font-family', 'font-size', 'font-weight', 'font-style', 
-                                              'color', 'position', 'top', 'margin-top', 'vertical-align'];
-                            
-                            katexProps.forEach(prop => {
-                                const value = computed.getPropertyValue(prop);
-                                if (value && value !== 'normal' && value !== 'none' && value !== '0px') {
-                                    if (!style.includes(prop)) {
-                                        style += `${prop}: ${value};`;
-                                    }
-                                }
-                            });
-                            
-                            elem.setAttribute('style', style);
-                        }
-                    });
-                }
-            }
-        }
-    });
+    // Create a properly prepared SVG string with scaled labels for PDF
+    // PDF needs larger label scales (6x) compared to PNG/SVG (1x)
+    const svgString = prepareSVGForExport(svgElement, 6);
+    const parser = new DOMParser();
+    const svgDoc = parser.parseFromString(svgString, 'image/svg+xml');
+    const svgClone = svgDoc.documentElement;
     
     // Temporarily add clone to DOM (svg2pdf needs it in DOM)
     document.body.appendChild(svgClone);
     svgClone.style.position = 'absolute';
     svgClone.style.left = '-10000px';
+    svgClone.setAttribute('id', 'gridSVG_temp_clone');
     
     // Crucially, we pass 'width' and 'height' as the *target scaled dimensions*
     // and 'x'/'y' as the computed offsets. We do NOT pass a separate 'scale'
@@ -569,7 +552,7 @@ function onMouseDown(event) {
     if (event.button !== 0) return;
 
     // Check if the clicked element is an equation label.
-    // Use closest() to find the parent foreignObject element with the class.
+    // Use closest() to find the parent <g> element with the class.
     const target = event.target.closest('.draggable-equation-label');
 
     if (target) {
@@ -577,10 +560,12 @@ function onMouseDown(event) {
         // Prevent browser's default drag behavior for images/links
         event.preventDefault();
 
-        // Get the current position of the label in SVG coordinates
-        // foreignObject uses 'x' and 'y' attributes just like text elements
-        initialLabelX = parseFloat(currentDraggedLabel.getAttribute('x')) || 0;
-        initialLabelY = parseFloat(currentDraggedLabel.getAttribute('y')) || 0;
+        // Get the current position of the label from the transform attribute
+        // Parse transform="translate(x, y)" to extract x and y values
+        const transform = currentDraggedLabel.getAttribute('transform') || 'translate(0, 0)';
+        const match = transform.match(/translate\(([^,]+),\s*([^)]+)\)/);
+        initialLabelX = match ? parseFloat(match[1]) : 0;
+        initialLabelY = match ? parseFloat(match[2]) : 0;
 
         // Get the mouse position relative to the SVG container
         const svgRect = currentDraggedLabel.ownerSVGElement.getBoundingClientRect();
@@ -609,8 +594,7 @@ function onMouseMove(event) {
         const newX = initialLabelX + (currentMouseX - startX);
         const newY = initialLabelY + (currentMouseY - startY);
 
-        currentDraggedLabel.setAttribute('x', newX);
-        currentDraggedLabel.setAttribute('y', newY);
+        currentDraggedLabel.setAttribute('transform', `translate(${newX}, ${newY})`);
     }
 }
 
@@ -632,8 +616,11 @@ function onMouseUp(event) {
             return;
         }
         
-        const finalX = parseFloat(currentDraggedLabel.getAttribute('x'));
-        const finalY = parseFloat(currentDraggedLabel.getAttribute('y'));
+        // Extract final position from transform attribute
+        const transform = currentDraggedLabel.getAttribute('transform') || 'translate(0, 0)';
+        const match = transform.match(/translate\(([^,]+),\s*([^)]+)\)/);
+        const finalX = match ? parseFloat(match[1]) : 0;
+        const finalY = match ? parseFloat(match[2]) : 0;
         
         // Get the reference point for this label (stored during label creation)
         const refPointX = parseFloat(currentDraggedLabel.dataset.refx || '0');
@@ -1066,41 +1053,57 @@ function placeEquationLabel(equationGroup, eq, labelText, gridOptions, placedLab
     const { offsetX, offsetY, actualGridWidth, actualGridHeight, equationLabelFontSize,
             xMin, yMin, yIncrement, minorSquareSize, xValuePerMinorSquare, currentXAxisLabelType } = gridOptions;
 
-    // Create foreignObject to hold HTML (KaTeX rendered content)
-    const foreignObject = createSVGElement('foreignObject', {
-        'x': '-10000',  // Start off-screen to avoid flicker during measurement
-        'y': '-10000',
-        'width': '1',
-        'height': '1',
-        'overflow': 'visible',
+    // labelText now contains an SVG element from MathJax
+    // Wrap it in a group element that we can position and make draggable
+    const labelGroup = createSVGElement('g', {
         'cursor': 'grab',
+        'pointer-events': 'all',
+        'transform': 'translate(-10000, -10000)' // Start off-screen to avoid flicker
+    });
+    labelGroup.classList.add('draggable-equation-label');
+    labelGroup.dataset.eqid = eq.id;
+    
+    // Clone the MathJax SVG and append to group
+    const mathSVG = labelText.cloneNode(true);
+    
+    // Scale the math SVG to match our desired font size
+    // MathJax SVG height is typically in 'ex' units (e.g., "1.8ex")
+    // We need to scale it to match our desired pixel font size
+    const heightAttr = mathSVG.getAttribute('height') || '1ex';
+    const heightValue = parseFloat(heightAttr);
+    
+    // Typical conversion: 1ex ≈ 0.5em, and we want pixels
+    // Default MathJax rendering is about 16px, so scale relative to that
+    const baseSize = 16; // MathJax base size in pixels
+    const scaleFactor = equationLabelFontSize / baseSize;
+    
+    mathSVG.setAttribute('transform', `scale(${scaleFactor})`);
+    
+    // Set color on the SVG group (will inherit to children)
+    mathSVG.setAttribute('fill', eq.color);
+    mathSVG.setAttribute('color', eq.color);
+    
+    labelGroup.appendChild(mathSVG);
+    
+    // Temporarily append to get dimensions
+    equationGroup.appendChild(labelGroup);
+    
+    // Get bounding box for positioning
+    const bbox = labelGroup.getBBox();
+    
+    // Add a transparent background rectangle for easier grabbing
+    // This must be added AFTER getting bbox but BEFORE the mathSVG in DOM order
+    const bgRect = createSVGElement('rect', {
+        'x': bbox.x,
+        'y': bbox.y,
+        'width': bbox.width,
+        'height': bbox.height,
+        'fill': 'transparent',
         'pointer-events': 'all'
     });
-    foreignObject.classList.add('draggable-equation-label');
-    foreignObject.dataset.eqid = eq.id;
+    labelGroup.insertBefore(bgRect, mathSVG);
     
-    // Create div inside foreignObject for KaTeX content
-    const div = document.createElement('div');
-    div.style.cssText = `
-        color: ${eq.color};
-        font-size: ${equationLabelFontSize}px;
-        white-space: nowrap;
-        user-select: none;
-        pointer-events: none;
-        display: inline-block;
-    `;
-    div.innerHTML = labelText; // labelText now contains rendered KaTeX HTML
-    foreignObject.appendChild(div);
-    
-    // Temporarily append to get dimensions (needed for width/height calculation)
-    equationGroup.appendChild(foreignObject);
-    
-    // Now get the actual dimensions of the rendered content
-    const divRect = div.getBoundingClientRect();
-    foreignObject.setAttribute('width', divRect.width);
-    foreignObject.setAttribute('height', divRect.height);
-    
-    const labelTextEl = foreignObject;
+    const labelTextEl = labelGroup;
 
     let proposedLabelX, proposedLabelY;
     let chosenAnchor = 'start';
@@ -1196,25 +1199,22 @@ function placeEquationLabel(equationGroup, eq, labelText, gridOptions, placedLab
             chosenAnchor = pos.anchor;
             chosenBaseline = pos.baseline;
 
-            labelTextEl.setAttribute('x', proposedLabelX);
-            labelTextEl.setAttribute('y', proposedLabelY);
+            labelTextEl.setAttribute('transform', `translate(${proposedLabelX}, ${proposedLabelY})`);
             
             // Only append if not already in DOM
             if (!labelTextEl.parentNode) {
                 equationGroup.appendChild(labelTextEl);
             }
 
-            // For foreignObject, we need to get the bounding box of the inner div
-            const div = labelTextEl.querySelector('div');
-            const divRect = div.getBoundingClientRect();
-            const svgRect = labelTextEl.ownerSVGElement.getBoundingClientRect();
+            // For <g> group with MathJax SVG, get the bounding box directly
+            const svgBBox = labelTextEl.getBBox();
             
-            // Calculate bbox relative to SVG coordinate space
+            // Calculate bbox with position
             const bbox = {
                 x: proposedLabelX,
                 y: proposedLabelY,
-                width: divRect.width,
-                height: divRect.height
+                width: svgBBox.width,
+                height: svgBBox.height
             };
             
             const currentLabelRect = { left: bbox.x, right: bbox.x + bbox.width, top: bbox.y, bottom: bbox.y + bbox.height };
@@ -1256,8 +1256,7 @@ function placeEquationLabel(equationGroup, eq, labelText, gridOptions, placedLab
     }
 
     // Set final position and store reference point for drag operations
-    labelTextEl.setAttribute('x', proposedLabelX);
-    labelTextEl.setAttribute('y', proposedLabelY);
+    labelTextEl.setAttribute('transform', `translate(${proposedLabelX}, ${proposedLabelY})`);
     
     // Store the stable mathematical reference point for drag calculations
     labelTextEl.dataset.refx = labelRefPoint.x;
@@ -1267,20 +1266,40 @@ function placeEquationLabel(equationGroup, eq, labelText, gridOptions, placedLab
         equationGroup.appendChild(labelTextEl);
         // Only track auto-positioned labels to avoid overlaps
         if (!eq.labelOffset) {
-            // For foreignObject, calculate bbox from the inner div
-            const div = labelTextEl.querySelector('div');
-            const divRect = div.getBoundingClientRect();
-            const bbox = {
+            // For <g> group, calculate bbox from the group's bounding box
+            const bbox = labelTextEl.getBBox();
+            const positionedBBox = {
                 x: proposedLabelX,
                 y: proposedLabelY,
-                width: divRect.width,
-                height: divRect.height
+                width: bbox.width,
+                height: bbox.height
             };
-            placedLabelRects.push(bbox);
+            placedLabelRects.push(positionedBBox);
         }
     }
 }
 
+
+/**
+ * Waits for all pending label renders to complete
+ * @returns {Promise} Promise that resolves when all labels are rendered
+ */
+export async function waitForLabelsToRender() {
+    // If there are pending promises, wait for them
+    if (pendingLabelRenders.length > 0) {
+        // Create a copy of the current promises to wait for
+        const promisesToWait = [...pendingLabelRenders];
+        
+        try {
+            await Promise.all(promisesToWait);
+        } catch (err) {
+            console.error('Error waiting for labels:', err);
+        }
+    }
+    
+    // Add a small delay to ensure MathJax has fully updated the DOM
+    await new Promise(resolve => setTimeout(resolve, 100));
+}
 
 /**
  * Draws the Cartesian grid, axes, and all registered equations on the SVG element.
@@ -1289,6 +1308,9 @@ export function drawGrid() {
     const svg = document.getElementById('gridSVG');
     const gridErrorMessage = document.getElementById('gridErrorMessage');
     gridErrorMessage.textContent = ''; // Clear previous messages
+
+    // Reset pending label renders for this draw cycle
+    pendingLabelRenders = [];
 
     // Clear previous SVG content
     while (svg.firstChild) {
@@ -1749,26 +1771,31 @@ if (gridOptions.showAxisArrows) {
 
         // Label Placement (skip entirely for preview equations)
         if (!eq.isPreview) {
-            let labelText = '';
-            const labelType = eq.labelType || 'equation'; // Default to 'equation' if not set
-            const customLabel = eq.customLabel || ''; // Default to empty string if not set
-            const rawExpression = eq.rawExpression || ''; // Default to empty string if not set
-            const labelNotation = eq.labelNotation || 'y'; // Default to 'y' notation
+            const labelType = eq.labelType || 'equation';
+            const customLabel = eq.customLabel || '';
+            const rawExpression = eq.rawExpression || '';
+            const labelNotation = eq.labelNotation || 'y';
             
+            // Build LaTeX string
+            let latexString = '';
             if (labelType === 'custom' && customLabel.trim() !== '') {
-                // Convert custom label to LaTeX and render with KaTeX
-                const latexString = convertMathToLaTeX(customLabel);
-                labelText = renderLaTeXToHTML(latexString);
+                latexString = convertMathToLaTeX(customLabel);
             } else if (labelType === 'equation' && rawExpression.trim() !== '') {
-                // Build LaTeX string with notation preference (y= or f(x)=)
                 const notation = labelNotation === 'fx' ? 'f(x)' : 'y';
                 const relation = eq.inequalityType || '=';
                 const latexExpression = convertMathToLaTeX(rawExpression);
-                const latexString = `${notation} ${relation} ${latexExpression}`;
-                labelText = renderLaTeXToHTML(latexString);
+                latexString = `${notation} ${relation} ${latexExpression}`;
             }
-
-            placeEquationLabel(equationGroup, eq, labelText, gridOptions, placedLabelRects, segments);
+            
+            // Render with MathJax asynchronously and track the promise
+            if (latexString) {
+                const renderPromise = renderLaTeXToSVG(latexString).then(labelSVG => {
+                    placeEquationLabel(equationGroup, eq, labelSVG, gridOptions, placedLabelRects, segments);
+                }).catch(err => {
+                    console.error('Error rendering equation label:', err);
+                });
+                pendingLabelRenders.push(renderPromise);
+            }
         }
     });
 

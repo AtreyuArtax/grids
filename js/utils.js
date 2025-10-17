@@ -295,28 +295,47 @@ export function convertMathToLaTeX(expression) {
 }
 
 /**
- * Renders a LaTeX expression to HTML using KaTeX.
+ * Renders a LaTeX expression to SVG using MathJax.
  * @param {string} latex The LaTeX expression to render.
- * @param {Object} options Optional KaTeX rendering options.
- * @returns {string} HTML string of the rendered expression.
+ * @param {Object} options Optional rendering options.
+ * @returns {Promise<SVGElement|string>} Promise resolving to SVG element or fallback string.
  */
-export function renderLaTeXToHTML(latex, options = {}) {
-    if (!latex || typeof latex !== 'string') return '';
+export async function renderLaTeXToSVG(latex, options = {}) {
+    if (!latex || typeof latex !== 'string') return latex;
     
-    // Check if KaTeX is available
-    if (typeof katex === 'undefined') {
-        console.warn('KaTeX is not loaded, falling back to plain text');
+    // Check if MathJax is available
+    if (typeof MathJax === 'undefined' || !MathJax.tex2svg) {
+        console.warn('MathJax is not loaded, falling back to plain text');
         return latex;
     }
     
     try {
-        return katex.renderToString(latex, {
-            throwOnError: false,
-            displayMode: false,
+        // Convert LaTeX to SVG using MathJax
+        // MathJax.tex2svg returns a wrapper element containing the SVG
+        const wrapper = MathJax.tex2svg(latex, {
+            display: false,
             ...options
         });
+        
+        // Extract the SVG element from the wrapper
+        let svgElement = null;
+        
+        if (wrapper.nodeName === 'svg' || wrapper.tagName === 'svg') {
+            // Sometimes MathJax returns the SVG directly
+            svgElement = wrapper;
+        } else if (wrapper.querySelector) {
+            // Usually it's wrapped in a container
+            svgElement = wrapper.querySelector('svg');
+        }
+        
+        if (svgElement) {
+            return svgElement;
+        } else {
+            console.warn('MathJax did not return an SVG element', wrapper);
+            return latex;
+        }
     } catch (e) {
-        console.error('KaTeX rendering error:', e);
+        console.error('MathJax rendering error:', e);
         return latex; // Fallback to plain text
     }
 }
