@@ -216,12 +216,22 @@ export function convertMathToLaTeX(expression) {
     }
     latex = result;
     
-    // Convert remaining fractions: (a)/(b) -> \frac{a}{b}
-    // This regex matches patterns like (anything)/(anything)
+    // Handle numeric fractions followed immediately by a variable or parenthesis
+    // e.g., "2/3x" -> "\\frac{2}{3}x" (we convert only the numeric fraction and leave the following variable)
+    latex = latex.replace(/(\d+)\s*\/\s*(\d+)(?=\s*[A-Za-z_\(])/g, '\\frac{$1}{$2}');
+
+    // Convert patterns with one side parenthesized as well:
+    // - a/(b) -> \frac{a}{b}
+    // - (a)/b -> \frac{a}{b}
+    latex = latex.replace(/([A-Za-z_]\w*|\d+)\s*\/\s*\(([^()]+)\)/g, '\\frac{$1}{$2}');
+    latex = latex.replace(/\(([^()]+)\)\s*\/\s*([A-Za-z_]\w*|\d+)/g, '\\frac{$1}{$2}');
+
+    // Convert remaining fractions written with parentheses: (a)/(b) -> \frac{a}{b}
     latex = latex.replace(/\(([^()]+)\)\s*\/\s*\(([^()]+)\)/g, '\\frac{$1}{$2}');
-    
-    // Convert simple fractions: a/b -> \frac{a}{b} (where a and b are single terms)
-    latex = latex.replace(/(\w+|\d+)\s*\/\s*(\w+|\d+)/g, '\\frac{$1}{$2}');
+
+    // Convert simple fractions: a/b -> \frac{a}{b}
+    // Restrict to single-term numerators/denominators that start with a letter or digit (but avoid matching mixed tokens like "3x" as a single term)
+    latex = latex.replace(/([A-Za-z_]\w*|\d+)\s*\/\s*([A-Za-z_]\w*|\d+)/g, '\\frac{$1}{$2}');
     
     // Convert remaining simple exponents: x^2 -> x^{2}
     latex = latex.replace(/\^(\w)/g, '^{$1}'); // Single character exponent
