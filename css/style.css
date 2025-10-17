@@ -1,3 +1,89 @@
+.color-input-tight {
+    margin-right: 4px !important;
+}
+.color-grid-swatches {
+    gap: 8px;
+}
+/* 2-row, 3-column grid for color controls */
+.color-grid-2row {
+    display: grid;
+    grid-template-columns: max-content 38px 1fr;
+    grid-template-rows: auto auto;
+    align-items: center;
+    gap: 8px 4px;
+    margin-bottom: 8px;
+}
+.color-grid-2row > .color-grid-label {
+    justify-self: end;
+    font-size: 1em;
+    margin-right: 2px;
+    display: flex;
+    align-items: center;
+    height: 100%;
+}
+.color-grid-2row > .color-grid-input {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    min-height: 28px;
+    max-width: 28px;
+    max-height: 28px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+    vertical-align: middle;
+    cursor: pointer;
+}
+.color-grid-2row > .color-grid-swatches {
+    display: flex;
+    gap: 4px;
+    flex-wrap: nowrap;
+    align-items: center;
+}
+/* True grid for color controls: 3 columns per color, 2 colors per row */
+.color-grid-row {
+    display: grid;
+    grid-template-columns: auto 38px 1fr auto 38px 1fr;
+    align-items: center;
+    gap: 8px 12px;
+    margin-bottom: 8px;
+}
+.color-grid-label {
+    justify-self: end;
+    font-size: 1em;
+    margin-right: 2px;
+}
+.color-grid-input {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    min-height: 28px;
+    max-width: 28px;
+    max-height: 28px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+    vertical-align: middle;
+    cursor: pointer;
+}
+.color-grid-swatches {
+    display: flex;
+    gap: 8px;
+    flex-wrap: nowrap;
+    align-items: center;
+}
+/* Grid for paired color controls (vertical alignment) */
+.color-grid-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    align-items: start;
+    margin-bottom: 8px;
+}
 /********  CSS VARIABLES  ********/
 :root {
     /* Colors */

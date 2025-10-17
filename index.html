@@ -8,8 +8,8 @@
     <!-- ============== VERSION CONFIGURATION ============== -->
     <!-- UPDATE THESE TWO LINES TO CHANGE ALL VERSION NUMBERS -->
     <script>
-        window.APP_VERSION = '2025-10-16-05';     // For PWA cache updates
-        window.CACHE_BUSTER = '59';               // For CSS/JS cache busting
+        window.APP_VERSION = '2025-10-16-06';     // For PWA cache updates
+        window.CACHE_BUSTER = '60';               // For CSS/JS cache busting
     </script>
     <!-- =================================================== -->
     
@@ -110,30 +110,23 @@
                         title ="This affects the font and label size but is not directly font size. Smaller values make the labels LARGER, and larger values make the labels SMALLER. Values between 10 and 20 seem to look best.">
                     </label>
                     
-                    <div class="color-label-container">
-                        <label for="minorGridColor">Minor Grid:</label>
-                            <div class="color-input-wrapper">
-                                <input type="color" id="minorGridColor" value="#a9a9a9">
-                                <div class="color-swatches">
-                                    <div class="color-swatch" style="background-color: #cccccc;" data-color="#cccccc"></div> <!-- Light Grey -->
-                                    <div class="color-swatch" style="background-color: #a9a9a9;" data-color="#a9a9a9"></div> <!-- Dim Grey -->
-                                    <div class="color-swatch" style="background-color: #646464;" data-color="#646464"></div> <!-- Medium Grey -->
-                                    <div class="color-swatch" style="background-color: #323232;" data-color="#323232"></div> <!-- Darker Grey -->
-                                </div>
-                            </div>
-                    </div>
-                    <div class="color-label-container">
-                        <label for="majorGridColor">Zero Line:</label>
-                            <div class="color-input-wrapper">
-                                <input type="color" id="majorGridColor" value="#555555">
-                                <div class="color-swatches">
-                                    <div class="color-swatch" style="background-color: #808080;" data-color="#808080"></div> <!-- Medium Grey -->
-                                    <div class="color-swatch" style="background-color: #555555;" data-color="#555555"></div> <!-- Dark Grey -->
-                                    <div class="color-swatch" style="background-color: #333333;" data-color="#333333"></div> <!-- Darker Grey -->
-                                    <div class="color-swatch" style="background-color: #000000;" data-color="#000000"></div> <!-- Black -->
-                                </div>
-                            </div>
-                        </label>
+                    <div class="color-grid-2row">
+                        <div class="color-grid-label"><label for="minorGridColor">Minor Grid:</label></div>
+                        <input type="color" id="minorGridColor" value="#a9a9a9" class="color-grid-input">
+                        <div class="color-swatches color-grid-swatches">
+                            <div class="color-swatch" style="background-color: #cccccc;" data-color="#cccccc"></div>
+                            <div class="color-swatch" style="background-color: #a9a9a9;" data-color="#a9a9a9"></div>
+                            <div class="color-swatch" style="background-color: #646464;" data-color="#646464"></div>
+                            <div class="color-swatch" style="background-color: #323232;" data-color="#323232"></div>
+                        </div>
+                        <div class="color-grid-label"><label for="majorGridColor">Zero Line:</label></div>
+                        <input type="color" id="majorGridColor" value="#555555" class="color-grid-input">
+                        <div class="color-swatches color-grid-swatches">
+                            <div class="color-swatch" style="background-color: #808080;" data-color="#808080"></div>
+                            <div class="color-swatch" style="background-color: #555555;" data-color="#555555"></div>
+                            <div class="color-swatch" style="background-color: #333333;" data-color="#333333"></div>
+                            <div class="color-swatch" style="background-color: #000000;" data-color="#000000"></div>
+                        </div>
                     </div>
                     <label class="checkbox-label">Suppress '0' Label:
                         <input type="checkbox" id="suppressZeroLabel">
@@ -253,20 +246,17 @@
                 </legend>
 
                 <div class="fieldset-content">
-                    <div class="color-label-container">
-                        <label for="equationColor">Line Colour: </label>
-                            <div class="color-input-wrapper">
-                                <input type="color" id="equationColor" value="#000000"> <!-- default color -->
-                                <div class="color-swatches">
-                                    <div class="color-swatch" style="background-color: #000000;" data-color="#000000"></div> <!-- Black -->
-                                    <div class="color-swatch" style="background-color: #808080;" data-color="#808080"></div> <!-- Grey -->
-                                    <div class="color-swatch" style="background-color: #FF0000;" data-color="#FF0000"></div> <!-- Red -->
-                                    <div class="color-swatch" style="background-color: #0000FF;" data-color="#0000FF"></div> <!-- Blue -->
-                                    <div class="color-swatch" style="background-color: #008000;" data-color="#008000"></div> <!-- Green -->
-                                    <div class="color-swatch" style="background-color: #800080;" data-color="#800080"></div> <!-- Purple -->
-                                </div>
-                            </div>
-                        </label>
+                    <div class="color-grid-2row" style="margin-bottom:0;">
+                        <div class="color-grid-label"><label for="equationColor">Line<br>Colour:</label></div>
+                        <input type="color" id="equationColor" value="#000000" class="color-grid-input color-input-tight">
+                        <div class="color-swatches color-grid-swatches">
+                            <div class="color-swatch" style="background-color: #000000;" data-color="#000000"></div>
+                            <div class="color-swatch" style="background-color: #808080;" data-color="#808080"></div>
+                            <div class="color-swatch" style="background-color: #FF0000;" data-color="#FF0000"></div>
+                            <div class="color-swatch" style="background-color: #0000FF;" data-color="#0000FF"></div>
+                            <div class="color-swatch" style="background-color: #008000;" data-color="#008000"></div>
+                            <div class="color-swatch" style="background-color: #800080;" data-color="#800080"></div>
+                        </div>
                     </div>
                     <label>Equation:
                         <!-- Updated title attribute to reflect math.js syntax -->
@@ -408,34 +398,26 @@
                         </label>
                     </div>
                     <!-- Color Controls at the top -->
-                    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
-                        <div class="color-label-container" style="margin-bottom:0;">
-                            <label for="pointsDotColor">Point:</label>
-                            <div class="color-input-wrapper">
-                                <input type="color" id="pointsDotColor" value="#000000">
-                                <div class="color-swatches">
-                                    <div class="color-swatch" style="background-color: #000000;" data-color="#000000"></div>
-                                    <div class="color-swatch" style="background-color: #808080;" data-color="#808080"></div>
-                                    <div class="color-swatch" style="background-color: #FF0000;" data-color="#FF0000"></div>
-                                    <div class="color-swatch" style="background-color: #0000FF;" data-color="#0000FF"></div>
-                                    <div class="color-swatch" style="background-color: #008000;" data-color="#008000"></div>
-                                    <div class="color-swatch" style="background-color: #800080;" data-color="#800080"></div>
-                                </div>
-                            </div>
+                    <div class="color-grid-2row" style="margin-bottom:10px;">
+                        <div class="color-grid-label"><label for="pointsDotColor">Point:</label></div>
+                        <input type="color" id="pointsDotColor" value="#000000" class="color-grid-input color-input-tight">
+                        <div class="color-swatches color-grid-swatches">
+                            <div class="color-swatch" style="background-color: #000000;" data-color="#000000"></div>
+                            <div class="color-swatch" style="background-color: #808080;" data-color="#808080"></div>
+                            <div class="color-swatch" style="background-color: #FF0000;" data-color="#FF0000"></div>
+                            <div class="color-swatch" style="background-color: #0000FF;" data-color="#0000FF"></div>
+                            <div class="color-swatch" style="background-color: #008000;" data-color="#008000"></div>
+                            <div class="color-swatch" style="background-color: #800080;" data-color="#800080"></div>
                         </div>
-                        <div class="color-label-container" style="margin-bottom:0;">
-                            <label for="pointsLineColor">Line:</label>
-                            <div class="color-input-wrapper">
-                                <input type="color" id="pointsLineColor" value="#000000">
-                                <div class="color-swatches">
-                                    <div class="color-swatch" style="background-color: #000000;" data-color="#000000"></div>
-                                    <div class="color-swatch" style="background-color: #808080;" data-color="#808080"></div>
-                                    <div class="color-swatch" style="background-color: #FF0000;" data-color="#FF0000"></div>
-                                    <div class="color-swatch" style="background-color: #0000FF;" data-color="#0000FF"></div>
-                                    <div class="color-swatch" style="background-color: #008000;" data-color="#008000"></div>
-                                    <div class="color-swatch" style="background-color: #800080;" data-color="#800080"></div>
-                                </div>
-                            </div>
+                        <div class="color-grid-label"><label for="pointsLineColor">Line:</label></div>
+                        <input type="color" id="pointsLineColor" value="#000000" class="color-grid-input color-input-tight">
+                        <div class="color-swatches color-grid-swatches">
+                            <div class="color-swatch" style="background-color: #000000;" data-color="#000000"></div>
+                            <div class="color-swatch" style="background-color: #808080;" data-color="#808080"></div>
+                            <div class="color-swatch" style="background-color: #FF0000;" data-color="#FF0000"></div>
+                            <div class="color-swatch" style="background-color: #0000FF;" data-color="#0000FF"></div>
+                            <div class="color-swatch" style="background-color: #008000;" data-color="#008000"></div>
+                            <div class="color-swatch" style="background-color: #800080;" data-color="#800080"></div>
                         </div>
                     </div>
                     <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:12px;">
@@ -453,30 +435,22 @@
                     
                     <!-- Area Fill Colors - Only visible when Fill Area is checked -->
                     <div id="areaFillColors" style="display:none; margin-bottom:12px; padding:8px; background-color:#f9f9f9; border-radius:4px;">
-                        <div style="display:flex; gap:12px; flex-wrap:wrap;">
-                            <div class="color-label-container" style="margin-bottom:0;">
-                                <label for="pointsAreaPositiveColor">Positive Area:</label>
-                                <div class="color-input-wrapper">
-                                    <input type="color" id="pointsAreaPositiveColor" value="#90EE90">
-                                    <div class="color-swatches">
-                                        <div class="color-swatch" style="background-color: #90EE90;" data-color="#90EE90"></div>
-                                        <div class="color-swatch" style="background-color: #87CEEB;" data-color="#87CEEB"></div>
-                                        <div class="color-swatch" style="background-color: #FFB6C1;" data-color="#FFB6C1"></div>
-                                        <div class="color-swatch" style="background-color: #DDA0DD;" data-color="#DDA0DD"></div>
-                                    </div>
-                                </div>
+                        <div class="color-grid-2row">
+                            <div class="color-grid-label"><label for="pointsAreaPositiveColor">Positive Area:</label></div>
+                            <input type="color" id="pointsAreaPositiveColor" value="#90EE90" class="color-grid-input color-input-tight">
+                            <div class="color-swatches color-grid-swatches">
+                                <div class="color-swatch" style="background-color: #90EE90;" data-color="#90EE90"></div>
+                                <div class="color-swatch" style="background-color: #87CEEB;" data-color="#87CEEB"></div>
+                                <div class="color-swatch" style="background-color: #FFB6C1;" data-color="#FFB6C1"></div>
+                                <div class="color-swatch" style="background-color: #DDA0DD;" data-color="#DDA0DD"></div>
                             </div>
-                            <div class="color-label-container" style="margin-bottom:0;">
-                                <label for="pointsAreaNegativeColor">Negative Area:</label>
-                                <div class="color-input-wrapper">
-                                    <input type="color" id="pointsAreaNegativeColor" value="#FFB6C1">
-                                    <div class="color-swatches">
-                                        <div class="color-swatch" style="background-color: #FFB6C1;" data-color="#FFB6C1"></div>
-                                        <div class="color-swatch" style="background-color: #FFA07A;" data-color="#FFA07A"></div>
-                                        <div class="color-swatch" style="background-color: #F0E68C;" data-color="#F0E68C"></div>
-                                        <div class="color-swatch" style="background-color: #DDA0DD;" data-color="#DDA0DD"></div>
-                                    </div>
-                                </div>
+                            <div class="color-grid-label"><label for="pointsAreaNegativeColor">Negative Area:</label></div>
+                            <input type="color" id="pointsAreaNegativeColor" value="#FFB6C1" class="color-grid-input color-input-tight">
+                            <div class="color-swatches color-grid-swatches">
+                                <div class="color-swatch" style="background-color: #FFB6C1;" data-color="#FFB6C1"></div>
+                                <div class="color-swatch" style="background-color: #FFA07A;" data-color="#FFA07A"></div>
+                                <div class="color-swatch" style="background-color: #F0E68C;" data-color="#F0E68C"></div>
+                                <div class="color-swatch" style="background-color: #DDA0DD;" data-color="#DDA0DD"></div>
                             </div>
                         </div>
                     </div>
