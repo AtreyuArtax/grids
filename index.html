@@ -8,8 +8,8 @@
     <!-- ============== VERSION CONFIGURATION ============== -->
     <!-- UPDATE THESE TWO LINES TO CHANGE ALL VERSION NUMBERS -->
     <script>
-        window.APP_VERSION = '2025-10-16-04';     // For PWA cache updates
-        window.CACHE_BUSTER = '58';               // For CSS/JS cache busting
+        window.APP_VERSION = '2025-10-16-05';     // For PWA cache updates
+        window.CACHE_BUSTER = '59';               // For CSS/JS cache busting
     </script>
     <!-- =================================================== -->
     
@@ -328,14 +328,16 @@
                         <button id="cancelEditButton" class="hidden">Cancel</button>
                     </div>
                     
+                    
+                    
+                <fieldset style="margin-top: var(--spacing-lg);">
+                     <legend class="static-legend">Plotted Equations</legend> 
+                     <div id="equationsList" class="fieldset-content"></div>
+                </fieldset>
                     <!-- Management Buttons -->
                     <div class="button-group">
                         <button id="clearEquationsBtn" type="button">Clear Equations</button>
                         <button id="resetEquationLabelPositionsBtn" type="button">Reset Label Positions</button>
-                        
-                    </div>
-                    
-                    <div id="equationsList">
                     </div>
                 </div>
             </fieldset>
@@ -346,37 +348,25 @@
                     Points &amp; Segments <span class="toggle-icon">▼</span>
                 </legend>
                 <div class="fieldset-content">
-                    <!-- Color Controls at the top -->
-                    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
-                        <div class="color-label-container" style="margin-bottom:0;">
-                            <label for="pointsDotColor">Point:</label>
-                            <div class="color-input-wrapper">
-                                <input type="color" id="pointsDotColor" value="#000000">
-                                <div class="color-swatches">
-                                    <div class="color-swatch" style="background-color: #000000;" data-color="#000000"></div>
-                                    <div class="color-swatch" style="background-color: #808080;" data-color="#808080"></div>
-                                    <div class="color-swatch" style="background-color: #FF0000;" data-color="#FF0000"></div>
-                                    <div class="color-swatch" style="background-color: #0000FF;" data-color="#0000FF"></div>
-                                    <div class="color-swatch" style="background-color: #008000;" data-color="#008000"></div>
-                                    <div class="color-swatch" style="background-color: #800080;" data-color="#800080"></div>
-                                </div>
+                    <!-- Point Sets Management -->
+                    <fieldset class="collapsible collapsed" style="margin-top:12px; margin-bottom:8px;">
+                        <legend>Saved Point Sets <span class="toggle-icon">▼</span></legend>
+                        <div class="fieldset-content">
+                            <div class="template-dropdown-container" style="margin-bottom:8px;">
+                                <select id="pointSets">
+                                    <option value="">Select a point set...</option>
+                                </select>
+                                <button type="button" id="savePointSetBtn" class="save-template-btn-inline">Save</button>
                             </div>
-                        </div>
-                        <div class="color-label-container" style="margin-bottom:0;">
-                            <label for="pointsLineColor">Line:</label>
-                            <div class="color-input-wrapper">
-                                <input type="color" id="pointsLineColor" value="#000000">
-                                <div class="color-swatches">
-                                    <div class="color-swatch" style="background-color: #000000;" data-color="#000000"></div>
-                                    <div class="color-swatch" style="background-color: #808080;" data-color="#808080"></div>
-                                    <div class="color-swatch" style="background-color: #FF0000;" data-color="#FF0000"></div>
-                                    <div class="color-swatch" style="background-color: #0000FF;" data-color="#0000FF"></div>
-                                    <div class="color-swatch" style="background-color: #008000;" data-color="#008000"></div>
-                                    <div class="color-swatch" style="background-color: #800080;" data-color="#800080"></div>
-                                </div>
+                            <div class="button-group">
+                                <button id="loadPointSetBtn" type="button">Load</button>
+                                <button id="renamePointSetBtn" type="button">Rename</button>
+                                <button id="deletePointSetBtn" type="button">Delete</button>
                             </div>
+                            <div id="pointSetsStatus" style="font-size:0.85em; color:#666; margin-top:4px; text-align:center;"></div>
                         </div>
-                    </div>
+                    </fieldset>
+                    
 
                     <!-- Bulk Entry Section -->
                     <fieldset id="bulkEntrySection" class="collapsible collapsed" style="margin-bottom:16px;">
@@ -417,6 +407,37 @@
                             <input type="number" id="pointsDotSize" min="1" max="20" value="3">
                         </label>
                     </div>
+                    <!-- Color Controls at the top -->
+                    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+                        <div class="color-label-container" style="margin-bottom:0;">
+                            <label for="pointsDotColor">Point:</label>
+                            <div class="color-input-wrapper">
+                                <input type="color" id="pointsDotColor" value="#000000">
+                                <div class="color-swatches">
+                                    <div class="color-swatch" style="background-color: #000000;" data-color="#000000"></div>
+                                    <div class="color-swatch" style="background-color: #808080;" data-color="#808080"></div>
+                                    <div class="color-swatch" style="background-color: #FF0000;" data-color="#FF0000"></div>
+                                    <div class="color-swatch" style="background-color: #0000FF;" data-color="#0000FF"></div>
+                                    <div class="color-swatch" style="background-color: #008000;" data-color="#008000"></div>
+                                    <div class="color-swatch" style="background-color: #800080;" data-color="#800080"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="color-label-container" style="margin-bottom:0;">
+                            <label for="pointsLineColor">Line:</label>
+                            <div class="color-input-wrapper">
+                                <input type="color" id="pointsLineColor" value="#000000">
+                                <div class="color-swatches">
+                                    <div class="color-swatch" style="background-color: #000000;" data-color="#000000"></div>
+                                    <div class="color-swatch" style="background-color: #808080;" data-color="#808080"></div>
+                                    <div class="color-swatch" style="background-color: #FF0000;" data-color="#FF0000"></div>
+                                    <div class="color-swatch" style="background-color: #0000FF;" data-color="#0000FF"></div>
+                                    <div class="color-swatch" style="background-color: #008000;" data-color="#008000"></div>
+                                    <div class="color-swatch" style="background-color: #800080;" data-color="#800080"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:12px;">
                         <label class="checkbox-label">Connect Points:
                             <input type="checkbox" id="pointsConnect" checked>
@@ -424,6 +445,7 @@
                         <label class="checkbox-label">Show Labels:
                             <input type="checkbox" id="pointsShowLabels" checked>
                         </label>
+                        
                         <label class="checkbox-label">Fill Area Under Curve:
                             <input type="checkbox" id="pointsFillArea">
                         </label>
@@ -467,32 +489,22 @@
                         <div id="netAreaResult" style="margin-top:6px; font-weight:500; color:#1976d2; line-height:1.4;"></div>
                     </div>
 
-                    <div class="button-group" style="margin-top:8px;">
-                        <button id="clearPointsBtn" type="button">Clear Points</button>
-                        <button id="resetLabelPositionsBtn" type="button">Reset Label Positions</button>
-                    </div>
+                   
 
-                    <!-- Point Sets Management -->
-                    <fieldset class="collapsible collapsed" style="margin-top:12px; margin-bottom:8px;">
-                        <legend>Saved Point Sets <span class="toggle-icon">▼</span></legend>
-                        <div class="fieldset-content">
-                            <div class="template-dropdown-container" style="margin-bottom:8px;">
-                                <select id="pointSets">
-                                    <option value="">Select a point set...</option>
-                                </select>
-                                <button type="button" id="savePointSetBtn" class="save-template-btn-inline">Save</button>
-                            </div>
-                            <div class="button-group">
-                                <button id="loadPointSetBtn" type="button">Load</button>
-                                <button id="renamePointSetBtn" type="button">Rename</button>
-                                <button id="deletePointSetBtn" type="button">Delete</button>
-                            </div>
-                            <div id="pointSetsStatus" style="font-size:0.85em; color:#666; margin-top:4px; text-align:center;"></div>
-                        </div>
-                    </fieldset>
+                    
 
-                    <div id="pointsList" style="margin-top:8px;"></div>
-                </div>
+                    <fieldset style="margin-top: var(--spacing-md); margin-bottom: 0;"> 
+    <legend class="static-legend">Plotted Points</legend> 
+    
+    <div id="pointsList" class="fieldset-content">
+        </div>
+</fieldset> 
+        
+        <div class="button-group" style="margin-top:16px;"> 
+             <button id="clearPointsBtn" type="button">Clear Points</button>
+            <button id="resetLabelPositionsBtn" type="button">Reset Label Positions</button>
+        </div>
+                
             </fieldset>
         </div>
 
