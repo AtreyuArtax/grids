@@ -370,19 +370,24 @@ function setCustomState() {
  * Sets up color swatch functionality.
  */
 function setupColorSwatches() {
-    document.querySelectorAll('.color-input-wrapper').forEach(wrapper => {
-        const colorInput = wrapper.querySelector('input[type="color"]');
-        if (!colorInput) return;
+    document.querySelectorAll('.color-grid-2row').forEach(grid => {
+        const swatchContainers = grid.querySelectorAll('.color-grid-swatches');
         
-        wrapper.querySelectorAll('.color-swatch').forEach(swatch => {
-            safeAddEventListener(swatch, 'click', function(e) {
-                const color = this.getAttribute('data-color');
-                if (color) {
-                    colorInput.value = color;
-                    // Trigger input event so any listeners update
-                    colorInput.dispatchEvent(new Event('input', { bubbles: true }));
-                }
-                e.preventDefault();
+        swatchContainers.forEach(container => {
+            // Find the preceding color input in the grid
+            const colorInput = container.previousElementSibling;
+            if (!colorInput || !colorInput.matches('input[type="color"]')) return;
+
+            container.querySelectorAll('.color-swatch').forEach(swatch => {
+                safeAddEventListener(swatch, 'click', function(e) {
+                    const color = this.getAttribute('data-color');
+                    if (color) {
+                        colorInput.value = color;
+                        // Trigger input event so any listeners update
+                        colorInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                    e.preventDefault();
+                });
             });
         });
     });
