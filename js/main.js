@@ -175,7 +175,11 @@ function getCurrentGridSettings() {
         const element = safeGetElement(id);
         if (!element) return defaultValue;
         if (element.type === 'checkbox') return element.checked;
-        if (element.type === 'number') return parseFloat(element.value) || defaultValue;
+        if (element.type === 'number') {
+            const val = parseFloat(element.value);
+            // Allow 0 as a valid value, only use default if NaN or empty
+            return isNaN(val) ? defaultValue : val;
+        }
         return element.value || defaultValue;
     };
 
