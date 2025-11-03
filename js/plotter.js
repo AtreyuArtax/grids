@@ -1,5 +1,5 @@
 // This module handles drawing the grid, axes, and plotting equations using SVG elements.
-import { EPSILON, parseSuperscript, formatRadianLabel, formatEquationTextForDisplay, convertMathToLaTeX, renderLaTeXToSVG, ZERO_LINE_EXTENSION, AXIS_TITLE_SPACING, ARROW_HEAD_SIZE, LINE_STYLES, SHADE_ALPHA } from './utils.js';
+import { EPSILON, parseSuperscript, formatRadianLabel, formatEquationTextForDisplay, convertMathToLaTeX, renderLaTeXToSVG, ZERO_LINE_EXTENSION, AXIS_TITLE_SPACING, ARROW_HEAD_SIZE, LINE_STYLES, SHADE_ALPHA, createSubscriptText } from './utils.js';
 import { setTransform } from './modules/gridAPI.js';
 import { calculateDynamicMargins, dynamicMarginLeft, dynamicMarginRight,
          dynamicMarginTop, dynamicMarginBottom, doesOverlap } from './labels.js';
@@ -1533,23 +1533,39 @@ export function drawGrid() {
             stroke: gridOptions.majorGridColor, 'stroke-width': gridOptions.majorLineThickness
         }));
 
-        const xAxisTitleEl = createSVGElement('text', {
-            'font-family': 'Inter, sans-serif', 'font-size': `${gridOptions.axisTitleFontSize}px`, fill: '#333'
-        });
-        xAxisTitleEl.textContent = gridOptions.xAxisLabel;
-
-        if (gridOptions.xAxisLabelOnRight && gridOptions.xAxisLabel && gridOptions.xMax > EPSILON) {
-            xAxisTitleEl.setAttribute('x', xAxisLineEndExtended + gridOptions.axisTitleSpacing);
-            xAxisTitleEl.setAttribute('y', xAxisLineY);
-            xAxisTitleEl.setAttribute('text-anchor', 'start');
-            xAxisTitleEl.setAttribute('alignment-baseline', 'middle');
-        } else if (gridOptions.xAxisLabel) {
-            xAxisTitleEl.setAttribute('x', gridOptions.offsetX + gridOptions.actualGridWidth / 2);
-            xAxisTitleEl.setAttribute('y', gridOptions.offsetY + gridOptions.actualGridHeight + (gridOptions.marginBottom / 2));
-            xAxisTitleEl.setAttribute('text-anchor', 'middle');
-            xAxisTitleEl.setAttribute('alignment-baseline', 'middle');
+        if (gridOptions.xAxisLabel) {
+            let xAxisTitleEl;
+            
+            if (gridOptions.xAxisLabelOnRight && gridOptions.xMax > EPSILON) {
+                xAxisTitleEl = createSubscriptText(
+                    gridOptions.xAxisLabel,
+                    xAxisLineEndExtended + gridOptions.axisTitleSpacing,
+                    xAxisLineY,
+                    'start',
+                    gridOptions.axisTitleFontSize,
+                    {
+                        'font-family': 'Inter, sans-serif',
+                        'fill': '#333',
+                        'alignment-baseline': 'middle'
+                    }
+                );
+            } else {
+                xAxisTitleEl = createSubscriptText(
+                    gridOptions.xAxisLabel,
+                    gridOptions.offsetX + gridOptions.actualGridWidth / 2,
+                    gridOptions.offsetY + gridOptions.actualGridHeight + (gridOptions.marginBottom / 2),
+                    'middle',
+                    gridOptions.axisTitleFontSize,
+                    {
+                        'font-family': 'Inter, sans-serif',
+                        'fill': '#333',
+                        'alignment-baseline': 'middle'
+                    }
+                );
+            }
+            
+            gridGroup.appendChild(xAxisTitleEl);
         }
-        gridGroup.appendChild(xAxisTitleEl);
     }
 
     // --- Draw Y-axis (the vertical line representing x=0 or the left edge) ---
@@ -1562,25 +1578,42 @@ export function drawGrid() {
             stroke: gridOptions.majorGridColor, 'stroke-width': gridOptions.majorLineThickness
         }));
 
-        const yAxisTitleEl = createSVGElement('text', {
-            'font-family': 'Inter, sans-serif', 'font-size': `${gridOptions.axisTitleFontSize}px`, fill: '#333'
-        });
-        yAxisTitleEl.textContent = gridOptions.yAxisLabel;
-
-        if (gridOptions.yAxisLabelOnTop && gridOptions.yAxisLabel && gridOptions.yMax > EPSILON) {
-            yAxisTitleEl.setAttribute('x', yAxisLineX);
-            yAxisTitleEl.setAttribute('y', yAxisLineStartExtended - gridOptions.axisTitleSpacing);
-            yAxisTitleEl.setAttribute('transform', '');
-            yAxisTitleEl.setAttribute('text-anchor', 'middle');
-            yAxisTitleEl.setAttribute('alignment-baseline', 'alphabetic');
-        } else if (gridOptions.yAxisLabel) {
-            yAxisTitleEl.setAttribute('x', gridOptions.marginLeft / 2);
-            yAxisTitleEl.setAttribute('y', gridOptions.offsetY + gridOptions.actualGridHeight / 2);
-            yAxisTitleEl.setAttribute('transform', `rotate(-90 ${gridOptions.marginLeft / 2},${gridOptions.offsetY + gridOptions.actualGridHeight / 2})`);
-            yAxisTitleEl.setAttribute('text-anchor', 'middle');
-            yAxisTitleEl.setAttribute('alignment-baseline', 'middle');
+        if (gridOptions.yAxisLabel) {
+            let yAxisTitleEl;
+            
+            if (gridOptions.yAxisLabelOnTop && gridOptions.yMax > EPSILON) {
+                yAxisTitleEl = createSubscriptText(
+                    gridOptions.yAxisLabel,
+                    yAxisLineX,
+                    yAxisLineStartExtended - gridOptions.axisTitleSpacing,
+                    'middle',
+                    gridOptions.axisTitleFontSize,
+                    {
+                        'font-family': 'Inter, sans-serif',
+                        'fill': '#333',
+                        'alignment-baseline': 'alphabetic'
+                    }
+                );
+            } else {
+                const xPos = gridOptions.marginLeft / 2;
+                const yPos = gridOptions.offsetY + gridOptions.actualGridHeight / 2;
+                yAxisTitleEl = createSubscriptText(
+                    gridOptions.yAxisLabel,
+                    xPos,
+                    yPos,
+                    'middle',
+                    gridOptions.axisTitleFontSize,
+                    {
+                        'font-family': 'Inter, sans-serif',
+                        'fill': '#333',
+                        'alignment-baseline': 'middle',
+                        'transform': `rotate(-90 ${xPos},${yPos})`
+                    }
+                );
+            }
+            
+            gridGroup.appendChild(yAxisTitleEl);
         }
-        gridGroup.appendChild(yAxisTitleEl);
     }
 
 

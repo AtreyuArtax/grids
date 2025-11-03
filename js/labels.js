@@ -1,5 +1,5 @@
 // This module handles calculations for dynamic margins and axis label visibility.
-import { parseSuperscript, formatRadianLabel, formatEquationTextForDisplay, EPSILON, ZERO_LINE_EXTENSION, AXIS_TITLE_SPACING, ARROW_HEAD_SIZE, safeParseFloat, safeParseInt } from './utils.js';
+import { parseSuperscript, formatRadianLabel, formatEquationTextForDisplay, EPSILON, ZERO_LINE_EXTENSION, AXIS_TITLE_SPACING, ARROW_HEAD_SIZE, safeParseFloat, safeParseInt, createSubscriptText } from './utils.js';
 import { equationsToDraw } from './equations.js'; // Import equationsToDraw
 import { errorHandler } from './modules/errorHandler.js';
 
@@ -11,7 +11,7 @@ export let dynamicMarginBottom = 60;
 /**
  * Creates a temporary SVG text element to measure its dimensions.
  * This is necessary because SVG elements don't have a `getContext('2d')` method like canvas.
- * @param {string} textContent - The text content to measure.
+ * @param {string} textContent - The text content to measure (may contain underscore notation for subscripts).
  * @param {string} fontSize - CSS font-size property (e.g., '14px').
  * @param {string} fontFamily - CSS font-family property (e.g., 'Inter, sans-serif').
  * @returns {Object} An object containing the text's width, height, and approximated ascent/descent.
@@ -27,11 +27,19 @@ function measureSVGText(textContent, fontSize, fontFamily) {
         return { width: 0, height: 0, actualBoundingBoxAscent: 0, actualBoundingBoxDescent: 0 };
     }
 
-    // Create a temporary SVG text element
-    const tempText = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    tempText.textContent = textContent;
-    tempText.setAttribute('font-size', fontSize);
-    tempText.setAttribute('font-family', fontFamily);
+    // Use createSubscriptText to properly handle subscripts in measurement
+    const fontSizeNum = parseFloat(fontSize);
+    const tempText = createSubscriptText(
+        textContent,
+        0,
+        0,
+        'start',
+        fontSizeNum,
+        {
+            'font-family': fontFamily
+        }
+    );
+    
     // Append to SVG, measure, then remove. Needed for getBBox() to work reliably.
     // The element must be in the DOM to get accurate measurements.
     svg.appendChild(tempText);

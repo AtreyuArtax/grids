@@ -45,14 +45,107 @@ export function parseSuperscript(text) {
         'Y': 'ʸ', 'Z': 'ᶻ'
     };
     
-    // Match ^ followed by exponent content:
-    // - Single digit: [0-9]
-    // - Or a single variable/letter: [a-zA-Z]
-    // - Or simple operators/signs: [+\-=]
-    // Notably, we do NOT convert parenthesized expressions as they render poorly in superscript
-    return text.replace(/\^([0-9a-zA-Z+\-=])/g, (match, char) => {
-        return superscriptMap[char] || match;
+    // Replace ^... with superscript for all consecutive valid chars (letters, digits, +, -, =)
+    // Stop at space, parenthesis, or end
+    return text.replace(/\^([a-zA-Z0-9+\-=]+)/g, (match, chars) => {
+        let result = '';
+        for (let i = 0; i < chars.length; i++) {
+            const c = chars[i];
+            result += superscriptMap[c] || c;
+        }
+        return result;
     });
+}
+
+/**
+ * Parse a label string and convert underscore notation to subscripts.
+ * Example: "F_f (N)" becomes array of segments with subscript info
+ * @param {string} text - The label text to parse
+ * @returns {Array} Array of text segments with subscript info: [{text: string, isSubscript: boolean}]
+ */
+export function parseSubscripts(text) {
+    if (!text || typeof text !== 'string') return [{ text: '', isSubscript: false }];
+    
+    const segments = [];
+    let i = 0;
+    
+    while (i < text.length) {
+        if (text[i] === '_' && i < text.length - 1) {
+            // Found underscore - next character(s) should be subscript
+            i++; // Skip the underscore
+            let subscriptText = '';
+            
+            // Collect subscript characters until space, (, ), or end
+            while (i < text.length && text[i] !== ' ' && text[i] !== '(' && text[i] !== ')' && text[i] !== '_') {
+                subscriptText += text[i];
+                i++;
+            }
+            
+            if (subscriptText) {
+                segments.push({ text: subscriptText, isSubscript: true });
+            }
+        } else if (text[i] === '_' && i === text.length - 1) {
+            // Underscore at the end - just add it as regular text
+            segments.push({ text: '_', isSubscript: false });
+            i++;
+        } else {
+            // Regular text - collect until underscore or end
+            let regularText = '';
+            while (i < text.length && text[i] !== '_') {
+                regularText += text[i];
+                i++;
+            }
+            if (regularText) {
+                segments.push({ text: regularText, isSubscript: false });
+            }
+        }
+    }
+    
+    return segments.length > 0 ? segments : [{ text: '', isSubscript: false }];
+}
+
+/**
+ * Create an SVG text element with subscript support.
+ * @param {string} text - The text to render (may contain underscore notation)
+ * @param {number} x - X position
+ * @param {number} y - Y position
+ * @param {string} anchor - Text anchor ('start', 'middle', 'end')
+ * @param {number} fontSize - Base font size in pixels
+ * @param {Object} attributes - Additional SVG attributes to apply
+ * @returns {SVGElement} The text element with tspans for subscripts
+ */
+export function createSubscriptText(text, x, y, anchor, fontSize, attributes = {}) {
+    const textEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    textEl.setAttribute('x', x);
+    textEl.setAttribute('y', y);
+    textEl.setAttribute('text-anchor', anchor);
+    textEl.setAttribute('font-size', fontSize);
+    
+    // Apply any additional attributes
+    Object.keys(attributes).forEach(key => {
+        textEl.setAttribute(key, attributes[key]);
+    });
+    
+    const segments = parseSubscripts(text);
+    let cumulativeOffset = 0;
+    
+    segments.forEach((segment, index) => {
+        const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+        tspan.textContent = segment.text;
+        
+        if (segment.isSubscript) {
+            // Make subscript smaller and shift down
+            tspan.setAttribute('font-size', fontSize * 0.7);
+            tspan.setAttribute('baseline-shift', 'sub');
+        } else if (index > 0) {
+            // Reset baseline for regular text after subscript
+            tspan.setAttribute('baseline-shift', '0');
+        }
+        
+        textEl.appendChild(tspan);
+    });
+    
+    return textEl;
 }
 
 /**
