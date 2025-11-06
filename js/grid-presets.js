@@ -111,9 +111,9 @@ export const gridPresets = {
         xMinRadians: null, xMaxRadians: null, radianStepMultiplier: null, xGridUnitsPerRadianStep: null,
         paperStyle: 'grid'
     },
-    "polar": {
-    label:'math: Polar Coordinates',
-    squareSizeInput: 15,
+     "polar2": {
+    label:'physics: Refraction',
+    squareSizeInput: 20,
     xMin: -10, xMax: 10, xIncrement: 1, xLabelEvery: 1, xAxisLabel: "x", xLabelOnZero: true, xAxisLabelOnRight: false, xAxisLabelType: 'numbers',
     yMin: -10, yMax: 10, yIncrement: 1, yLabelEvery: 1, yAxisLabel: "y", yLabelOnZero: true, yAxisLabelOnTop: false,
     suppressZeroLabel: false, showAxisArrows: false,
@@ -121,8 +121,37 @@ export const gridPresets = {
     minorGridColor: "#a9a9a9",
     majorGridColor: "#555555",
     xMinRadians: null, xMaxRadians: null, radianStepMultiplier: null, xGridUnitsPerRadianStep: null,
-    paperStyle: 'polar'
+    paperStyle: 'polar',
+    polarNumCircles: 6,
+    polarNumRadials: 180,
+    // polarDegrees removed - always 360
+    polarLabelType: 'degrees',
+    polarLabelEvery: 5,
+    polarInnerRadials: 4,
+    polarSecondInnerRadials: 36,
+    polarHalfCircleLabels: true
 },
+    "polar": {
+    label:'math: Polar Coordinates',
+    squareSizeInput: 20,
+    xMin: -10, xMax: 10, xIncrement: 1, xLabelEvery: 1, xAxisLabel: "x", xLabelOnZero: true, xAxisLabelOnRight: false, xAxisLabelType: 'numbers',
+    yMin: -10, yMax: 10, yIncrement: 1, yLabelEvery: 1, yAxisLabel: "y", yLabelOnZero: true, yAxisLabelOnTop: false,
+    suppressZeroLabel: false, showAxisArrows: false,
+    showLineArrows: false, showAxes: false,
+    minorGridColor: "#a9a9a9",
+    majorGridColor: "#555555",
+    xMinRadians: null, xMaxRadians: null, radianStepMultiplier: null, xGridUnitsPerRadianStep: null,
+    paperStyle: 'polar',
+    polarNumCircles: 4,
+    polarNumRadials: 48,
+    // polarDegrees removed - always 360
+    polarLabelType: 'degrees',
+    polarLabelEvery: 4,
+    polarInnerRadials: 8,
+    polarSecondInnerRadials: 24,
+    polarHalfCircleLabels: false
+},
+
     "graphPaperLetter_1_4in": {
         label:'graph paper: Letter (1/4 in)',
         squareSizeInput: 15, // 1/4 inch at 96dpi is 24px

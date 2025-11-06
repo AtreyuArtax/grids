@@ -103,6 +103,16 @@ function getElementValue(id, type, fallback) {
  */
 export function calculateDynamicMargins() {
     
+    // For polar paper, use simple fixed margins and skip Cartesian calculations
+    const paperStyle = getElementValue('paperStyle', 'string', 'grid');
+    if (paperStyle === 'polar') {
+        dynamicMarginLeft = 40;
+        dynamicMarginRight = 40;
+        dynamicMarginTop = 40;
+        dynamicMarginBottom = 40;
+        return;
+    }
+    
     const generalLabelFontSize = '14px';
     const generalLabelFontFamily = 'Inter, sans-serif'; // Font for axis numbers
     const axisTitleFontSize = '16px';

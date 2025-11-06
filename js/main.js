@@ -65,13 +65,42 @@ function togglePaperStyleSettings() {
     const paperStyle = paperStyleElement ? paperStyleElement.value : 'grid';
     const polarControls = safeGetElement('polarControls');
     const cartesianAxisSettings = safeGetElement('cartesianAxisSettings');
+    const squareSizeInput = safeGetElement('squareSizeInput');
+    
+    // Get the sections that should be hidden for polar paper
+    const yAxisSettings = safeGetElement('yAxisSettings');
+    const xAxisSettings = safeGetElement('xAxisSettings');
+    const equationPlotting = safeGetElement('equationPlotting');
+    const pointsSection = safeGetElement('pointsSection');
 
     if (paperStyle === 'polar') {
         if (polarControls) polarControls.style.display = 'block';
         if (cartesianAxisSettings) cartesianAxisSettings.style.display = 'none';
+        
+        // Hide sections not applicable to polar paper
+        if (yAxisSettings) yAxisSettings.style.display = 'none';
+        if (xAxisSettings) xAxisSettings.style.display = 'none';
+        if (equationPlotting) equationPlotting.style.display = 'none';
+        if (pointsSection) pointsSection.style.display = 'none';
+        
+        // Set Label Size to 20 for polar rendering
+        if (squareSizeInput) {
+            squareSizeInput.value = 20;
+        }
     } else {
         if (polarControls) polarControls.style.display = 'none';
         if (cartesianAxisSettings) cartesianAxisSettings.style.display = 'block';
+        
+        // Show sections for grid/dot paper
+        if (yAxisSettings) yAxisSettings.style.display = 'block';
+        if (xAxisSettings) xAxisSettings.style.display = 'block';
+        if (equationPlotting) equationPlotting.style.display = 'block';
+        if (pointsSection) pointsSection.style.display = 'block';
+        
+        // Set Label Size back to 15 for grid/dot paper
+        if (squareSizeInput) {
+            squareSizeInput.value = 15;
+        }
     }
 }
 
@@ -159,7 +188,12 @@ function applyPreset(presetName, customSettings = null) {
     if (preset.paperStyle) safeSetValue('paperStyle', preset.paperStyle);
     if (preset.polarNumCircles !== undefined) safeSetValue('polarNumCircles', preset.polarNumCircles);
     if (preset.polarNumRadials !== undefined) safeSetValue('polarNumRadials', preset.polarNumRadials);
-    if (preset.polarDegrees !== undefined) safeSetValue('polarDegrees', preset.polarDegrees);
+    // polarDegrees removed - always 360
+    if (preset.polarLabelType) safeSetValue('polarLabelType', preset.polarLabelType);
+    if (preset.polarLabelEvery !== undefined) safeSetValue('polarLabelEvery', preset.polarLabelEvery);
+    if (preset.polarInnerRadials !== undefined) safeSetValue('polarInnerRadials', preset.polarInnerRadials);
+    if (preset.polarSecondInnerRadials !== undefined) safeSetValue('polarSecondInnerRadials', preset.polarSecondInnerRadials);
+    if (preset.polarHalfCircleLabels !== undefined) safeSetValue('polarHalfCircleLabels', preset.polarHalfCircleLabels);
     
     togglePaperStyleSettings();
     calculateDynamicMargins();
@@ -466,13 +500,20 @@ function setupCollapsibleFieldsets() {
  * Sets up polar input listeners.
  */
 function setupPolarListeners() {
-    ['polarNumCircles', 'polarNumRadials', 'polarDegrees'].forEach(id => {
+    ['polarNumCircles', 'polarNumRadials', 'polarLabelType', 'polarLabelEvery', 'polarInnerRadials', 'polarSecondInnerRadials', 'polarHalfCircleLabels'].forEach(id => {
         const element = safeGetElement(id);
         if (element) {
             safeAddEventListener(element, 'input', () => {
                 setCustomState();
                 drawGrid();
             });
+            // Also handle 'change' event for select elements and checkboxes
+            if (element.tagName === 'SELECT' || element.type === 'checkbox') {
+                safeAddEventListener(element, 'change', () => {
+                    setCustomState();
+                    drawGrid();
+                });
+            }
         }
     });
 }

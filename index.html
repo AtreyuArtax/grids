@@ -8,8 +8,8 @@
     <!-- ============== VERSION CONFIGURATION ============== -->
     <!-- UPDATE THESE TWO LINES TO CHANGE ALL VERSION NUMBERS -->
     <script>
-        window.APP_VERSION = '2025-11-6-01';     // For PWA cache updates
-        window.CACHE_BUSTER = '64';               // For CSS/JS cache busting
+        window.APP_VERSION = '2025-11-6-02';     // For PWA cache updates
+        window.CACHE_BUSTER = '65';               // For CSS/JS cache busting
     </script>
     <!-- =================================================== -->
     
@@ -144,16 +144,41 @@
             <!-- Polar Controls: HIDDEN by default, shown only for Polar -->
             <div id="polarControls" style="display: none; margin-bottom: 12px; margin-top: 8px;">
                 <label>
+                    Label Type:
+                    <select id="polarLabelType">
+                        <option value="degrees">Degrees</option>
+                        <option value="radians">Radians (π)</option>
+                    </select>
+                </label>
+                <br>
+                <label style="margin-top: 8px; display: inline-block;">
                     Number of Circles:
-                    <input type="number" id="polarNumCircles" min="1" max="24" value="8" style="width: 3em;">
+                    <input type="number" id="polarNumCircles" min="1" max="24" value="4" style="width: 4em;">
                 </label>
                 <label style="margin-left: 1em;">
                     Number of Radial Divisions:
-                    <input type="number" id="polarNumRadials" min="1" max="36" value="12" style="width: 3em;">
+                    <input type="number" id="polarNumRadials" min="1" max="360" value="48" style="width: 4em;">
                 </label>
                 <label style="margin-left: 1em;">
-                    Degrees per Circle (outer ring):
-                    <input type="number" id="polarDegrees" min="1" max="360" value="360" style="width: 4em;">
+                    Label Every:
+                    <input type="number" id="polarLabelEvery" min="1" max="72" value="4" style="width: 4em;" title="Label every Nth radial division (starting at 0)">
+                    <span style="font-size: 0.9em; color: #666;">radial(s)</span>
+                </label>
+                <br>
+                <div style="margin-top: 12px;"></div>
+                <label>
+                    Innermost Circle Radials:
+                    <input type="number" id="polarInnerRadials" min="0" max="360" value="8" style="width: 4em;" title="Number of radial lines to show in the innermost circle (0 = none)">
+                </label>
+                <label style="margin-left: 1em;">
+                    Second Innermost Radials:
+                    <input type="number" id="polarSecondInnerRadials" min="0" max="360" value="24" style="width: 4em;" title="Number of radial lines to show in the second innermost circle (0 = none)">
+                </label>
+                <br>
+                <div style="margin-top: 12px;"></div>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="polarHalfCircleLabels" title="Label as two half-circles (0-180, 0-180) for refraction experiments">
+                    Half-Circle Labeling (0-180, 0-180)
                 </label>
             </div>
 

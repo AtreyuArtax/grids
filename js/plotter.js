@@ -5,6 +5,7 @@ import { calculateDynamicMargins, dynamicMarginLeft, dynamicMarginRight,
          dynamicMarginTop, dynamicMarginBottom, doesOverlap } from './labels.js';
 import { equationsToDraw } from './equations.js'; // Assuming equationsToDraw is a mutable array where labelPosition can be updated.
 import { errorHandler } from './modules/errorHandler.js';
+import { PolarRenderer } from './modules/polarRenderer.js';
 
 // Math.js is needed for compiling expressions for plotting
 // Ensure math.js is loaded in index.html like:
@@ -445,7 +446,7 @@ export async function exportSVGtoPDF(svgId = 'gridSVG') {
     // Calculate the scale factor to fit the SVG entirely within the usable area.
     // This ensures the SVG is scaled down if too large, or scaled up if too small,
     // while maintaining its aspect ratio and fitting within the margins.
-    const scale = Math.min(usableW / svgOriginalWidth, usableH / usableH);
+    const scale = Math.min(usableW / svgOriginalWidth, usableH / svgOriginalHeight);
 
     // Calculate the final dimensions of the SVG content when drawn on the PDF
     const scaledContentW = svgOriginalWidth * scale;
@@ -1321,6 +1322,25 @@ export function drawGrid() {
     calculateDynamicMargins();
 
     const minorSquareSizeValue = parseFloat(document.getElementById('squareSizeInput').value) || 40;
+    const paperStyle = document.getElementById('paperStyle').value || 'grid';
+
+    // For polar paper, use fixed default values for Cartesian axes (needed for canvas size calculation)
+    let yMinValue, yMaxValue, yIncrementValue, xMinValue, xMaxValue, xIncrementValue;
+    if (paperStyle === 'polar') {
+        yMinValue = -10;
+        yMaxValue = 10;
+        yIncrementValue = 1;
+        xMinValue = -10;
+        xMaxValue = 10;
+        xIncrementValue = 1;
+    } else {
+        yMinValue = parseFloat(document.getElementById('yMin').value) || 0;
+        yMaxValue = parseFloat(document.getElementById('yMax').value) || 10;
+        yIncrementValue = parseFloat(document.getElementById('yIncrement').value) || 1;
+        xMinValue = parseFloat(document.getElementById('xMin').value) || 0;
+        xMaxValue = parseFloat(document.getElementById('xMax').value) || 10;
+        xIncrementValue = parseFloat(document.getElementById('xIncrement').value) || 1;
+    }
 
     // Collect all grid and axis settings into a single options object
     const gridOptions = {
@@ -1334,9 +1354,9 @@ export function drawGrid() {
         labelFontSize: Math.max(9, Math.min(Math.round(minorSquareSizeValue * 0.38), 60)),
         axisTitleFontSize: Math.max(12, Math.min(Math.round(minorSquareSizeValue * 0.48), 80)),
         equationLabelFontSize: Math.max(9, Math.min(Math.round(minorSquareSizeValue * 0.32), 48)),
-        yMin: parseFloat(document.getElementById('yMin').value) || 0,
-        yMax: parseFloat(document.getElementById('yMax').value) || 10,
-        yIncrement: parseFloat(document.getElementById('yIncrement').value) || 1,
+        yMin: yMinValue,
+        yMax: yMaxValue,
+        yIncrement: yIncrementValue,
         yLabelEvery: parseInt(document.getElementById('yLabelEvery').value, 10),
         yLabelOnZero: document.getElementById('yLabelOnZero').checked,
         yAxisLabelOnTop: document.getElementById('yAxisLabelOnTop').checked,
@@ -1346,7 +1366,7 @@ export function drawGrid() {
         showMainAxes: document.getElementById('showAxes') ? document.getElementById('showAxes').checked : true,
         showAxisArrows: document.getElementById('showAxisArrows') ? document.getElementById('showAxisArrows').checked : true,
         xAxisLabelType: document.getElementById('xAxisLabelType').value,
-        xMin: 0, xMax: 10, xIncrement: 1, xValuePerMinorSquare: 1, // Will be updated below
+        xMin: xMinValue, xMax: xMaxValue, xIncrement: xIncrementValue, xValuePerMinorSquare: xIncrementValue, // Will be updated below for radians
         xLabelEvery: parseInt(document.getElementById('xLabelEvery').value, 10),
         xLabelOnZero: document.getElementById('xLabelOnZero').checked,
         xAxisLabelOnRight: document.getElementById('xAxisLabelOnRight').checked,
@@ -1355,10 +1375,11 @@ export function drawGrid() {
         suppressZeroLabel: document.getElementById('suppressZeroLabel').checked,
         minorGridColor: document.getElementById('minorGridColor').value,
         majorGridColor: document.getElementById('majorGridColor').value,
-        paperStyle: document.getElementById('paperStyle').value || 'grid'
+        paperStyle: paperStyle
     };
 
-    if (gridOptions.xAxisLabelType === 'radians') {
+    // For polar paper, skip x-axis type processing
+    if (paperStyle !== 'polar' && gridOptions.xAxisLabelType === 'radians') {
         const xMinRadians = parseFloat(document.getElementById('xMinRadians').value) || 0;
         const xMaxRadians = parseFloat(document.getElementById('xMaxRadians').value) || (2 * Math.PI / Math.PI);
         const radianStepMultiplier = parseFloat(document.getElementById('radianStepMultiplier').value) || 0.5;
@@ -1373,10 +1394,8 @@ export function drawGrid() {
             gridErrorMessage.textContent = "Error: Radian Step Multiplier and Grid Units per Radian Step must be positive numbers.";
             return;
         }
-    } else {
-        gridOptions.xMin = parseFloat(document.getElementById('xMin').value) || 0;
-        gridOptions.xMax = parseFloat(document.getElementById('xMax').value) || 10;
-        gridOptions.xIncrement = parseFloat(document.getElementById('xIncrement').value) || 1;
+    } else if (paperStyle !== 'polar') {
+        // For non-polar Cartesian grids, xValuePerMinorSquare equals xIncrement
         gridOptions.xValuePerMinorSquare = gridOptions.xIncrement;
     }
 
@@ -1449,43 +1468,45 @@ export function drawGrid() {
             dotRadius: Math.max(1.2, gridOptions.minorSquareSize * 0.11)
         });
     } else if (gridOptions.paperStyle === 'polar') {
-        // Polar grid drawing
+        // Polar grid drawing using PolarRenderer module
         const centerX = gridOptions.offsetX + gridOptions.actualGridWidth / 2;
         const centerY = gridOptions.offsetY + gridOptions.actualGridHeight / 2;
         const maxRadius = Math.min(gridOptions.actualGridWidth, gridOptions.actualGridHeight) / 2;
 
-        // Get polar input values
-        let polarNumCircles = parseInt(document.getElementById('polarNumCircles').value, 10) || 8;
-        let polarNumRadials = parseInt(document.getElementById('polarNumRadials').value, 10) || 12;
-        let polarDegrees = parseInt(document.getElementById('polarDegrees').value, 10) || 360;
+        // Get polar input values from UI controls
+        const polarNumCircles = parseInt(document.getElementById('polarNumCircles')?.value, 10) || 4;
+        const polarNumRadials = parseInt(document.getElementById('polarNumRadials')?.value, 10) || 48;
+        const polarDegrees = 360; // Always a full circle
+        const polarLabelType = document.getElementById('polarLabelType')?.value || 'degrees';
+        const polarLabelEvery = parseInt(document.getElementById('polarLabelEvery')?.value, 10) || 4;
+        
+        // Handle innermost and second innermost radials - empty or 0 means no lines
+        const polarInnerRadialsValue = document.getElementById('polarInnerRadials')?.value;
+        const polarInnerRadials = polarInnerRadialsValue === '' ? 0 : (parseInt(polarInnerRadialsValue, 10) || 0);
+        
+        const polarSecondInnerRadialsValue = document.getElementById('polarSecondInnerRadials')?.value;
+        const polarSecondInnerRadials = polarSecondInnerRadialsValue === '' ? 0 : (parseInt(polarSecondInnerRadialsValue, 10) || polarNumRadials);
+        
+        const polarHalfCircleLabels = document.getElementById('polarHalfCircleLabels')?.checked || false;
 
-        // Draw concentric circles
-        for (let i = 1; i <= polarNumCircles; i++) {
-            let r = (maxRadius * i) / polarNumCircles;
-            gridGroup.appendChild(createSVGElement('circle', {
-                cx: centerX,
-                cy: centerY,
-                r: r,
-                stroke: gridOptions.minorGridColor,
-                'stroke-width': 1,
-                fill: 'none'
-            }));
-        }
+        // Initialize and draw polar grid
+        const polarRenderer = new PolarRenderer(svg);
+        polarRenderer.draw({
+            centerX,
+            centerY,
+            maxRadius,
+            minorGridColor: gridOptions.minorGridColor,
+            majorGridColor: gridOptions.majorGridColor,
+            polarNumCircles,
+            polarNumRadials,
+            polarDegrees,
+            polarLabelType,
+            polarLabelEvery,
+            polarInnerRadials,
+            polarSecondInnerRadials,
+            polarHalfCircleLabels
+        });
 
-        // Draw radial lines
-        for (let i = 0; i < polarNumRadials; i++) {
-            let angle = (polarDegrees * Math.PI / 180 * i) / polarNumRadials; // Convert degrees to radians
-            let x2 = centerX + maxRadius * Math.cos(angle);
-            let y2 = centerY + maxRadius * Math.sin(angle);
-            gridGroup.appendChild(createSVGElement('line', {
-                x1: centerX,
-                y1: centerY,
-                x2: x2,
-                y2: y2,
-                stroke: gridOptions.minorGridColor,
-                'stroke-width': 1
-            }));
-        }
         // Notify overlays to disable (no Cartesian transform)
         try { setTransform(null); } catch (e) { /* gridAPI may not be loaded yet */ }
         // Skip further grid drawing and return if using polar
